@@ -1,0 +1,236 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-06-11T17:00:00.000Z",
+	"title": "Design System: Synapse",
+	"extensions": {
+		"colorMeta": {
+			"paper": {
+				"role": "neutral",
+				"displayName": "Paper",
+				"canonical": "#f3ead7",
+				"tonalRamp": [
+					"#1a1a17",
+					"#3a3631",
+					"#5c554b",
+					"#7f766b",
+					"#9a958a",
+					"#cfc5b4",
+					"#e8dcc1",
+					"#f3ead7"
+				]
+			},
+			"ink": {
+				"role": "neutral",
+				"displayName": "Ink",
+				"canonical": "#1a1a17",
+				"tonalRamp": [
+					"#1a1a17",
+					"#3a352f",
+					"#4a4a42",
+					"#6a635a",
+					"#9a958a",
+					"#c4b9aa",
+					"#e8dcc1",
+					"#f3ead7"
+				]
+			},
+			"highlight": {
+				"role": "primary",
+				"displayName": "Highlighter",
+				"canonical": "#d8ff5c",
+				"tonalRamp": [
+					"#3a3a18",
+					"#7a7a26",
+					"#a8b836",
+					"#d8ff5c",
+					"#e6ff8a",
+					"#f0ffb0",
+					"#f6ffce",
+					"#fbffea"
+				]
+			},
+			"highlight-soft": {
+				"role": "primary",
+				"displayName": "Highlighter Soft",
+				"canonical": "#e6ff8a",
+				"tonalRamp": [
+					"#3a3a18",
+					"#7a7a26",
+					"#b0c83f",
+					"#d8ff5c",
+					"#e6ff8a",
+					"#efffb0",
+					"#f6ffce",
+					"#fbffea"
+				]
+			},
+			"pen-red": {
+				"role": "secondary",
+				"displayName": "Pen Red",
+				"canonical": "#c2362a",
+				"tonalRamp": [
+					"#3a0e08",
+					"#7a1f12",
+					"#a82a1e",
+					"#c2362a",
+					"#d65a4f",
+					"#e07f74",
+					"#eaa49b",
+					"#f4c9c2"
+				]
+			},
+			"paper-edge": {
+				"role": "neutral",
+				"displayName": "Paper Edge",
+				"canonical": "#e8dcc1",
+				"tonalRamp": [
+					"#3a352f",
+					"#5c554b",
+					"#7f766b",
+					"#a2988c",
+					"#cfc5b4",
+					"#e8dcc1",
+					"#f3ead7",
+					"#fbf8f0"
+				]
+			},
+			"tape": {
+				"role": "neutral",
+				"displayName": "Tape",
+				"canonical": "rgba(232, 220, 193, 0.85)",
+				"tonalRamp": [
+					"#5c554b",
+					"#7f766b",
+					"#a2988c",
+					"#cfc5b4",
+					"#e8dcc1",
+					"#f3ead7",
+					"#fbf8f0",
+					"#fefcf6"
+				]
+			}
+		},
+		"typographyMeta": {
+			"hand": {
+				"displayName": "Hand Display",
+				"purpose": "Brand mark, section titles, week entries. The only handwritten voice. Always Caveat 700."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "Reading copy, captions, paragraphs. Inter 400/500. Never Georgia, never a condensed display stack."
+			},
+			"mono": {
+				"displayName": "Mono / Data",
+				"purpose": "Course codes, timestamps, inline data, footer colophon. Special Elite 400. The data voice."
+			}
+		},
+		"shadows": [
+			{
+				"name": "polaroid-lift",
+				"value": "0 2px 6px rgba(26, 26, 23, 0.10)",
+				"purpose": "Subtle paper-on-paper lift for polaroid-framed artifacts only."
+			},
+			{
+				"name": "tape-lift",
+				"value": "0 1px 2px rgba(0, 0, 0, 0.08)",
+				"purpose": "Tape strip shadow. Used only on .tape and .sticky."
+			}
+		],
+		"motion": [],
+		"breakpoints": [
+			{ "name": "sm", "value": "640px" },
+			{ "name": "md", "value": "768px" },
+			{ "name": "lg", "value": "1024px" }
+		]
+	},
+	"components": [
+		{
+			"name": "Highlighter Sweep",
+			"kind": "text",
+			"refersTo": "highlighter",
+			"description": "A span of highlighted text, used like a real highlighter behind a single word or short phrase.",
+			"html": "<span class=\"highlighter\">extracts</span>",
+			"css": ".highlighter { background: #d8ff5c; mix-blend-mode: multiply; padding: 0 6px; display: inline-block; line-height: 1.1; }"
+		},
+		{
+			"name": "Tape Strip",
+			"kind": "frame",
+			"refersTo": "tape",
+			"description": "A small masking-tape strip used to mount artifacts to the page. Rotated slightly.",
+			"html": "<span class=\"tape\" style=\"transform: rotate(-3deg);\">vol. 01</span>",
+			"css": ".tape { background: rgba(232, 220, 193, 0.85); padding: 4px 14px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.04); font-family: 'Special Elite', monospace; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; color: #4a4a42; }"
+		},
+		{
+			"name": "Stamp",
+			"kind": "label",
+			"refersTo": "stamp",
+			"description": "A dashed-border date or section stamp. Slightly rotated.",
+			"html": "<span class=\"stamp\" style=\"transform: rotate(2.4deg);\">fall '25 → spring '27</span>",
+			"css": ".stamp { font-family: 'Special Elite', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #9a958a; border: 1.5px dashed #9a958a; padding: 4px 10px; display: inline-block; }"
+		},
+		{
+			"name": "Polaroid Frame",
+			"kind": "frame",
+			"refersTo": "polaroid",
+			"description": "A paper-on-paper mount for screenshots, diagrams, and structured cards.",
+			"html": "<figure class=\"polaroid\">...</figure>",
+			"css": ".polaroid { background: #fbf8f0; padding: 6px 6px 22px; border: 1px solid rgba(26, 26, 23, 0.18); box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 6px rgba(26, 26, 23, 0.10); }"
+		},
+		{
+			"name": "Margin Note",
+			"kind": "annotation",
+			"refersTo": "margin-note",
+			"description": "A handwritten annotation in the page margin. Caveat 400, ink-soft color.",
+			"html": "<span class=\"margin-note\" style=\"transform: rotate(-3deg);\">this. every week.</span>",
+			"css": ".margin-note { font-family: 'Caveat', cursive; font-weight: 400; color: #4a4a42; line-height: 1.05; }"
+		}
+	],
+	"narrative": {
+		"northStar": "The Field Notebook",
+		"overview": "A research notebook that is also the product demo. The page looks like a Moleskine opened on a desk: hand-traced diagrams, real data plotted in pen, a fluorescent highlighter pulled over the things that matter. The aesthetic is intentionally made, not templatey — and it practices what Synapse preaches: the data is real, the graph is real, the page itself is a graph. The palette is paper (#f3ead7) with a single highlighter accent (#d8ff5c) reserved for things that matter. A red pen (#c2362a) is the second voice, used only for corrections. Typography is intentionally a hand-drawn display (Caveat) for titles, Inter for body, and a typewriter mono (Special Elite) for data — the page reads like a research notebook, not a SaaS landing page. This system is a complete replacement of the previous warm-paper / green-ink / Georgia / condensed-display system. No anchors are carried forward.",
+		"keyCharacteristics": [
+			"Cream paper surface with a subtle fiber noise, charcoal ink, a fluorescent highlighter as the single accent",
+			"Hand-drawn display type (Caveat), Inter for reading, Special Elite for data",
+			"Real academic data (course codes, real grades, real deadlines) is the design — not decoration",
+			"The hero, the graph section, and the timeline all carry real structured data",
+			"Flat surfaces with subtle paper artifacts (polaroid frames, tape strips, dashed borders)"
+		],
+		"rules": [
+			{
+				"name": "The Highlighter Rule",
+				"body": "The highlighter is the only accent. It must constitute ≤10% of any viewport. Its rarity is the point — when a student sees the highlighter, they know something matters.",
+				"section": "colors"
+			},
+			{
+				"name": "The Red Pen Rule",
+				"body": "Red is the second voice. It is used for: corrections, circled to-do items, one or two margin notes, and nothing else. If you find yourself reaching for red three times in a section, you have used it wrong.",
+				"section": "colors"
+			},
+			{
+				"name": "The Caveat Ceiling",
+				"body": "Caveat is the only hand-drawn voice and is reserved for titles, the brand, and the week entries. Never use it for body copy, never use it for data, never use it for nav.",
+				"section": "typography"
+			}
+		],
+		"dos": [
+			"Do use the highlighter (#d8ff5c) for one thing per section at most.",
+			"Do use the red pen (#c2362a) only for corrections and circled items.",
+			"Do mount real academic data: course codes, real deadlines, real weights.",
+			"Do rotate small UI elements ±1–3° for the traced-by-hand feel.",
+			"Do use polaroid frames, tape strips, and dashed-border stamps as the page furniture.",
+			"Do honor prefers-reduced-motion: reduce — there are no autoplay animations anyway."
+		],
+		"donts": [
+			"Don't use the previous system's green ink, warm paper tone, or Georgia body. They're gone.",
+			"Don't use glassmorphism, gradient text, or hero-metric stat templates.",
+			"Don't use big numbers + small labels.",
+			"Don't use a numbered section scaffold (01 / 02 / 03).",
+			"Don't add scroll animations, parallax, or entrance transitions.",
+			"Don't use the dark network-glow footer.",
+			"Don't use perfect geometric bezier curves for arrows — slight jitter is the design.",
+			"Don't use rounded-everything. Polaroid corners are 0px, card corners are 2–4px.",
+			"Don't use em dashes.",
+			"Don't carry forward any anchor from the previous design."
+		]
+	}
+}
