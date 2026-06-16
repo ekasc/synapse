@@ -113,7 +113,7 @@
 		"typographyMeta": {
 			"hand": {
 				"displayName": "Hand Display",
-				"purpose": "Brand mark, section titles, week entries. The only handwritten voice. Always Caveat 700."
+				"purpose": "Brand mark, section titles, week entries. The only hand-printed voice. Always Kalam 700."
 			},
 			"body": {
 				"displayName": "Body",
@@ -121,7 +121,7 @@
 			},
 			"mono": {
 				"displayName": "Mono / Data",
-				"purpose": "Course codes, timestamps, inline data, footer colophon. Special Elite 400. The data voice."
+				"purpose": "Course codes, timestamps, inline data, footer colophon. Inter 400 with uppercase + letter-spacing + color for distinction. Same family as body, different styling."
 			}
 		},
 		"shadows": [
@@ -158,7 +158,7 @@
 			"refersTo": "tape",
 			"description": "A small masking-tape strip used to mount artifacts to the page. Rotated slightly.",
 			"html": "<span class=\"tape\" style=\"transform: rotate(-3deg);\">vol. 01</span>",
-			"css": ".tape { background: rgba(232, 220, 193, 0.85); padding: 4px 14px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.04); font-family: 'Special Elite', monospace; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; color: #4a4a42; }"
+			"css": ".tape { background: rgba(232, 220, 193, 0.85); padding: 4px 14px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.04); font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem; color: #4a4a42; }"
 		},
 		{
 			"name": "Stamp",
@@ -166,7 +166,7 @@
 			"refersTo": "stamp",
 			"description": "A dashed-border date or section stamp. Slightly rotated.",
 			"html": "<span class=\"stamp\" style=\"transform: rotate(2.4deg);\">fall '25 → spring '27</span>",
-			"css": ".stamp { font-family: 'Special Elite', monospace; text-transform: uppercase; letter-spacing: 0.14em; color: #9a958a; border: 1.5px dashed #9a958a; padding: 4px 10px; display: inline-block; }"
+			"css": ".stamp { font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.14em; color: #9a958a; border: 1.5px dashed #9a958a; padding: 4px 10px; display: inline-block; }"
 		},
 		{
 			"name": "Polaroid Frame",
@@ -180,17 +180,17 @@
 			"name": "Margin Note",
 			"kind": "annotation",
 			"refersTo": "margin-note",
-			"description": "A handwritten annotation in the page margin. Caveat 400, ink-soft color.",
+			"description": "A handwritten annotation in the page margin. Kalam 400, ink-soft color.",
 			"html": "<span class=\"margin-note\" style=\"transform: rotate(-3deg);\">this. every week.</span>",
-			"css": ".margin-note { font-family: 'Caveat', cursive; font-weight: 400; color: #4a4a42; line-height: 1.05; }"
+			"css": ".margin-note { font-family: 'Kalam', cursive; font-weight: 400; color: #4a4a42; line-height: 1.05; }"
 		}
 	],
 	"narrative": {
 		"northStar": "The Field Notebook",
-		"overview": "A research notebook that is also the product demo. The page looks like a Moleskine opened on a desk: hand-traced diagrams, real data plotted in pen, a fluorescent highlighter pulled over the things that matter. The aesthetic is intentionally made, not templatey — and it practices what Synapse preaches: the data is real, the graph is real, the page itself is a graph. The palette is paper (#f3ead7) with a single highlighter accent (#d8ff5c) reserved for things that matter. A red pen (#c2362a) is the second voice, used only for corrections. Typography is intentionally a hand-drawn display (Caveat) for titles, Inter for body, and a typewriter mono (Special Elite) for data — the page reads like a research notebook, not a SaaS landing page. This system is a complete replacement of the previous warm-paper / green-ink / Georgia / condensed-display system. No anchors are carried forward.",
+		"overview": "A research notebook that is also the product demo. The page looks like a Moleskine opened on a desk: hand-traced diagrams, real data plotted in pen, a fluorescent highlighter pulled over the things that matter. The aesthetic is intentionally made, not templatey — and it practices what Synapse preaches: the data is real, the graph is real, the page itself is a graph. The palette is paper (#f3ead7) with a single highlighter accent (#d8ff5c) reserved for things that matter. A red pen (#c2362a) is the second voice, used only for corrections. Typography is intentionally a hand-printed display (Kalam) for titles and Inter for both body and data — the page reads like a research notebook, not a SaaS landing page. This system is a complete replacement of the previous warm-paper / green-ink / Georgia / condensed-display system. No anchors are carried forward.",
 		"keyCharacteristics": [
 			"Cream paper surface with a subtle fiber noise, charcoal ink, a fluorescent highlighter as the single accent",
-			"Hand-drawn display type (Caveat), Inter for reading, Special Elite for data",
+			"Hand-printed display type (Kalam), Inter for reading and data",
 			"Real academic data (course codes, real grades, real deadlines) is the design — not decoration",
 			"The hero, the graph section, and the timeline all carry real structured data",
 			"Flat surfaces with subtle paper artifacts (polaroid frames, tape strips, dashed borders)"
@@ -207,8 +207,8 @@
 				"section": "colors"
 			},
 			{
-				"name": "The Caveat Ceiling",
-				"body": "Caveat is the only hand-drawn voice and is reserved for titles, the brand, and the week entries. Never use it for body copy, never use it for data, never use it for nav.",
+				"name": "The Kalam Ceiling",
+				"body": "Kalam is the only hand-printed voice and is reserved for titles, the brand, and the week entries. Never use it for body copy, never use it for data, never use it for nav.",
 				"section": "typography"
 			}
 		],

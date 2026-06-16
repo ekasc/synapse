@@ -16,7 +16,7 @@ Synapse is a research notebook that is also the product demo. The page looks lik
 **Key characteristics:**
 
 - Cream paper surface with a subtle fiber noise, charcoal ink, a fluorescent highlighter as the single accent
-- Hand-drawn display type (Caveat), Inter for reading, Special Elite for data
+- Hand-printed display type (Kalam), Inter for reading and data
 - Real academic data (course codes, real grades, real deadlines) is the design — not decoration
 - The hero, the graph section, and the timeline all carry real structured data
 - Flat surfaces with subtle paper artifacts (polaroid frames, tape strips, dashed borders)
@@ -51,24 +51,23 @@ A restrained two-accent system. The page is paper and ink. The highlighter is th
 
 ## 3. Typography
 
-**Display Font:** Caveat (handwritten cursive, 700 weight)
+**Display Font:** Kalam (hand-printed, 700 weight)
 **Body Font:** Inter (humanist sans, 400/500/600)
-**Mono / Data Font:** Special Elite (typewriter, 400)
 
-The pairing is deliberate. Caveat is the only hand-drawn voice and is reserved for section titles, the brand mark, and the week entries. Inter is the reading and label voice. Special Elite is the data voice — course codes, timestamps, inline data, all live here.
+The pairing is deliberate. Kalam is the only hand-printed voice and is reserved for section titles, the brand mark, and the week entries. Inter is both the reading voice and the data voice; data distinction is carried by weight, color, uppercase, and letter-spacing rather than a separate font.
 
 ### Hierarchy
 
-- **Hand Display** (Caveat 700, `clamp(2rem, 3.6vw, 3.4rem)`, 1.05 line-height): Section titles, week entries, the brand mark.
-- **Cover Display** (Caveat 700, `clamp(3.6rem, 8vw, 7.5rem)`, 0.95 line-height): The hero "synapse" word.
+- **Hand Display** (Kalam 700, `clamp(2rem, 3.6vw, 3.4rem)`, 1.05 line-height): Section titles, week entries, the brand mark.
+- **Cover Display** (Kalam 700, `clamp(3.6rem, 8vw, 6rem)`, 0.95 line-height): The hero "synapse" word.
 - **Body** (Inter 400, `clamp(1rem, 1.1vw, 1.15rem)`, 1.55 line-height): Reading copy, paragraphs.
 - **Body Strong** (Inter 500): Captions, lead sentences.
-- **Mono / Data** (Special Elite 400, `clamp(0.85rem, 0.95vw, 1rem)`, 1.4 line-height): Course codes, timestamps, inline data, footer colophon.
+- **Data** (Inter 400, `clamp(0.85rem, 0.95vw, 1rem)`, 1.4 line-height): Course codes, timestamps, inline data, footer colophon. Carries visual weight through uppercase + letter-spacing + color, not a separate family.
 - **Label** (Inter 600, all-caps, `letter-spacing: 0.14em`, `0.7rem`): Section labels, field names, course labels inside structured cards.
 
 ### Named Rules
 
-**The Caveat Ceiling.** Caveat is the only hand-drawn voice and is reserved for titles, the brand, and the week entries. Never use it for body copy, never use it for data, never use it for nav.
+**The Kalam Ceiling.** Kalam is the only hand-printed voice and is reserved for titles, the brand, and the week entries. Never use it for body copy, never use it for data, never use it for nav.
 
 **No Georgia. No condensed display stack.** The previous system is gone.
 
@@ -88,7 +87,7 @@ No other surface carries a shadow. Cards, structures, and the graph stage are fl
 
 - **Top-left tape**: a `vol. 01` masking-tape strip, rotated -3deg.
 - **Top-right stamp**: a dashed-border date stamp `fall '25 → spring '27`, rotated +2.4deg.
-- **Brand mark**: `synapse` in Caveat 700 at `clamp(3.6rem, 8vw, 7.5rem)` with a highlighter sweep behind it.
+- **Brand mark**: `synapse` in Kalam 700 at `clamp(3.6rem, 8vw, 6rem)` with a highlighter sweep behind it.
 - **Subtitle**: 60-word sentence in Inter regular, no Georgia.
 - **Mini graph**: a 5-node, 6-edge hand-traced graph mounted in a polaroid frame, with a single highlighted edge.
 - **Sparkline**: a 200x40px inline data viz with a single dot, captioned "gpa 3.7 · prereqs 8/9."
@@ -97,38 +96,38 @@ No other surface carries a shadow. Cards, structures, and the graph stage are fl
 ### Messy Page (Section 2)
 
 - **Torn page artifact**: a `#fbf8f0` polaroid-framed page with a calendar grid (some cells red, some crossed), two scribbled course names, a yellow sticky note with a handwritten question, a to-do list with three items crossed off and one circled in red, and a faint coffee ring.
-- **Margin annotation**: a small SVG arrow + Caveat text in red pen at the page's left margin, pointing to the page.
+- **Margin annotation**: a small SVG arrow + Kalam text in red pen at the page's left margin, pointing to the page.
 - **Body copy**: a single 40-word paragraph below the artifact.
 
 ### Transformation (Section 3)
 
 - **Stamp header**: a rotated dashed-border stamp `field 03 · the mechanism`.
-- **Title**: Caveat 700 with two highlighted words (`upload` and `extracts`).
-- **Syllabus doc**: a polaroid-framed "document" with structured rows (course, meetings, grading, deadlines, prereq, notes). Notes row is in Caveat for a handwritten feel.
-- **Extract arrow**: a horizontal hand-drawn arrow with a Caveat `extract` label below it.
+- **Title**: Kalam 700 with two highlighted words (`upload` and `extracts`).
+- **Syllabus doc**: a polaroid-framed "document" with structured rows (course, meetings, grading, deadlines, prereq, notes). Notes row is in Kalam for a handwritten feel.
+- **Extract arrow**: a horizontal hand-drawn arrow with a Kalam `extract` label below it.
 - **Extracted card**: a `#fbf8f0` card with a 2px ink border and a `2px 2px 0 var(--ink)` shadow (the only hard-edge shadow in the system). Contains a `<dl>` of structured data. One row (the `mar 24 midterm` deadline) has a highlighter sweep.
 
 ### Graph (Section 4)
 
 - **Stamp header**: rotated dashed-border stamp `the graph · fall '25 — spring '27`.
-- **Margin annotations**: 4 Caveat notes in the left gutter, each with a hand-drawn leader-line arrow to a specific node (desktop only — hidden on mobile).
+- **Margin annotations**: 4 Kalam notes in the left gutter, each with a hand-drawn leader-line arrow to a specific node (desktop only — hidden on mobile).
 - **Graph stage**: a `#fbf8f0` flat panel containing a 1100x600 SVG. 16 course nodes, polaroid-style with `1.4px` ink borders. 12 charcoal prereq edges. 1 highlighted path (the "what you might take next semester" path) in 6px highlighter.
 - **Question + answer**: a 30-word paragraph below the graph.
 
 ### Timeline (Section 5)
 
 - **Stamp header**: rotated dashed-border stamp `the log · week by week`.
-- **Title**: Caveat 700 with the phrase `week by week` highlighted.
+- **Title**: Kalam 700 with the phrase `week by week` highlighted.
 - **Weeks**: an ordered list of 6 weeks. Each week has:
   - A rotated dashed-border stamp (e.g. `WEEK 01`)
-  - A Caveat 700 entry line (the actual event)
-  - A Special Elite data line (the structured fact)
+  - A Kalam 700 entry line (the actual event)
+  - A Inter data line (the structured fact)
   - A small inline data viz: bar, dot-on-axis, sparkline, number, check, or mini graph
 - **Responsive**: stacks to a single column on mobile.
 
 ### Footer (Colophon)
 
-- Three columns on desktop: brand mark (`synapse · vol. 01` in Caveat), centered copyright line, right-aligned nav (privacy / terms / contact).
+- Three columns on desktop: brand mark (`synapse · vol. 01` in Kalam), centered copyright line, right-aligned nav (privacy / terms / contact).
 - No dark mode. No social icons. No subscribe input. No network glow graphic.
 
 ## 6. Do's and Don'ts

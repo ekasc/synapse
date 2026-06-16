@@ -53,8 +53,7 @@
 		"wrangler": "^4.81.0"
 	},
 	"dependencies": {
-		"@fontsource/caveat": "^5.2.8",
-		"@fontsource/inter": "^5.2.8",
-		"@fontsource/special-elite": "^5.2.8"
+		"@fontsource/kalam": "^5.2.5",
+		"@fontsource/inter": "^5.2.8"
 	}
 }
