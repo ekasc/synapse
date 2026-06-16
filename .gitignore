@@ -29,3 +29,8 @@ vite.config.ts.timestamp-*
 .stfolder
 .stignore
 .stversions
+
+# Syncthing conflict/temp artifacts
+.syncthing.*
+*.sync-conflict-*
+**/.stversions/**
