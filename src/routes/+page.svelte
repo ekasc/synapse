@@ -1,58 +1,84 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
-
 	type Week = {
 		stamp: string;
 		entry: string;
 		data: string;
-		viz: 'bar' | 'spark' | 'num' | 'dot' | 'check' | 'graph';
-		value: number;
 	};
 
 	const weeks: Week[] = [
 		{
-			stamp: 'WEEK 01',
-			entry: 'uploaded syllabus: CSIS 4495',
-			data: 'deadlines: 14 · weights: 4',
-			viz: 'bar',
-			value: 0.18
+			stamp: 'week 01',
+			entry: 'syllabus uploaded: CSIS 4495',
+			data: 'extracted: 14 deadlines, 4 weights'
 		},
 		{
-			stamp: 'WEEK 02',
+			stamp: 'week 02',
 			entry: 'first grade: 88/100',
-			data: 'linked to COMP 1110',
-			viz: 'dot',
-			value: 0.88
+			data: 'tagged: COMP 1110 · quiz 1'
 		},
 		{
-			stamp: 'WEEK 03',
-			entry: 'study sessions: 4.5h',
-			data: 'digest: midterm in 3 weeks, at 84%',
-			viz: 'spark',
-			value: 0.62
+			stamp: 'week 03',
+			entry: 'studied 4.5h',
+			data: 'synapse flagged: midterm in 3 weeks, 84% ready'
 		},
 		{
-			stamp: 'WEEK 04',
+			stamp: 'week 04',
 			entry: 'midterm: 76/100',
-			data: 'running: 81.2% · what-if: 85% on project → 50% on final',
-			viz: 'num',
-			value: 0.76
+			data: 'running 81.2% · if project = 85%, final needs 50% for an A'
 		},
 		{
-			stamp: 'WEEK 05',
-			entry: 'study sessions: 7h · note: heap sort vs merge sort',
-			data: 'linked to COMP 1110',
-			viz: 'check',
-			value: 1
+			stamp: 'week 05',
+			entry: 'studied 7h · reviewed: heap sort vs merge sort',
+			data: 'tagged: COMP 1110'
 		},
 		{
-			stamp: 'WEEK 06',
-			entry: 'graph: 3 courses, 2 prereqs, 14 deadlines, 24 study hours',
-			data: 'semester closed · spring ' + "'" + '26 open',
-			viz: 'graph',
-			value: 1
+			stamp: 'week 06',
+			entry: 'graph: 3 courses, 2 prereqs, 14 deadlines, 24h studied',
+			data: "fall '25 closed · spring '26 starts"
 		}
 	];
+
+	let whatIf = $state(false);
+
+	type Query = {
+		q: string;
+		a: string;
+		detail: string;
+	};
+
+	const queries: Query[] = [
+		{
+			q: "what's the earliest i can take the capstone?",
+			a: "spring '27. you finish every prereq by fall '26.",
+			detail: "algorithms and discrete structures both unlock it. you take those in fall '26."
+		},
+		{
+			q: 'which course has the most homework?',
+			a: 'world history. four assignments due this month.',
+			detail: 'mostly reading responses. the median across your courses is two.'
+		},
+		{
+			q: "when's my next deadline?",
+			a: 'tuesday. econ 2200 problem set, 11:59 pm.',
+			detail: 'three more this week: stats homework thursday, capstone draft friday.'
+		}
+	];
+
+	let queryIndex = $state(0);
+	let showAnswer = $state(false);
+
+	$effect(() => {
+		const t = setTimeout(() => (showAnswer = true), 1400);
+		return () => clearTimeout(t);
+	});
+
+	function tryAnother() {
+		showAnswer = false;
+		setTimeout(() => {
+			queryIndex = (queryIndex + 1) % queries.length;
+			showAnswer = true;
+		}, 900);
+	}
 </script>
 
 <svelte:head>
@@ -68,7 +94,6 @@
 	<section class="section section--cover" aria-labelledby="cover-heading">
 		<div class="cover-page">
 			<div class="cover-top">
-				<span class="tape" style="transform: rotate(-3deg);">vol. 01</span>
 				<span class="stamp" style="transform: rotate(2.4deg);">fall '25 → spring '27</span>
 			</div>
 
@@ -80,13 +105,32 @@
 					<p class="cover-sub">
 						A notebook for your degree — every course, grade, and deadline, on one connected page.
 					</p>
+					<a href="/app" class="cover-cta">
+						<span class="cta-label">open your notebook</span>
+						<svg class="cta-arrow" viewBox="0 0 40 20" aria-hidden="true">
+							<path
+								d="M 4 10 L 34 10"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+							/>
+							<path
+								d="M 26 4 L 34 10 L 26 16"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						</svg>
+					</a>
 				</div>
 
 				<div class="cover-right">
 					<figure class="mini-graph polaroid" style="transform: rotate(-1.6deg);">
 						<svg
 							class="mini-graph-svg"
-							viewBox="0 0 320 200"
+							viewBox="0 35 330 115"
 							role="img"
 							aria-labelledby="mini-graph-title mini-graph-desc"
 						>
@@ -132,99 +176,97 @@
 									stroke-linecap="round"
 								/>
 								<path
-									d="M 220 100 Q 260 100 290 60"
+									d="M 220 100 Q 270 100 300 60"
 									fill="none"
 									stroke="var(--ink)"
 									stroke-width="1.6"
 									stroke-linecap="round"
 								/>
 							</g>
-							<g class="nodes font-mono" font-size="9" fill="var(--ink)">
-								<g transform="translate(40 88)">
+							<g class="nodes" font-family="Inter, sans-serif" font-size="10" fill="var(--ink)">
+								<g transform="translate(34 88)">
 									<rect
 										x="0"
 										y="0"
-										width="44"
+										width="52"
 										height="24"
 										fill="#fbf8f0"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
 									/>
-									<text x="22" y="14" text-anchor="middle">CS 101</text>
+									<text x="26" y="15" text-anchor="middle">CS 101</text>
 								</g>
-								<g transform="translate(122 58)">
+								<g transform="translate(114 58)">
 									<rect
 										x="0"
 										y="0"
-										width="44"
+										width="52"
 										height="24"
 										fill="#fbf8f0"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
 									/>
-									<text x="22" y="14" text-anchor="middle">MATH 110</text>
+									<text x="26" y="15" text-anchor="middle">MATH 110</text>
 								</g>
-								<g transform="translate(122 118)">
+								<g transform="translate(114 118)">
 									<rect
 										x="0"
 										y="0"
-										width="44"
+										width="52"
 										height="24"
 										fill="#fbf8f0"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
 									/>
-									<text x="22" y="14" text-anchor="middle">CS 201</text>
+									<text x="26" y="15" text-anchor="middle">CS 201</text>
 								</g>
-								<g transform="translate(204 58)">
+								<g transform="translate(198 58)">
 									<rect
 										x="0"
 										y="0"
-										width="44"
+										width="52"
 										height="24"
 										fill="#fbf8f0"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
 									/>
-									<text x="22" y="14" text-anchor="middle">CS 301</text>
+									<text x="26" y="15" text-anchor="middle">CS 301</text>
 								</g>
-								<g transform="translate(204 118)">
+								<g transform="translate(198 118)">
 									<rect
 										x="0"
 										y="0"
-										width="44"
+										width="52"
 										height="24"
 										fill="#fbf8f0"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
 									/>
-									<text x="22" y="14" text-anchor="middle">CS 302</text>
+									<text x="26" y="15" text-anchor="middle">CS 302</text>
 								</g>
-								<g transform="translate(276 46)">
+								<g transform="translate(272 46)">
 									<rect
 										x="0"
 										y="0"
-										width="44"
+										width="52"
 										height="24"
 										fill="#fbf8f0"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
 									/>
-									<text x="22" y="14" text-anchor="middle">CAP</text>
+									<text x="26" y="15" text-anchor="middle">CAP</text>
 								</g>
 							</g>
 						</svg>
-						<figcaption class="font-mono">fig. 1 · your first 3 semesters, traced</figcaption>
 					</figure>
 
 					<div class="cover-spark font-mono" aria-hidden="true">
-						<span class="stamp" style="transform: rotate(-1deg);">live · 12 courses</span>
 						<svg viewBox="0 0 200 40" class="sparkline">
 							<path
 								d="M 4 30 L 24 26 L 44 28 L 64 18 L 84 22 L 104 14 L 124 16 L 144 10 L 164 12 L 184 6"
@@ -259,75 +301,85 @@
 
 	<!-- ==================== SECTION 2 · THE PROBLEM ==================== -->
 	<section class="section section--problem" aria-labelledby="problem-heading">
-		<h2 id="problem-heading" class="sr-only">The problem: fragmented academic data</h2>
+		<div class="problem-top">
+			<header class="problem-head">
+				<span class="stamp" style="transform: rotate(-0.6deg);">the mess</span>
+				<h2 id="problem-heading" class="problem-title font-hand">
+					your data lives here. and here. and here.
+				</h2>
 
-		<figure
-			class="messy-page-wrap"
-			aria-label="A torn notebook page showing the chaos of a typical week"
-		>
-			<div class="messy-page" style="transform: rotate(1.4deg);">
-				<div class="coffee-ring" aria-hidden="true"></div>
-				<div class="messy-grid">
-					<div class="cal-block">
-						<span class="cal-head font-mono">week 03</span>
-						<div class="cal-grid">
-							<span class="d">M</span><span class="d">T</span><span class="d">W</span><span
-								class="d">T</span
-							><span class="d">F</span><span class="d">S</span><span class="d">S</span>
-							<span class="cell"></span><span class="cell cross"></span><span class="cell"
-							></span><span class="cell red"></span><span class="cell"></span><span class="cell"
-							></span><span class="cell"></span>
-							<span class="cell"></span><span class="cell"></span><span class="cell"></span><span
-								class="cell cross"
-							></span><span class="cell red"></span><span class="cell"></span><span class="cell"
-							></span>
-							<span class="cell"></span><span class="cell cross"></span><span class="cell"
-							></span><span class="cell"></span><span class="cell"></span><span class="cell"
-							></span><span class="cell"></span>
+				<div class="problem-body">
+					<p>
+						Each week looks like this on paper. Fragments in five different places, none of them
+						talking to each other.
+					</p>
+					<p>The data exists. The connection doesn't.</p>
+				</div>
+			</header>
+			<figure
+				class="messy-page-wrap"
+				aria-label="A torn notebook page showing the chaos of a typical week"
+			>
+				<div class="messy-page" style="transform: rotate(1.4deg);">
+					<div class="coffee-ring" aria-hidden="true"></div>
+					<div class="messy-grid">
+						<div class="cal-block">
+							<span class="cal-head font-hand">week 03</span>
+							<div class="cal-grid">
+								<span class="d">S</span><span class="d">M</span><span class="d">T</span><span
+									class="d">W</span
+								><span class="d">T</span><span class="d">F</span><span class="d">S</span>
+								<span class="cell"></span><span class="cell"></span><span class="cell cross"
+								></span><span class="cell"></span><span class="cell red"></span><span class="cell"
+								></span><span class="cell"></span>
+								<span class="cell"></span><span class="cell"></span><span class="cell"></span><span
+									class="cell cross"
+								></span><span class="cell red"></span><span class="cell"></span><span class="cell"
+								></span>
+								<span class="cell"></span><span class="cell"></span><span class="cell cross"
+								></span><span class="cell"></span><span class="cell"></span><span class="cell"
+								></span><span class="cell"></span>
+							</div>
+						</div>
+						<div class="cal-legend font-mono" aria-hidden="true">
+							<span><i class="dot red"></i> deadline</span>
+							<span><i class="dot cross"></i> class</span>
+						</div>
+						<div class="scribble scribble-1" aria-hidden="true">math 1120</div>
+						<div class="scribble scribble-2" aria-hidden="true">mar 24</div>
+						<div
+							class="sticky"
+							style="transform: rotate(-3.4deg);"
+							aria-label="A sticky note with a handwritten question"
+						>
+							<p>what's the<br />prereq for<br />CSIS 4495?</p>
+						</div>
+						<div
+							class="todo font-mono"
+							aria-label="A to-do list with three items crossed off and one circled in red"
+						>
+							<span class="todo-label font-hand">to-do</span>
+							<span class="done">☐ read ch.4</span>
+							<span class="done">☐ lab report</span>
+							<span class="done">☐ email prof</span>
+							<span class="red-circle">◯ study for midterm</span>
 						</div>
 					</div>
-					<div class="cal-legend font-mono" aria-hidden="true">
-						<span><i class="dot red"></i> deadline</span>
-						<span><i class="dot cross"></i> class</span>
-					</div>
-					<div class="scribble scribble-1" aria-hidden="true">math 1120</div>
-					<div class="scribble scribble-2" aria-hidden="true">csis 4495</div>
-					<div
-						class="sticky"
-						style="transform: rotate(-3.4deg);"
-						aria-label="A sticky note with a handwritten question"
-					>
-						<p>what's the<br />prereq for<br />CSIS 4495?</p>
-					</div>
-					<div
-						class="todo font-mono"
-						aria-label="A to-do list with three items crossed off and one circled in red"
-					>
-						<span class="done">☐ read ch.4</span>
-						<span class="done">☐ lab report</span>
-						<span class="done">☐ email prof</span>
-						<span class="red-circle">◯ study for midterm</span>
-					</div>
 				</div>
-			</div>
 
-			<svg
-				class="margin-annotation margin-annotation--problem"
-				viewBox="0 0 180 60"
-				aria-hidden="true"
-			>
-				<g class="hand-arrow">
-					<path d="M 8 8 Q 30 18 56 24" />
-					<circle class="head" cx="56" cy="24" r="2.4" />
-				</g>
-			</svg>
-			<span class="margin-note margin-note--problem" aria-hidden="true">this. every week.</span>
-		</figure>
-
-		<p class="problem-body">
-			Each week looks like this on paper — fragments in five different places, none of them talking
-			to each other. The data exists. The connection doesn't.
-		</p>
+				<svg
+					class="margin-annotation margin-annotation--problem"
+					viewBox="0 0 110 36"
+					aria-hidden="true"
+				>
+					<g class="hand-arrow">
+						<path d="M 2 18 C 30 14 70 14 100 18" />
+						<path d="M 92 11 L 104 18 L 92 25" fill="none" />
+					</g>
+				</svg>
+				<span class="margin-note margin-note--problem" aria-hidden="true">this. every week.</span>
+			</figure>
+		</div>
 	</section>
 
 	<div class="rough-divider" aria-hidden="true"></div>
@@ -335,7 +387,7 @@
 	<!-- ==================== SECTION 3 · THE TRANSFORMATION ==================== -->
 	<section class="section section--transform" aria-labelledby="transform-heading">
 		<header class="transform-head">
-			<span class="stamp" style="transform: rotate(-1deg);">field 03 · the mechanism</span>
+			<span class="stamp" style="transform: rotate(-1deg);">field note · the mechanism</span>
 			<h2 id="transform-heading" class="transform-title font-hand">
 				<span class="highlighter-soft">upload</span> a syllabus. every deadline, weight, and date
 				<span class="highlighter">extracts</span> on its own.
@@ -344,7 +396,7 @@
 
 		<div class="transform-spread">
 			<figure class="syllabus-doc polaroid" style="transform: rotate(-1deg);">
-				<div class="doc-stamp font-mono">CSIS 4495 · spring '26 · syllabus</div>
+				<div class="doc-stamp font-mono">syllabus</div>
 				<div class="doc-body">
 					<div class="doc-row">
 						<span class="doc-label font-mono">course</span>
@@ -382,10 +434,10 @@
 				</g>
 				<text
 					x="60"
-					y="48"
+					y="50"
 					text-anchor="middle"
-					font-family="Caveat, cursive"
-					font-size="18"
+					font-family="Kalam, cursive"
+					font-size="28"
 					fill="var(--ink-soft)">extract</text
 				>
 			</svg>
@@ -432,333 +484,72 @@
 
 		<p class="transform-body">
 			The structure is the point. Once the data has shape — course, date, weight, prereq — it can
-			answer questions across semesters. What you don't see is the same thing you couldn't see
-			before.
+			answer questions across semesters. What was scattered across five places is now queryable in
+			one.
 		</p>
 	</section>
 
 	<div class="rough-divider" aria-hidden="true"></div>
 
-	<!-- ==================== SECTION 4 · THE GRAPH ==================== -->
-	<section class="section section--graph" aria-labelledby="graph-heading">
-		<header class="graph-head">
-			<span class="stamp" style="transform: rotate(-0.6deg);"
-				>the graph · fall '25 — spring '27</span
-			>
+	<!-- ==================== SECTION 4 · THE QUERY ==================== -->
+	<section class="section section--query" aria-labelledby="query-heading">
+		<header class="query-head">
+			<span class="stamp" style="transform: rotate(-0.6deg);">ask</span>
+			<h2 id="query-heading" class="query-title font-hand">
+				your degree, <span class="highlighter">queryable</span>.
+			</h2>
+			<p class="query-sub font-body">ask in plain english. synapse answers from your graph.</p>
 		</header>
 
-		<div class="graph-spread">
-			<aside class="graph-margin" aria-label="Margin annotations">
-				<span class="margin-note" style="top: 14%; left: 4%; transform: rotate(-3deg);">
-					you bombed this midterm<br />(see week 4)
-				</span>
-				<span class="margin-note" style="top: 36%; right: -1rem; transform: rotate(2deg);">
-					this one's optional
-				</span>
-				<span class="margin-note" style="top: 60%; left: 6%; transform: rotate(-1deg);">
-					move this up a semester →
-				</span>
-				<span class="margin-note" style="top: 82%; right: 0; transform: rotate(2.4deg);">
-					networks → capstone path
-				</span>
-			</aside>
+		<div class="query-spread">
+			<div class="query-card">
+				<div class="query-input">
+					<span class="query-prefix" aria-hidden="true">→</span>
+					<p class="query-text font-body" aria-live="polite">{queries[queryIndex].q}</p>
+				</div>
 
-			<div class="graph-stage">
-				<svg
-					class="degree-graph"
-					viewBox="0 0 1100 600"
-					role="img"
-					aria-labelledby="degree-graph-title degree-graph-desc"
-				>
-					<title id="degree-graph-title">Degree graph across four semesters</title>
-					<desc id="degree-graph-desc">
-						A hand-traced course dependency graph for Fall 2025 through Spring 2027. Twelve courses,
-						prereq edges, and a highlighted path from Foundations of Information Systems to the
-						Capstone Project.
-					</desc>
+				{#if !showAnswer}
+					<div class="query-thinking" aria-live="polite">
+						<span class="query-dot"></span>
+						<span class="query-dot"></span>
+						<span class="query-dot"></span>
+						<span class="query-thinking-text font-hand">querying the graph…</span>
+					</div>
+				{:else}
+					<div class="query-answer">
+						<p class="query-result font-hand">{queries[queryIndex].a}</p>
+						<p class="query-detail font-body">{queries[queryIndex].detail}</p>
+					</div>
+				{/if}
 
-					<g class="term-labels font-mono" font-size="14" fill="var(--ink-faint)">
-						<text x="160" y="36" text-anchor="middle">FALL '25</text>
-						<text x="450" y="36" text-anchor="middle">SPRING '26</text>
-						<text x="740" y="36" text-anchor="middle">FALL '26</text>
-						<text x="980" y="36" text-anchor="middle">SPRING '27</text>
-					</g>
-
-					<g class="edges" stroke-linecap="round" fill="none">
-						<!-- FALL 25 -> SPRING 26 -->
-						<path d="M 160 130 Q 280 110 360 130" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 160 200 Q 280 250 360 250" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 160 280 Q 280 290 360 290" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 160 380 Q 300 380 360 320" stroke="var(--ink)" stroke-width="1.8" />
-						<!-- SPRING 26 -> FALL 26 -->
-						<path d="M 460 130 Q 600 130 660 130" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 460 250 Q 600 220 660 180" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 460 320 Q 600 320 660 280" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 460 380 Q 600 380 660 380" stroke="var(--ink)" stroke-width="1.8" />
-						<!-- HIGHLIGHTED PATH -->
-						<path
-							d="M 460 380 Q 580 380 660 380 L 660 280 L 770 280 L 770 200 L 870 200"
-							stroke="var(--highlight)"
-							stroke-width="6"
-							opacity="0.85"
-						/>
-						<!-- FALL 26 -> SPRING 27 -->
-						<path d="M 770 130 Q 870 130 880 160" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 770 280 Q 870 250 880 200" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 770 380 Q 870 380 880 320" stroke="var(--ink)" stroke-width="1.8" />
-						<path d="M 770 460 Q 880 460 880 380" stroke="var(--ink)" stroke-width="1.8" />
-					</g>
-
-					<g class="nodes" font-family="Special Elite, monospace" font-size="11">
-						<!-- FALL 25 -->
-						<g transform="translate(80 100)">
-							<rect
-								width="160"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="80" y="24" text-anchor="middle" fill="var(--ink)">COMP 1110</text>
-							<text x="80" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>intro to programming</text
-							>
-						</g>
-						<g transform="translate(80 170)">
-							<rect
-								width="160"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="80" y="24" text-anchor="middle" fill="var(--ink)">MATH 1120</text>
-							<text x="80" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>calculus I</text
-							>
-						</g>
-						<g transform="translate(80 250)">
-							<rect
-								width="160"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="80" y="24" text-anchor="middle" fill="var(--ink)">ENGL 1101</text>
-							<text x="80" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>academic writing</text
-							>
-						</g>
-						<g transform="translate(80 350)">
-							<rect
-								width="160"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="80" y="24" text-anchor="middle" fill="var(--ink)">CSIS 1100</text>
-							<text x="80" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>foundations of IS</text
-							>
-						</g>
-
-						<!-- SPRING 26 -->
-						<g transform="translate(360 100)">
-							<rect
-								width="200"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="100" y="24" text-anchor="middle" fill="var(--ink)">COMP 2110</text>
-							<text x="100" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>data structures</text
-							>
-						</g>
-						<g transform="translate(360 220)">
-							<rect
-								width="200"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="100" y="24" text-anchor="middle" fill="var(--ink)">MATH 1130</text>
-							<text x="100" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>calculus II</text
-							>
-						</g>
-						<g transform="translate(360 290)">
-							<rect
-								width="200"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="100" y="24" text-anchor="middle" fill="var(--ink)">STAT 2160</text>
-							<text x="100" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>statistics</text
-							>
-						</g>
-						<g transform="translate(360 350)">
-							<rect
-								width="200"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="100" y="24" text-anchor="middle" fill="var(--ink)">CSIS 2100</text>
-							<text
-								x="100"
-								y="24"
-								dy="18"
-								text-anchor="middle"
-								fill="var(--ink-soft)"
-								font-size="9.5">systems analysis</text
-							>
-						</g>
-
-						<!-- FALL 26 -->
-						<g transform="translate(660 100)">
-							<rect
-								width="220"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="110" y="24" text-anchor="middle" fill="var(--ink)">COMP 2120</text>
-							<text x="110" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>discrete structures</text
-							>
-						</g>
-						<g transform="translate(660 250)">
-							<rect
-								width="220"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="110" y="24" text-anchor="middle" fill="var(--ink)">CSIS 3100</text>
-							<text x="110" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>algorithms</text
-							>
-						</g>
-						<g transform="translate(660 350)">
-							<rect
-								width="220"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="110" y="24" text-anchor="middle" fill="var(--ink)">ECON 2200</text>
-							<text x="110" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>principles of econ</text
-							>
-						</g>
-						<g transform="translate(660 430)">
-							<rect
-								width="220"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="110" y="24" text-anchor="middle" fill="var(--ink)">ISYS 3300</text>
-							<text x="110" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>it project mgmt</text
-							>
-						</g>
-
-						<!-- SPRING 27 -->
-						<g transform="translate(880 130)">
-							<rect
-								width="180"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="90" y="24" text-anchor="middle" fill="var(--ink)">CSIS 4495</text>
-							<text x="90" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>capstone</text
-							>
-						</g>
-						<g transform="translate(880 280)">
-							<rect
-								width="180"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="90" y="24" text-anchor="middle" fill="var(--ink)">CSIS 4500</text>
-							<text x="90" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>cybersecurity</text
-							>
-						</g>
-						<g transform="translate(880 380)">
-							<rect
-								width="180"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="90" y="24" text-anchor="middle" fill="var(--ink)">CSIS 4400</text>
-							<text x="90" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>machine learning</text
-							>
-						</g>
-						<g transform="translate(880 480)">
-							<rect
-								width="180"
-								height="60"
-								fill="#fbf8f0"
-								stroke="var(--ink)"
-								stroke-width="1.4"
-								rx="2"
-							/>
-							<text x="90" y="24" text-anchor="middle" fill="var(--ink)">FREE ELEC</text>
-							<text x="90" y="42" text-anchor="middle" fill="var(--ink-soft)" font-size="9.5"
-								>humanities</text
-							>
-						</g>
-					</g>
-				</svg>
+				<button type="button" class="query-try-again font-hand" onclick={tryAnother}>
+					try another question →
+				</button>
 			</div>
 		</div>
 
-		<div class="graph-question">
-			<p class="graph-q font-body">
-				<em>What happens to your capstone if you take Algorithms a semester early?</em>
-			</p>
-			<p class="graph-a font-body">
-				Two prereq edges reroute. Your final semester loses <b>6 hours/week</b>.
-			</p>
-		</div>
+		<aside class="query-graphics" aria-label="what synapse knows">
+			<div class="query-mini query-mini-deadline">
+				<div class="query-mini-header font-hand">next deadline</div>
+				<p class="query-mini-main font-hand">tuesday</p>
+				<p class="query-mini-detail font-body">econ 2200 problem set · 11:59 pm</p>
+			</div>
+
+			<div class="query-mini query-mini-grade">
+				<div class="query-mini-header font-hand">latest grade</div>
+				<p class="query-mini-main font-hand">88 / 100</p>
+				<p class="query-mini-detail font-body">statistics · quiz 4</p>
+				<div class="query-mini-bar" aria-hidden="true">
+					<div class="query-mini-bar-fill" style="width: 88%"></div>
+				</div>
+			</div>
+
+			<div class="query-mini query-mini-hours">
+				<div class="query-mini-header font-hand">this week</div>
+				<p class="query-mini-main font-hand">14 hrs studied</p>
+				<p class="query-mini-detail font-body">up from 9 last week</p>
+			</div>
+		</aside>
 	</section>
 
 	<div class="rough-divider" aria-hidden="true"></div>
@@ -766,7 +557,7 @@
 	<!-- ==================== SECTION 5 · THE TIMELINE ==================== -->
 	<section class="section section--timeline" aria-labelledby="timeline-heading">
 		<header class="timeline-head">
-			<span class="stamp" style="transform: rotate(-0.8deg);">the log · week by week</span>
+			<span class="stamp" style="transform: rotate(-0.8deg);">the log</span>
 			<h2 id="timeline-heading" class="timeline-title font-hand">
 				data enters <span class="highlighter">week by week</span>. the graph builds itself.
 			</h2>
@@ -780,93 +571,33 @@
 							<span class="stamp" style="transform: rotate(-1.2deg);">{w.stamp}</span>
 						</div>
 						<p class="week-entry font-hand">{w.entry}</p>
-						<p class="week-data font-mono">{w.data}</p>
-						<div class="week-viz" aria-hidden="true">
-							{#if w.viz === 'bar'}
-								<div class="viz-bar">
-									<div class="viz-bar-fill" style="width: {w.value * 100}%"></div>
-								</div>
-							{:else if w.viz === 'dot'}
-								<svg viewBox="0 0 100 30" class="viz-dot">
-									<line x1="4" y1="20" x2="96" y2="20" stroke="var(--ink-faint)" stroke-width="1" />
-									<line x1="4" y1="14" x2="4" y2="26" stroke="var(--ink-faint)" stroke-width="1" />
-									<line
-										x1="96"
-										y1="14"
-										x2="96"
-										y2="26"
-										stroke="var(--ink-faint)"
-										stroke-width="1"
-									/>
-									<circle cx={4 + w.value * 92} cy="20" r="5" fill="var(--ink)" />
-									<text
-										x="50"
-										y="12"
-										text-anchor="middle"
-										font-family="Special Elite, monospace"
-										font-size="8"
-										fill="var(--ink-soft)">{Math.round(w.value * 100)}/100</text
-									>
-								</svg>
-							{:else if w.viz === 'spark'}
-								<svg viewBox="0 0 120 30" class="viz-spark">
-									<polyline
-										points="4,22 24,18 44,20 64,12 84,16 104,8 116,4"
-										fill="none"
-										stroke="var(--ink)"
-										stroke-width="1.4"
-										stroke-linecap="round"
-									/>
-									<circle cx="116" cy="4" r="2.4" fill="var(--ink)" />
-								</svg>
-							{:else if w.viz === 'num'}
-								<div class="viz-num">
-									<span class="font-mono">{Math.round(w.value * 100)}/100</span>
-									<span class="margin-note">a what-if</span>
-								</div>
-							{:else if w.viz === 'check'}
-								<svg viewBox="0 0 60 30" class="viz-check">
-									<path
-										d="M 8 18 L 22 26 L 52 6"
-										fill="none"
-										stroke="var(--ink)"
-										stroke-width="2.2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-								</svg>
-							{:else if w.viz === 'graph'}
-								<svg viewBox="0 0 200 60" class="viz-graph">
-									<g stroke="var(--ink)" stroke-width="1.2" fill="none">
-										<line x1="20" y1="30" x2="60" y2="30" />
-										<line x1="60" y1="30" x2="100" y2="20" />
-										<line x1="60" y1="30" x2="100" y2="40" />
-										<line x1="100" y1="20" x2="140" y2="30" />
-										<line x1="100" y1="40" x2="140" y2="30" />
-										<line
-											x1="140"
-											y1="30"
-											x2="180"
-											y2="30"
-											stroke="var(--highlight)"
-											stroke-width="3"
-										/>
-									</g>
-									<g fill="#fbf8f0" stroke="var(--ink)" stroke-width="1">
-										<rect x="10" y="22" width="20" height="16" rx="1.5" />
-										<rect x="50" y="22" width="20" height="16" rx="1.5" />
-										<rect x="90" y="12" width="20" height="16" rx="1.5" />
-										<rect x="90" y="32" width="20" height="16" rx="1.5" />
-										<rect x="130" y="22" width="20" height="16" rx="1.5" />
-										<rect x="170" y="22" width="20" height="16" rx="1.5" />
-									</g>
-								</svg>
-							{/if}
-						</div>
+						<p class="week-data font-body">{w.data}</p>
 					</li>
 				{/each}
 			</ol>
+			<aside class="timeline-index" aria-label="Week index">
+				<span class="stamp" style="transform: rotate(-2.4deg);">the log</span>
+				<ol class="week-index font-mono">
+					<li>week 01</li>
+					<li>week 02</li>
+					<li>week 03</li>
+					<li>week 04</li>
+					<li>week 05</li>
+					<li>week 06</li>
+				</ol>
+				<p class="timeline-note font-hand">six weeks.<br />one graph.</p>
+			</aside>
 		</div>
+	</section>
+
+	<div class="rough-divider" aria-hidden="true"></div>
+
+	<!-- ==================== CLOSING CTA ==================== -->
+	<section class="section section--cta" aria-labelledby="cta-heading">
+		<h2 id="cta-heading" class="cta-title font-hand">
+			your degree is <span class="highlighter">one graph</span>, not four semesters
+		</h2>
+		<a href="/app" class="cta-button"> open your notebook → </a>
 	</section>
 
 	<div class="rough-divider" aria-hidden="true"></div>
@@ -878,11 +609,6 @@
 			<p class="footer-copy font-body">
 				© 2026 · built for students who take their education seriously
 			</p>
-			<nav class="footer-nav font-body" aria-label="Footer">
-				<a href={resolve('/')}>privacy</a>
-				<a href={resolve('/')}>terms</a>
-				<a href={resolve('/')}>contact</a>
-			</nav>
 		</div>
 	</footer>
 </main>
@@ -912,7 +638,7 @@
 	   ============================================================ */
 	.section {
 		position: relative;
-		max-width: 72rem;
+		max-width: 84rem;
 		margin: 0 auto;
 		padding: clamp(3.5rem, 7vw, 6rem) clamp(1.5rem, 4vw, 4rem);
 	}
@@ -922,32 +648,32 @@
 	   ============================================================ */
 	.cover-page {
 		position: relative;
-		padding-top: 2rem;
+		padding-top: 0.5rem;
 	}
 
 	.cover-top {
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		margin-bottom: clamp(3rem, 6vw, 5rem);
+		margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
 	}
 
 	.cover-grid {
 		display: grid;
-		grid-template-columns: 1.1fr 0.9fr;
+		grid-template-columns: 0.9fr 1.1fr;
 		gap: clamp(2rem, 5vw, 4rem);
-		align-items: center;
+		align-items: start;
 	}
 
 	.cover-title {
-		font-size: clamp(3.6rem, 8vw, 7.5rem);
+		font-size: clamp(3.6rem, 8vw, 6rem);
 		margin: 0 0 1.5rem;
 		color: var(--ink);
 		letter-spacing: -0.01em;
 	}
 
 	.cover-sub {
-		font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+		font-size: clamp(1.2rem, 1.4vw, 1.5rem);
 		line-height: 1.55;
 		color: var(--ink-soft);
 		max-width: 32ch;
@@ -958,12 +684,13 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
-		gap: 1.25rem;
+		gap: 0.75rem;
 	}
 
 	.mini-graph {
 		padding: 14px 14px 18px;
-		max-width: 26rem;
+		max-width: 100%;
+		width: 100%;
 	}
 
 	.mini-graph-svg {
@@ -973,30 +700,32 @@
 	}
 
 	.mini-graph figcaption {
-		margin-top: 8px;
+		margin-top: 10px;
 		text-align: center;
-		font-size: 0.7rem;
+		font-size: 0.9rem;
 		color: var(--ink-soft);
-		letter-spacing: 0.06em;
+		letter-spacing: 0.04em;
 	}
 
 	.cover-spark {
-		display: inline-flex;
+		display: flex;
 		flex-direction: column;
-		align-items: flex-end;
+		align-items: flex-start;
 		gap: 6px;
+		width: 100%;
 	}
 
 	.sparkline {
-		width: 200px;
-		height: 40px;
+		width: 100%;
+		height: auto;
 		display: block;
 	}
 
 	.sparkline-caption {
-		font-size: 0.72rem;
-		letter-spacing: 0.06em;
+		font-size: 0.95rem;
+		letter-spacing: 0.04em;
 		color: var(--ink-soft);
+		align-self: flex-end;
 	}
 
 	.cover-arrow {
@@ -1007,21 +736,106 @@
 		height: 56px;
 	}
 
+	.cover-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.6rem;
+		margin-top: 2.5rem;
+		padding: 0.9rem 1.8rem 0.9rem 2rem;
+		background: transparent;
+		color: var(--ink);
+		text-decoration: none;
+		border: 1.5px solid var(--ink);
+		border-radius: 2px;
+		font-family: var(--font-body);
+		font-size: 1.15rem;
+		font-weight: 500;
+		transition:
+			background 150ms ease-out,
+			transform 150ms ease-out;
+	}
+
+	.cover-cta:hover {
+		background: var(--highlight);
+		transform: translateY(-1px);
+	}
+
+	.cover-cta:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 3px;
+	}
+
+	.cover-cta:active {
+		transform: translateY(0);
+	}
+
+	.cta-arrow {
+		width: 28px;
+		height: 14px;
+	}
+
 	/* ============================================================
 	   SECTION 2 · THE PROBLEM
 	   ============================================================ */
 	.section--problem {
+		padding-top: clamp(4rem, 7vw, 6rem);
+	}
+
+	.problem-top {
+		display: grid;
+		grid-template-columns: minmax(0, 42rem) minmax(18rem, 28rem);
+		gap: clamp(2rem, 5vw, 5rem);
+		align-items: end;
+		max-width: 78rem;
+		margin: 0 auto 3rem;
+	}
+
+	.problem-head {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: 2.5rem;
-		padding-top: clamp(4rem, 7vw, 6rem);
+		gap: 1.25rem;
+        height: 100%;
+		max-width: 44rem;
+	}
+
+	.problem-title {
+		font-size: clamp(2rem, 3.4vw, 2.8rem);
+		line-height: 1.1;
+		margin: 0;
+		color: var(--ink);
 	}
 
 	.messy-page-wrap {
 		position: relative;
-		max-width: 36rem;
-		width: 100%;
+		width: min(100%, 40rem);
+		margin: 0 auto;
+	}
+
+	.problem-body {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		max-width: 28rem;
+		flex-shrink: 0;
+	}
+
+	.problem-body p {
+		font-size: clamp(1.2rem, 1.5vw, 1.4rem);
+		line-height: 1.6;
+		color: var(--ink);
+		margin: 0;
+	}
+
+	@media (max-width: 800px) {
+		.problem-top {
+			grid-template-columns: 1fr;
+			gap: 2rem;
+			align-items: start;
+		}
+
+		.problem-body {
+			max-width: none;
+		}
 	}
 
 	.messy-page {
@@ -1029,7 +843,7 @@
 		background: #fbf8f0;
 		border: 1px solid rgba(26, 26, 23, 0.18);
 		padding: 28px 32px 36px;
-		min-height: 30rem;
+		min-height: 36rem;
 		box-shadow:
 			0 1px 0 rgba(255, 255, 255, 0.6) inset,
 			0 6px 14px rgba(26, 26, 23, 0.1);
@@ -1037,13 +851,13 @@
 
 	.coffee-ring {
 		position: absolute;
-		top: 18px;
-		right: 32px;
-		width: 64px;
-		height: 64px;
-		border: 2px solid rgba(115, 70, 30, 0.18);
+		top: 24px;
+		left: 60px;
+		width: 46px;
+		height: 46px;
+		border: 2px solid rgba(115, 70, 30, 0.16);
 		border-radius: 50%;
-		opacity: 0.7;
+		opacity: 0.5;
 	}
 
 	.messy-grid {
@@ -1055,21 +869,21 @@
 	.cal-block {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 10px;
 	}
 
 	.cal-head {
-		font-size: 0.78rem;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: var(--ink-soft);
+		font-family: var(--font-hand);
+		font-size: 1.15rem;
+		color: var(--ink);
+		font-weight: 400;
 	}
 
 	.cal-grid {
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
-		gap: 4px;
-		font-size: 0.7rem;
+		gap: 5px;
+		font-size: 0.72rem;
 		color: var(--ink-soft);
 	}
 
@@ -1098,6 +912,7 @@
 		gap: 18px;
 		font-size: 0.72rem;
 		color: var(--ink-soft);
+		margin-top: 4px;
 	}
 
 	.cal-legend i {
@@ -1119,90 +934,98 @@
 	.scribble {
 		position: absolute;
 		font-family: var(--font-hand);
-		font-size: 1.4rem;
+		font-size: 1.3rem;
 		color: var(--ink);
-		opacity: 0.6;
+		opacity: 0.4;
 	}
 
 	.scribble-1 {
-		top: 200px;
+		top: 250px;
 		right: 24px;
 		transform: rotate(-4deg);
 	}
 
 	.scribble-2 {
-		top: 280px;
+		top: 300px;
 		left: 32px;
 		transform: rotate(2deg);
 	}
 
 	.sticky {
 		position: absolute;
-		bottom: 100px;
-		left: 24px;
+		top: 50px;
+		right: 32px;
 		background: #fff4b0;
-		padding: 14px 18px;
+		padding: 12px 14px;
 		font-family: var(--font-hand);
-		font-size: 1.25rem;
+		font-size: 1.1rem;
 		line-height: 1.2;
 		box-shadow:
 			0 1px 0 rgba(255, 255, 255, 0.5) inset,
-			0 3px 8px rgba(26, 26, 23, 0.15);
+			0 2px 6px rgba(26, 26, 23, 0.12);
 		color: var(--ink);
-		max-width: 9rem;
+		max-width: 8rem;
 	}
 
 	.todo {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		font-size: 0.85rem;
-		margin-top: 12px;
+		gap: 8px;
+		font-size: 0.92rem;
+		margin-top: 32px;
+		padding-left: 4px;
 	}
 
-	.todo span {
+	.todo .todo-label {
+		font-family: var(--font-hand);
+		font-size: 1.15rem;
 		color: var(--ink);
+		margin-bottom: 8px;
+		display: block;
+	}
+
+	.todo span:not(.todo-label) {
+		color: var(--ink);
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 
 	.todo .done {
 		text-decoration: line-through;
-		color: var(--ink-faint);
+		color: var(--ink-soft);
+		opacity: 0.55;
 	}
 
 	.todo .red-circle {
-		display: inline-block;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		border: 1.5px solid var(--pen-red);
 		border-radius: 999px;
-		padding: 2px 12px;
+		padding: 3px 14px 3px 10px;
 		color: var(--pen-red);
 		width: fit-content;
+		font-weight: 500;
 	}
 
 	.margin-annotation--problem {
 		position: absolute;
-		left: -3rem;
-		top: 4rem;
-		width: 56px;
-		height: 60px;
+		left: 7.25rem;
+		top: 5.4rem;
+		width: 110px;
+		height: 36px;
 	}
 
 	.margin-note--problem {
 		position: absolute;
-		left: -7.5rem;
-		top: 5.5rem;
-		font-size: 1.5rem;
+		left: 1rem;
+		top: 4.5rem;
+		font-size: 1.4rem;
 		transform: rotate(-6deg);
 		color: var(--pen-red);
 		max-width: 7rem;
-	}
-
-	.problem-body {
-		font-size: clamp(1.1rem, 1.5vw, 1.35rem);
-		line-height: 1.55;
-		color: var(--ink);
-		max-width: 36rem;
-		margin: 0;
-		text-align: center;
+		line-height: 1.15;
 	}
 
 	/* ============================================================
@@ -1221,7 +1044,7 @@
 	}
 
 	.transform-title {
-		font-size: clamp(2.2rem, 4vw, 3.4rem);
+		font-size: clamp(2.4rem, 4.4vw, 3.6rem);
 		margin: 0;
 		line-height: 1.05;
 		color: var(--ink);
@@ -1237,17 +1060,16 @@
 	}
 
 	.syllabus-doc {
-		padding: 18px 22px 24px;
-		max-width: 28rem;
+		padding: 22px 26px 28px;
+		max-width: 36rem;
 		justify-self: end;
 		width: 100%;
 	}
 
 	.doc-stamp {
-		font-size: 0.72rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
+		font-family: var(--font-hand);
+		font-size: 1.05rem;
+		color: var(--ink-soft);
 		margin-bottom: 14px;
 		padding-bottom: 8px;
 		border-bottom: 1px dashed var(--ink-faint);
@@ -1267,14 +1089,13 @@
 	}
 
 	.doc-label {
-		font-size: 0.7rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--ink-faint);
+		font-family: var(--font-hand);
+		font-size: 0.95rem;
+		color: var(--ink-soft);
 	}
 
 	.doc-value {
-		font-size: 0.95rem;
+		font-size: 1.0625rem;
 		color: var(--ink);
 	}
 
@@ -1291,17 +1112,16 @@
 	.extracted-card {
 		background: #fbf8f0;
 		border: 1px solid var(--ink);
-		padding: 18px 22px 24px;
-		max-width: 28rem;
+		padding: 22px 26px 28px;
+		max-width: 36rem;
 		width: 100%;
 		justify-self: start;
 		box-shadow: 2px 2px 0 var(--ink);
 	}
 
 	.ext-head {
-		font-size: 0.72rem;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		font-family: var(--font-hand);
+		font-size: 0.95rem;
 		color: var(--ink);
 		margin-bottom: 12px;
 		padding-bottom: 8px;
@@ -1323,15 +1143,14 @@
 	}
 
 	.ext-row dt {
-		font-size: 0.7rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--ink-faint);
+		font-family: var(--font-hand);
+		font-size: 0.95rem;
+		color: var(--ink-soft);
 	}
 
 	.ext-row dd {
 		margin: 0;
-		font-size: 0.92rem;
+		font-size: 1rem;
 		color: var(--ink);
 	}
 
@@ -1347,100 +1166,269 @@
 	.ext-list li {
 		display: flex;
 		gap: 10px;
-		font-size: 0.9rem;
+		font-size: 1rem;
 	}
 
 	.ext-list li span {
-		color: var(--ink-faint);
+		color: var(--ink-soft);
 		min-width: 5rem;
 	}
 
 	.ext-list li.hl {
 		background: var(--highlight);
 		mix-blend-mode: multiply;
-		padding: 1px 4px;
-		margin: 0 -4px;
+		padding: 3px 6px;
+		margin: 0 -6px;
 	}
 
 	.transform-body {
-		font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+		font-size: clamp(1.2rem, 1.5vw, 1.4rem);
 		line-height: 1.6;
 		color: var(--ink);
-		max-width: 36rem;
+		max-width: 42rem;
 		margin: 0;
 	}
 
 	/* ============================================================
-	   SECTION 4 · THE GRAPH
+	   SECTION 4 · THE QUERY
 	   ============================================================ */
-	.section--graph {
+	.section--query {
 		padding-top: clamp(4rem, 7vw, 6rem);
-	}
-
-	.graph-head {
-		margin-bottom: 2.5rem;
-	}
-
-	.graph-spread {
 		position: relative;
-		display: grid;
-		grid-template-columns: 6rem 1fr;
+	}
+
+	.query-head {
+		display: flex;
+		flex-direction: column;
 		gap: 1rem;
-		margin-bottom: 3rem;
+		margin-bottom: 2.5rem;
+		max-width: 38rem;
 	}
 
-	.graph-margin {
-		position: relative;
-		min-height: 24rem;
-	}
-
-	.graph-margin .margin-note {
-		position: absolute;
-		font-size: 1.1rem;
-		color: var(--ink-soft);
-		max-width: 7rem;
-	}
-
-	.graph-stage {
-		background: #fbf8f0;
-		border: 1px solid rgba(26, 26, 23, 0.18);
-		padding: 1.25rem 1rem 1.5rem;
-		overflow-x: auto;
-		box-shadow:
-			0 1px 0 rgba(255, 255, 255, 0.6) inset,
-			0 3px 10px rgba(26, 26, 23, 0.08);
-	}
-
-	.degree-graph {
-		width: 100%;
-		min-width: 56rem;
-		height: auto;
-		display: block;
-	}
-
-	.graph-question {
-		max-width: 36rem;
-	}
-
-	.graph-q {
-		font-size: clamp(1.1rem, 1.4vw, 1.25rem);
-		margin: 0 0 0.75rem;
+	.query-title {
+		font-size: clamp(2rem, 3.4vw, 2.8rem);
+		line-height: 1.1;
+		margin: 0;
 		color: var(--ink);
 	}
 
-	.graph-q em {
-		font-style: italic;
+	.query-sub {
+		font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+		line-height: 1.5;
+		margin: 0;
+		color: var(--ink-soft);
 	}
 
-	.graph-a {
-		font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+	.query-card {
+		max-width: 38rem;
+		background: #fbf8f0;
+		border: 1.5px solid var(--ink);
+		border-radius: 4px;
+		padding: 1.75rem 2rem 1.25rem;
+		box-shadow:
+			0 1px 0 rgba(255, 255, 255, 0.6) inset,
+			0 3px 14px rgba(26, 26, 23, 0.08);
+	}
+
+	.query-spread {
+		display: block;
+	}
+
+	.query-graphics {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		position: absolute;
+		right: clamp(1.5rem, 4vw, 3.5rem);
+		top: 50%;
+		transform: translateY(-50%);
+		width: 16rem;
+	}
+
+	.query-mini {
+		background: #fbf8f0;
+		border: 1.5px solid var(--ink);
+		border-radius: 4px;
+		padding: 1rem 1.25rem;
+		box-shadow: 0 3px 10px rgba(26, 26, 23, 0.06);
+	}
+
+	.query-mini-deadline {
+		transform: rotate(-1.1deg);
+	}
+
+	.query-mini-grade {
+		transform: rotate(0.6deg);
+		margin-left: 0.5rem;
+	}
+
+	.query-mini-hours {
+		transform: rotate(-0.4deg);
+	}
+
+	.query-mini-header {
+		font-size: 0.92rem;
+		color: var(--ink-soft);
+		margin-bottom: 0.4rem;
+	}
+
+	.query-mini-main {
+		font-size: 1.5rem;
+		line-height: 1.15;
+		margin: 0 0 0.35rem;
+		color: var(--ink);
+	}
+
+	.query-mini-detail {
+		font-size: 0.92rem;
+		line-height: 1.4;
+		margin: 0;
+		color: var(--ink-soft);
+	}
+
+	.query-mini-bar {
+		height: 5px;
+		background: rgba(26, 26, 23, 0.08);
+		border-radius: 999px;
+		overflow: hidden;
+		margin-top: 0.6rem;
+	}
+
+	.query-mini-bar-fill {
+		height: 100%;
+		background: var(--ink);
+		border-radius: 999px;
+	}
+
+	@media (max-width: 900px) {
+		.query-spread {
+			grid-template-columns: 1fr;
+		}
+
+		.query-graphics {
+			flex-direction: row;
+			flex-wrap: wrap;
+			padding-top: 0;
+		}
+
+		.query-mini {
+			flex: 1 1 12rem;
+		}
+	}
+
+	.query-input {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.65rem;
+		padding-bottom: 1.25rem;
+	}
+
+	.query-prefix {
+		font-family: var(--font-body);
+		font-size: 1.15rem;
+		font-weight: 500;
+		color: var(--ink-soft);
+		line-height: 1.5;
+		flex-shrink: 0;
+	}
+
+	.query-text {
+		font-size: clamp(1.1rem, 1.35vw, 1.3rem);
+		line-height: 1.5;
+		margin: 0;
+		color: var(--ink);
+	}
+
+	.query-thinking {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 1rem 0 1.25rem;
+		border-top: 1px dashed rgba(26, 26, 23, 0.2);
+	}
+
+	.query-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--ink-soft);
+		animation: query-pulse 1.2s ease-in-out infinite;
+	}
+
+	.query-dot:nth-child(2) {
+		animation-delay: 0.18s;
+	}
+
+	.query-dot:nth-child(3) {
+		animation-delay: 0.36s;
+	}
+
+	@keyframes query-pulse {
+		0%,
+		100% {
+			opacity: 0.25;
+			transform: scale(0.85);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	.query-thinking-text {
+		margin-left: 0.5rem;
+		font-size: 1rem;
+		color: var(--ink-soft);
+	}
+
+	.query-answer {
+		padding: 1.1rem 0 1.25rem;
+		border-top: 1px dashed rgba(26, 26, 23, 0.2);
+		animation: query-fade 0.5s ease;
+	}
+
+	@keyframes query-fade {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.query-result {
+		font-size: clamp(1.4rem, 1.8vw, 1.65rem);
+		line-height: 1.3;
+		margin: 0 0 0.6rem;
+		color: var(--ink);
+	}
+
+	.query-detail {
+		font-size: clamp(0.98rem, 1.15vw, 1.08rem);
 		line-height: 1.55;
 		margin: 0;
 		color: var(--ink-soft);
 	}
 
-	.graph-a b {
+	.query-try-again {
+		display: block;
+		width: 100%;
+		text-align: left;
+		padding: 0.85rem 0 0;
+		margin-top: 0.25rem;
+		background: transparent;
+		border: none;
+		border-top: 1px dashed rgba(26, 26, 23, 0.2);
+		font-size: 1rem;
 		color: var(--ink);
+		cursor: pointer;
+		transition: color 0.2s ease;
+	}
+
+	.query-try-again:hover {
+		color: var(--ink-soft);
 	}
 
 	/* ============================================================
@@ -1459,15 +1447,56 @@
 	}
 
 	.timeline-title {
-		font-size: clamp(2rem, 3.6vw, 3rem);
+		font-size: clamp(2.2rem, 3.8vw, 3.2rem);
 		margin: 0;
 		line-height: 1.05;
 		color: var(--ink);
 	}
 
 	.timeline-spread {
-		max-width: 44rem;
+		max-width: 84rem;
 		margin: 0 auto;
+		display: grid;
+		grid-template-columns: minmax(0, 56rem) 1fr;
+		gap: 3rem;
+		align-items: start;
+	}
+
+	.timeline-index {
+		position: sticky;
+		top: 2rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		padding-top: 0.5rem;
+		max-width: 12rem;
+	}
+
+	.week-index {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.week-index li {
+		font-family: var(--font-hand);
+		font-size: 0.95rem;
+		color: var(--ink-soft);
+		padding: 8px 0;
+		border-bottom: 1px dashed rgba(26, 26, 23, 0.18);
+	}
+
+	.week-index li:last-child {
+		border-bottom: none;
+	}
+
+	.timeline-note {
+		font-size: 1.2rem;
+		color: var(--ink-soft);
+		margin: 0;
+		line-height: 1.15;
 	}
 
 	.weeks {
@@ -1476,15 +1505,20 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 2.5rem;
+		gap: 0;
 	}
 
 	.week {
 		display: grid;
-		grid-template-columns: 9rem 1fr;
-		gap: 1.5rem;
-		padding-bottom: 1.5rem;
+		grid-template-columns: 7rem 1fr;
+		gap: 2.5rem;
+		padding: 1.5rem 0;
 		border-bottom: 1px dashed rgba(26, 26, 23, 0.18);
+		align-items: start;
+	}
+
+	.week:first-child {
+		padding-top: 0;
 	}
 
 	.week:last-child {
@@ -1494,111 +1528,55 @@
 	.week-meta {
 		display: flex;
 		align-items: flex-start;
+		padding-top: 0.55rem;
+		grid-column: 1;
+	}
+
+	.week-entry,
+	.week-data {
+		grid-column: 2;
 	}
 
 	.week-entry {
-		font-size: clamp(1.4rem, 2.2vw, 1.75rem);
-		line-height: 1.1;
+		font-size: clamp(1.5rem, 2.4vw, 1.875rem);
+		line-height: 1.3;
 		margin: 0 0 0.5rem;
 		color: var(--ink);
 	}
 
 	.week-data {
-		font-size: 0.85rem;
+		font-size: 1.05rem;
 		color: var(--ink-soft);
-		margin: 0 0 1rem;
-		line-height: 1.4;
-	}
-
-	.week-viz {
-		max-width: 18rem;
-	}
-
-	.viz-bar {
-		height: 8px;
-		background: rgba(26, 26, 23, 0.08);
-		border-radius: 999px;
-		overflow: hidden;
-	}
-
-	.viz-bar-fill {
-		height: 100%;
-		background: var(--ink);
-	}
-
-	.viz-dot,
-	.viz-spark,
-	.viz-check,
-	.viz-graph {
-		width: 100%;
-		height: auto;
-		display: block;
-	}
-
-	.viz-num {
-		display: flex;
-		align-items: baseline;
-		gap: 1rem;
-	}
-
-	.viz-num .font-mono {
-		font-size: 1.5rem;
-		color: var(--ink);
-	}
-
-	.viz-num .margin-note {
-		font-size: 1rem;
-		color: var(--pen-red);
+		margin: 0;
+		line-height: 1.55;
 	}
 
 	/* ============================================================
 	   FOOTER
 	   ============================================================ */
 	.footer {
-		max-width: 72rem;
+		max-width: 84rem;
 		margin: 0 auto;
 		padding: 3rem clamp(1.5rem, 4vw, 4rem) 4rem;
 	}
 
 	.footer-grid {
 		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
+		grid-template-columns: 1fr 1fr;
 		gap: 2rem;
 		align-items: baseline;
 	}
 
 	.footer-brand {
-		font-size: 1.5rem;
+		font-size: 1.6rem;
 		color: var(--ink);
 	}
 
 	.footer-copy {
-		font-size: 0.9rem;
+		font-size: 0.95rem;
 		color: var(--ink-soft);
-		text-align: center;
+		text-align: right;
 		margin: 0;
-	}
-
-	.footer-nav {
-		display: flex;
-		gap: 1.5rem;
-		justify-content: flex-end;
-	}
-
-	.footer-nav a {
-		color: var(--ink-soft);
-		text-decoration: none;
-		font-size: 0.9rem;
-		border-bottom: 1px solid transparent;
-		padding-bottom: 1px;
-		transition:
-			border-color 200ms ease,
-			color 200ms ease;
-	}
-
-	.footer-nav a:hover {
-		color: var(--ink);
-		border-bottom-color: var(--highlight);
 	}
 
 	/* ============================================================
@@ -1611,14 +1589,6 @@
 
 		.cover-right {
 			align-items: flex-start;
-		}
-
-		.graph-spread {
-			grid-template-columns: 1fr;
-		}
-
-		.graph-margin {
-			display: none;
 		}
 
 		.transform-spread {
@@ -1634,6 +1604,15 @@
 		.extract-arrow {
 			transform: rotate(90deg);
 			justify-self: center;
+		}
+
+		.timeline-spread {
+			grid-template-columns: 1fr;
+		}
+
+		.timeline-index {
+			position: static;
+			max-width: none;
 		}
 	}
 
@@ -1673,16 +1652,58 @@
 		.footer-grid {
 			grid-template-columns: 1fr;
 			text-align: center;
+			gap: 0.75rem;
 		}
 
-		.footer-copy,
-		.footer-nav {
-			justify-content: center;
+		.footer-copy {
 			text-align: center;
 		}
+	}
 
-		.footer-nav {
-			justify-content: center;
-		}
+	/* ============================================================
+	   CLOSING CTA
+	   ============================================================ */
+	.section--cta {
+		text-align: center;
+		padding: clamp(4rem, 8vw, 7rem) clamp(1.5rem, 4vw, 4rem);
+	}
+
+	.cta-title {
+		font-size: clamp(2rem, 4.2vw, 3.2rem);
+		color: var(--ink);
+		margin: 0 0 2rem;
+		line-height: 1.1;
+	}
+
+	.cta-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.9rem 2rem;
+		background: transparent;
+		color: var(--ink);
+		text-decoration: none;
+		border: 1.5px solid var(--ink);
+		border-radius: 2px;
+		font-family: var(--font-body);
+		font-size: 1.125rem;
+		font-weight: 500;
+		transition:
+			background 150ms ease-out,
+			transform 150ms ease-out;
+	}
+
+	.cta-button:hover {
+		background: var(--highlight);
+		transform: translateY(-1px);
+	}
+
+	.cta-button:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 3px;
+	}
+
+	.cta-button:active {
+		transform: translateY(0);
 	}
 </style>
