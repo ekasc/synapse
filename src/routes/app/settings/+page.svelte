@@ -1,72 +1,59 @@
 <script lang="ts">
-	let { data } = $props();
+	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 </script>
 
-<div class="page">
-	<div class="page-heading">
+<svelte:head><title>Synapse · Settings</title></svelte:head>
+
+<CatalogHeader term="Account" />
+
+<div class="page page-enter">
+	<div class="page-cover">
 		<h1 class="page-title font-hand">Settings</h1>
-		<p class="page-subtitle">Manage your account and preferences</p>
+		<p class="page-tagline">Account and preferences</p>
 	</div>
 
-	<div class="settings-list">
-		<div class="setting-item">
-			<div class="setting-info">
-				<span class="setting-label">Semesters</span>
-				<span class="setting-desc font-mono">manage your academic terms</span>
-			</div>
-			<span class="setting-status font-mono">coming soon</span>
-		</div>
-		<div class="setting-item">
-			<div class="setting-info">
-				<span class="setting-label">Data</span>
-				<span class="setting-desc font-mono">import/export your course data</span>
-			</div>
-			<span class="setting-status font-mono">coming soon</span>
-		</div>
-		<div class="setting-item">
-			<div class="setting-info">
-				<span class="setting-label">Notifications</span>
-				<span class="setting-desc font-mono">digest and deadline alerts</span>
-			</div>
-			<span class="setting-status font-mono">coming soon</span>
-		</div>
+	<div class="empty-state surface">
+		<h2 class="empty-head font-hand">No settings yet</h2>
+		<p class="empty-text">Account and preference controls will appear here.</p>
 	</div>
 </div>
 
 <style>
-	.page { max-width: 520px; }
-	.page-heading { margin-bottom: 2rem; }
-	.page-title { font-size: 2rem; color: var(--ink); margin: 0 0 0.25rem; line-height: 1; }
-	.page-subtitle { color: var(--ink-soft); font-size: 0.9rem; margin: 0; }
-
-	.settings-list {
-		display: flex;
-		flex-direction: column;
+	.page {
+		max-width: 900px;
+		margin-inline: auto;
+		padding-block: 2rem 4rem;
 	}
 
-	.setting-item {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 1rem 0;
-		border-bottom: 1px solid rgba(26, 26, 23, 0.08);
+	.page-title {
+		font-size: clamp(2.4rem, 4vw, 3rem);
+		color: var(--ink);
+		margin: 0.25rem 0 0.5rem;
+		line-height: 1;
 	}
 
-	.setting-label {
-		font-size: 0.95rem;
+	.page-tagline {
+		color: var(--ink-soft);
+		font-size: 0.92rem;
+		margin: 0.35rem 0 0;
+	}
+
+	.empty-state {
+		padding: 3rem 2rem;
+		text-align: center;
+	}
+
+	.empty-head {
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		font-weight: 600;
+		margin: 0 0 0.5rem;
 		color: var(--ink);
 	}
 
-	.setting-desc {
-		font-size: 0.85rem;
+	.empty-text {
+		font-size: 0.92rem;
 		color: var(--ink-soft);
-		display: block;
-		margin-top: 2px;
-	}
-
-	.setting-status {
-		font-family: var(--font-hand);
-		font-size: 0.95rem;
-		color: var(--ink-soft);
+		margin: 0;
 	}
 </style>

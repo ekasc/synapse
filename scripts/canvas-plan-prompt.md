@@ -7,9 +7,17 @@ Synapse is a student dashboard. The courses page at `/app/courses` currently has
 Tech stack: Svelte 5 (runes: $state, $derived, $effect), TypeScript, Tailwind CSS v4, Cloudflare adapter. No canvas libraries — pure SVG/HTML. Design language: field notebook (paper #f3ead7, ink #1a1a17, highlight #d8ff5c, hand-drawn aesthetic). Data is served from in-memory JSON files via SvelteKit API routes (`/api/semesters`, `/api/courses`).
 
 Existing data model:
+
 ```ts
 type Semester = { id: string; term: string; year: number; order: number };
-type Course = { id: string; semesterId: string; code: string; name: string; instructor?: string; credits?: number };
+type Course = {
+	id: string;
+	semesterId: string;
+	code: string;
+	name: string;
+	instructor?: string;
+	credits?: number;
+};
 ```
 
 ## What to Plan
@@ -17,12 +25,14 @@ type Course = { id: string; semesterId: string; code: string; name: string; inst
 A single-page freeform canvas with these features:
 
 ### 1. Canvas
+
 - Full-page scrollable/zoomable area
 - Semester boundaries as dashed-background columns (resizable based on which courses are inside them)
 - Courses appear as movable cards (polaroid-style, like the landing page)
 - Grid snap optional (show on "organize")
 
 ### 2. Course Nodes
+
 - Each course is a draggable card showing code + name
 - Drag with pointer events (pointerdown/pointermove/pointerup)
 - Position is stored per-course in state (x, y)
@@ -30,6 +40,7 @@ A single-page freeform canvas with these features:
 - Click to expand/collapse inline details (instructor, credits, edges)
 
 ### 3. Edges / Linking
+
 - Toggle "link mode" button
 - In link mode: click source node, drag a hand-drawn-style bezier curve to target node
 - Edge snaps to both nodes on release
@@ -38,21 +49,25 @@ A single-page freeform canvas with these features:
 - Highlight edge on hover, click to delete
 
 ### 4. Semester Boundaries
+
 - Dashed-border rectangles behind course groupings
 - Courses can be dragged across semester boundaries (moves to that semester)
 - "Organize" button re-sorts courses into semester columns, untangles edges
 
 ### 5. Add Course
+
 - "+" button opens an inline form floating on the canvas
 - Enter code + name → creates a course node at a default position
 - Saves to API via POST /api/courses
 
 ### 6. Organize Button
+
 - Algorithm: lay out semesters as columns, courses stacked vertically within each semester
 - Edge crossing minimization: sort courses within semesters by total connections
 - Animated transition (CSSTransition or FLIP)
 
 ### 7. Edge Cases to Handle
+
 - Empty canvas state (no courses yet)
 - Single course (no edges, centered)
 - Course removed from semester but still has edges (orphan edges cleaned up)

@@ -794,7 +794,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
-        height: 100%;
+		height: 100%;
 		max-width: 44rem;
 	}
 

@@ -39,5 +39,13 @@ export default defineConfig(
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
 		rules: {}
+	},
+	{
+		files: ['src/lib/components/sidebar/**'],
+		rules: {
+			// Sidebar primitives receive already-resolved href from the consumer.
+			// The consumer is responsible for calling resolveRoute() before passing the href in.
+			'svelte/no-navigation-without-resolve': 'off'
+		}
 	}
 );

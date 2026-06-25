@@ -7,13 +7,8 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
 		watch: {
-			ignored: [
-				'**/*.sync-conflict-*',
-				'**/.syncthing.*',
-				'**/.stversions/**',
-				'**/*.tmp',
-			],
-		},
+			ignored: ['**/*.sync-conflict-*', '**/.syncthing.*', '**/.stversions/**', '**/*.tmp']
+		}
 	},
 	test: {
 		expect: { requireAssertions: true },

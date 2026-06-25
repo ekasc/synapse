@@ -15,7 +15,7 @@ const semesters = [
 	{ id: 'f25', term: 'Fall', year: 2025, order: 20251 },
 	{ id: 's26', term: 'Spring', year: 2026, order: 20262 },
 	{ id: 'f26', term: 'Fall', year: 2026, order: 20263 },
-	{ id: 's27', term: 'Spring', year: 2027, order: 20274 },
+	{ id: 's27', term: 'Spring', year: 2027, order: 20274 }
 ];
 
 const courses = [
@@ -38,7 +38,7 @@ const courses = [
 	{ id: 'c13', semesterId: 's27', code: 'CSIS 4495', name: 'Capstone Project' },
 	{ id: 'c14', semesterId: 's27', code: 'CSIS 4500', name: 'Cybersecurity' },
 	{ id: 'c15', semesterId: 's27', code: 'CSIS 4400', name: 'Machine Learning' },
-	{ id: 'c16', semesterId: 's27', code: 'HUMN 1101', name: 'Humanities Elective' },
+	{ id: 'c16', semesterId: 's27', code: 'HUMN 1101', name: 'Humanities Elective' }
 ];
 
 fs.writeFileSync(path.join(DATA_DIR, 'semesters.json'), JSON.stringify(semesters, null, '\t'));

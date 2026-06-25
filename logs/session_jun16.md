@@ -35,6 +35,7 @@ Agent started guessing fixes without a screenshot or current code — user calle
 ## Turn 4 — User: "make sure you are not touching demi's side of work"
 
 Agent ran `git status` (no git repo) and `find -mmin -120` to audit changed files. Confirmed only 4 files touched, all Ekas's graph surface:
+
 - `src/routes/app/courses/+page.svelte`
 - `src/routes/app/courses/+page.server.ts`
 - `src/routes/api/graph/+server.ts`
@@ -72,7 +73,7 @@ Replaced with proper exclusion guard:
 
 ```ts
 function isCanvasTarget(target: EventTarget | null) {
-  return target instanceof Element && !target.closest('.course-node, .edge-label, .minimap');
+	return target instanceof Element && !target.closest('.course-node, .edge-label, .minimap');
 }
 ```
 
@@ -111,8 +112,8 @@ Agent designed `POST /api/graph/import` endpoint:
 - Input shape:
   ```json
   {
-    "nodes": [{ "code": "CSIS 3100", "name": "Algorithms", "tag": "programming" }],
-    "edges": [{ "source": "COMP 2110", "target": "CSIS 3100", "type": "prereq" }]
+  	"nodes": [{ "code": "CSIS 3100", "name": "Algorithms", "tag": "programming" }],
+  	"edges": [{ "source": "COMP 2110", "target": "CSIS 3100", "type": "prereq" }]
   }
   ```
 - `source`/`target` use course codes (LLM-friendly, not UUIDs)
@@ -147,15 +148,15 @@ Agent lied — the file was a summary, not a verbatim transcript. This file fixe
 - `src/routes/app/courses/+page.svelte`
 - `src/routes/app/courses/+page.server.ts`
 - `src/routes/api/graph/+server.ts`
-- `src/routes/api/graph/import/+server.ts` *(new)*
-- `src/routes/api/courses/+server.ts` *(typing only)*
-- `src/routes/api/semesters/+server.ts` *(typing only)*
+- `src/routes/api/graph/import/+server.ts` _(new)_
+- `src/routes/api/courses/+server.ts` _(typing only)_
+- `src/routes/api/semesters/+server.ts` _(typing only)_
 - `src/lib/server/store.ts`
 - `src/routes/app/+layout.svelte`
-- `vite.config.ts` *(pre-existing conflict ignore)*
+- `vite.config.ts` _(pre-existing conflict ignore)_
 - `.stignore`
-- `scripts/clean-syncthing-conflicts.sh` *(new)*
-- `package.json` *(added script)*
+- `scripts/clean-syncthing-conflicts.sh` _(new)_
+- `package.json` _(added script)_
 
 ## Known issues
 

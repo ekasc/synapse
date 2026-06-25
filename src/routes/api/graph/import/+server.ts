@@ -7,7 +7,7 @@ import {
 	saveGraphState,
 	updateCourse,
 	type Course,
-	type GraphState,
+	type GraphState
 } from '$lib/server/store';
 
 type RelationType = NonNullable<GraphState['edges'][number]['type']>;
@@ -42,39 +42,53 @@ function normalizeCode(code: string) {
 function isImportNode(value: unknown): value is ImportNode {
 	if (typeof value !== 'object' || value === null) return false;
 	const node = value as { code?: unknown; name?: unknown; semesterId?: unknown; tag?: unknown };
-	return typeof node.code === 'string'
-		&& node.code.trim().length > 0
-		&& typeof node.name === 'string'
-		&& node.name.trim().length > 0
-		&& (node.semesterId === undefined || typeof node.semesterId === 'string')
-		&& (node.tag === undefined || typeof node.tag === 'string');
+	return (
+		typeof node.code === 'string' &&
+		node.code.trim().length > 0 &&
+		typeof node.name === 'string' &&
+		node.name.trim().length > 0 &&
+		(node.semesterId === undefined || typeof node.semesterId === 'string') &&
+		(node.tag === undefined || typeof node.tag === 'string')
+	);
 }
 
 function isImportEdge(value: unknown): value is ImportEdge {
 	if (typeof value !== 'object' || value === null) return false;
-	const edge = value as { source?: unknown; target?: unknown; type?: unknown; label?: unknown; directed?: unknown };
-	return typeof edge.source === 'string'
-		&& edge.source.trim().length > 0
-		&& typeof edge.target === 'string'
-		&& edge.target.trim().length > 0
-		&& (edge.type === undefined || (typeof edge.type === 'string' && RELATION_TYPES.has(edge.type as RelationType)))
-		&& (edge.label === undefined || typeof edge.label === 'string')
-		&& (edge.directed === undefined || typeof edge.directed === 'boolean');
+	const edge = value as {
+		source?: unknown;
+		target?: unknown;
+		type?: unknown;
+		label?: unknown;
+		directed?: unknown;
+	};
+	return (
+		typeof edge.source === 'string' &&
+		edge.source.trim().length > 0 &&
+		typeof edge.target === 'string' &&
+		edge.target.trim().length > 0 &&
+		(edge.type === undefined ||
+			(typeof edge.type === 'string' && RELATION_TYPES.has(edge.type as RelationType))) &&
+		(edge.label === undefined || typeof edge.label === 'string') &&
+		(edge.directed === undefined || typeof edge.directed === 'boolean')
+	);
 }
 
 function isGraphImport(value: unknown): value is GraphImport {
 	if (typeof value !== 'object' || value === null) return false;
 	const body = value as { nodes?: unknown; edges?: unknown };
-	return (body.nodes === undefined || (Array.isArray(body.nodes) && body.nodes.every(isImportNode)))
-		&& (body.edges === undefined || (Array.isArray(body.edges) && body.edges.every(isImportEdge)));
+	return (
+		(body.nodes === undefined || (Array.isArray(body.nodes) && body.nodes.every(isImportNode))) &&
+		(body.edges === undefined || (Array.isArray(body.edges) && body.edges.every(isImportEdge)))
+	);
 }
 
 function nextPosition(index: number, existingPositions: GraphState['positions']) {
 	const points = Object.values(existingPositions);
-	const baseX = points.length > 0 ? Math.max(...points.map((point) => point.x)) + NODE_W + COL_GAP : 120;
+	const baseX =
+		points.length > 0 ? Math.max(...points.map((point) => point.x)) + NODE_W + COL_GAP : 120;
 	return {
 		x: baseX,
-		y: 120 + index * (NODE_H + ROW_GAP),
+		y: 120 + index * (NODE_H + ROW_GAP)
 	};
 }
 
@@ -87,7 +101,10 @@ export async function POST({ request }: RequestEvent) {
 	const semesters = getSemesters().sort((a, b) => b.order - a.order);
 	const fallbackSemester = semesters[0];
 	if (!fallbackSemester && body.nodes?.some((node) => !node.semesterId)) {
-		return json({ ok: false, error: 'No semester exists for imported nodes without semesterId' }, { status: 400 });
+		return json(
+			{ ok: false, error: 'No semester exists for imported nodes without semesterId' },
+			{ status: 400 }
+		);
 	}
 
 	const courses = getCourses();
@@ -103,7 +120,7 @@ export async function POST({ request }: RequestEvent) {
 			const updates: Partial<Course> = {
 				name: node.name.trim(),
 				semesterId: node.semesterId ?? existing.semesterId,
-				tag: node.tag ?? existing.tag,
+				tag: node.tag ?? existing.tag
 			};
 			updateCourse(existing.id, updates);
 			const next = { ...existing, ...updates };
@@ -117,7 +134,7 @@ export async function POST({ request }: RequestEvent) {
 			semesterId: node.semesterId ?? fallbackSemester.id,
 			code,
 			name: node.name.trim(),
-			tag: node.tag ?? 'core',
+			tag: node.tag ?? 'core'
 		};
 		addCourse(course);
 		coursesByCode.set(code, course);
@@ -138,7 +155,9 @@ export async function POST({ request }: RequestEvent) {
 		const type = incoming.type ?? 'related';
 		const label = incoming.label?.trim() || type;
 		const directed = incoming.directed ?? type === 'prereq';
-		const exists = graph.edges.some((edge) => edge.source === source.id && edge.target === target.id && edge.type === type);
+		const exists = graph.edges.some(
+			(edge) => edge.source === source.id && edge.target === target.id && edge.type === type
+		);
 		if (exists) {
 			edgesSkipped += 1;
 			continue;
@@ -150,7 +169,7 @@ export async function POST({ request }: RequestEvent) {
 			target: target.id,
 			label,
 			type,
-			directed,
+			directed
 		});
 		edgesAdded += 1;
 	}
@@ -161,6 +180,6 @@ export async function POST({ request }: RequestEvent) {
 		created: created.map((course) => course.code),
 		updated: updated.map((course) => course.code),
 		edgesAdded,
-		edgesSkipped,
+		edgesSkipped
 	});
 }
