@@ -127,13 +127,20 @@ export async function extractTextFromPdf(file: File) {
 }
 
 export async function extractSyllabusWithAI(rawText: string): Promise<SyllabusExtractedData> {
-	if (!env.OPENAI_API_KEY) {
-		throw new Error('OPENAI_API_KEY is not set');
+	if (!env.OPENROUTER_API_KEY) {
+		throw new Error('OPENROUTER_API_KEY is not set');
 	}
 
-	const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+	const client = new OpenAI({
+		baseURL: 'https://openrouter.ai/api/v1',
+		apiKey: env.OPENROUTER_API_KEY,
+		defaultHeaders: {
+			'HTTP-Referer': 'http://127.0.0.1:5173',
+			'X-Title': 'Synapse Syllabus Intelligence'
+		}
+	});
 	const completion = await client.chat.completions.create({
-		model: env.OPENAI_SYLLABUS_MODEL || 'gpt-4.1-mini',
+		model: env.OPENROUTER_MODEL || 'deepseek/deepseek-v4-flash',
 		messages: [
 			{
 				role: 'system',
