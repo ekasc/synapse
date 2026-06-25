@@ -203,20 +203,34 @@ export function getSyllabusImport(): SyllabusImport | null {
 }
 
 export function mockExtractSyllabus(fileName = 'CSIS 4495 Syllabus.pdf'): SyllabusImport {
+	return saveSyllabusImport({
+		fileName,
+		rawText:
+			'Mock raw syllabus text. Replace this with PDF extraction before calling an AI parser.',
+		extractedData: MOCK_SYLLABUS_DATA,
+		status: 'mocked'
+	});
+}
+
+export function saveSyllabusImport(input: {
+	fileName: string;
+	rawText: string;
+	extractedData: SyllabusExtractedData;
+	status: SyllabusImport['status'];
+}): SyllabusImport {
 	const existing = getSyllabusImport();
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
 		id: existing?.id ?? crypto.randomUUID(),
 		courseId: existing?.courseId ?? 'csis-4495',
-		fileName,
-		rawText:
-			'Mock raw syllabus text. Replace this with PDF extraction before calling an AI parser.',
+		fileName: input.fileName,
+		rawText: input.rawText,
 		extractedData: {
-			...MOCK_SYLLABUS_DATA,
+			...input.extractedData,
 			requiredMaterials:
-				existing?.extractedData.requiredMaterials ?? MOCK_SYLLABUS_DATA.requiredMaterials
+				existing?.extractedData.requiredMaterials ?? input.extractedData.requiredMaterials
 		},
-		status: 'mocked',
+		status: input.status,
 		createdAt: existing?.createdAt ?? now,
 		updatedAt: now
 	};

@@ -63,6 +63,7 @@
 
 	let syllabus = $state<SyllabusImport | null>(null);
 	let selectedSyllabusFileName = $state('CSIS 4495 Syllabus.pdf');
+	let selectedSyllabusFile = $state<File | null>(null);
 	let isExtracting = $state(false);
 	let apiError = $state('');
 
@@ -109,17 +110,26 @@
 
 	function onSyllabusFileChange(event: Event) {
 		const file = (event.currentTarget as HTMLInputElement).files?.[0];
-		if (file) selectedSyllabusFileName = file.name;
+		if (!file) return;
+		selectedSyllabusFile = file;
+		selectedSyllabusFileName = file.name;
 	}
 
 	async function extractSyllabus() {
 		isExtracting = true;
 		apiError = '';
 		try {
+			const body = selectedSyllabusFile
+				? (() => {
+						const form = new FormData();
+						form.append('file', selectedSyllabusFile);
+						return form;
+					})()
+				: JSON.stringify({ fileName: selectedSyllabusFileName });
 			const response = await fetch('/api/syllabus/extract', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ fileName: selectedSyllabusFileName })
+				headers: selectedSyllabusFile ? undefined : { 'Content-Type': 'application/json' },
+				body
 			});
 			if (!response.ok) throw new Error('Could not extract syllabus');
 			syllabus = (await response.json()) as SyllabusImport;
