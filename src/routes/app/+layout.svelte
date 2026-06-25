@@ -1,32 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { resolveRoute } from '$app/paths';
-	import Icon, { type IconName } from '$lib/components/sidebar/Icon.svelte';
 	import MenuButton from '$lib/components/sidebar/MenuButton.svelte';
 	import Menu from '$lib/components/sidebar/Menu.svelte';
 	import MenuItem from '$lib/components/sidebar/MenuItem.svelte';
 	import TermList from '$lib/components/catalog/TermList.svelte';
-	import { routes, isRouteActive, isChildActive } from '$lib/sidebar/routes';
+	import { routes, isRouteActive } from '$lib/sidebar/routes';
 
 	let { data, children } = $props();
 	const semesters = $derived(data.semesters ?? []);
+	const courses = $derived(data.courses ?? []);
 	const countsById = $derived(data.countsById ?? {});
 
 	let fabOpen = $state(false);
-
-	let coursesOpen = $state(
-		$page.url.pathname === '/app/courses' || $page.url.pathname === '/app/courses/manage'
-	);
-
-	const isCoursesActive = $derived(
-		$page.url.pathname === '/app/courses' || $page.url.pathname === '/app/courses/manage'
-	);
-
-	$effect(() => {
-		if (isCoursesActive) {
-			coursesOpen = true;
-		}
-	});
 
 	$effect(() => {
 		if (!fabOpen) return;
@@ -61,61 +47,25 @@
 	<aside class="sidebar" aria-label="App navigation">
 		<div class="sidebar-header">
 			<a href={resolveRoute('/')} class="sidebar-brand" aria-label="Synapse home">
-				<span class="sidebar-brand-text font-hand">Synapse</span><span class="sidebar-brand-dot"
-					>.</span
-				>
+				<span class="sidebar-brand-text">Synapse</span><span class="sidebar-brand-dot">.</span>
 			</a>
 		</div>
 
 		<div class="sidebar-section">
-			<div class="sidebar-section-label font-mono">Catalog</div>
+			<div class="sidebar-section-label">Catalog</div>
 			<Menu>
 				{#each routes as route (route.href)}
 					<MenuItem>
-						{#if route.children}
-							<div class="sidebar-accordion">
-								<button
-									class="sidebar-link sidebar-accordion-trigger"
-									class:accordion-open={coursesOpen}
-									onclick={() => (coursesOpen = !coursesOpen)}
-									aria-expanded={coursesOpen}
-									data-active={isCoursesActive ? 'true' : undefined}
-								>
-									<Icon name={route.icon as IconName} />
-									<span class="sidebar-label">{route.label}</span>
-									<span class="accordion-arrow" class:arrow-open={coursesOpen}>▾</span>
-								</button>
-								{#if coursesOpen}
-									<div class="sidebar-accordion-children">
-										{#each route.children as child (child.href)}
-											{@const href = resolveRoute(
-												child.href as Exclude<typeof child.href, `/app/courses/[id]`>
-											)}
-											<a
-												{href}
-												class="sidebar-link sidebar-child-link"
-												class:active={isChildActive($page.url.pathname, child)}
-												aria-current={isChildActive($page.url.pathname, child) ? 'page' : undefined}
-											>
-												<span class="sidebar-child-label">{child.label}</span>
-											</a>
-										{/each}
-									</div>
-								{/if}
-							</div>
-						{:else}
-							<MenuButton
-								href={resolveRoute(route.href as Exclude<typeof route.href, `/app/courses/[id]`>)}
-								isActive={isRouteActive($page.url.pathname, route)}
-								ariaLabel={route.label}
-							>
-								<Icon name={route.icon as IconName} />
-								<span class="sidebar-label">{route.label}</span>
-								{#if route.badge}
-									<span class="sidebar-badge">{route.badge}</span>
-								{/if}
-							</MenuButton>
-						{/if}
+						<MenuButton
+							href={resolveRoute(route.href as Exclude<typeof route.href, `/app/courses/[id]`>)}
+							isActive={isRouteActive($page.url.pathname, route)}
+							ariaLabel={route.label}
+						>
+							<span class="sidebar-label">{route.label}</span>
+							{#if route.href === '/app/courses'}
+								<span class="sidebar-count">{courses.length}</span>
+							{/if}
+						</MenuButton>
 					</MenuItem>
 				{/each}
 			</Menu>
@@ -143,7 +93,6 @@
 						class:fab-active={isRouteActive($page.url.pathname, route)}
 						aria-current={isRouteActive($page.url.pathname, route) ? 'page' : undefined}
 					>
-						<Icon name={route.icon as IconName} size={14} />
 						<span class="fab-label">{route.label}</span>
 					</a>
 				{/each}
@@ -203,17 +152,19 @@
 		line-height: 1;
 		display: inline-flex;
 		align-items: baseline;
-		letter-spacing: -0.02em;
 	}
 
 	.sidebar-brand-text {
-		font-size: 1.7rem;
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
 	}
 
 	.sidebar-brand-dot {
 		color: var(--accent);
-		font-family: var(--font-hand);
-		font-size: 1.7rem;
+		font-family: var(--font-display);
+		font-size: 1.25rem;
 		font-weight: 700;
 		line-height: 1;
 	}
@@ -223,14 +174,16 @@
 	}
 
 	.sidebar-section-label {
-		font-size: 0.6rem;
-		color: var(--ink-faint);
-		letter-spacing: 0.2em;
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		color: var(--ink-soft);
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
 		padding: 0 1.25rem 0.5rem;
 	}
 
 	.sidebar-label {
-		font-size: 0.88rem;
+		font-size: 0.9rem;
 		font-weight: 500;
 		letter-spacing: 0;
 		min-width: 0;
@@ -239,38 +192,13 @@
 		white-space: nowrap;
 	}
 
-	:global(.sidebar-link) :global(.sidebar-icon) {
-		opacity: 0.5;
-		transition: opacity 0.12s var(--ease-out-quart);
-	}
-
-	:global(.sidebar-link:hover) :global(.sidebar-icon),
-	:global(.sidebar-link[data-active='true']) :global(.sidebar-icon) {
-		opacity: 1;
-	}
-
-	:global(.sidebar-link[data-active='true']) {
-		background: var(--paper) !important;
-		border-left-color: var(--accent) !important;
-		color: var(--ink) !important;
-		font-weight: 600;
-	}
-
-	.sidebar-badge {
-		margin-left: auto;
-		min-width: 1.35rem;
-		height: 1.35rem;
-		padding: 0 0.4rem;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--accent);
-		color: var(--paper);
+	.sidebar-count {
 		font-family: var(--font-mono);
-		font-size: 0.65rem;
-		font-weight: 600;
+		font-size: 0.7rem;
+		color: var(--ink-soft);
+		font-weight: 500;
 		line-height: 1;
-		letter-spacing: 0;
+		flex-shrink: 0;
 	}
 
 	.app-main {
@@ -388,117 +316,7 @@
 		line-height: 1;
 	}
 
-	/* ── Accordion ── */
-	.sidebar-accordion-trigger {
-		display: grid;
-		grid-template-columns: 1.1rem minmax(0, 1fr) auto;
-		align-items: center;
-		gap: 0.7rem;
-		padding: 0.55rem 0.7rem;
-		border: 1px solid transparent;
-		font-family: var(--font-body);
-		font-size: 0.88rem;
-		font-weight: 500;
-		color: var(--ink-soft);
-		text-align: left;
-		cursor: pointer;
-		background: transparent;
-		width: 100%;
-		transition:
-			color 0.12s var(--ease-out-quart),
-			background 0.12s var(--ease-out-quart);
-	}
-
-	.sidebar-accordion-trigger:hover {
-		color: var(--ink);
-		background: var(--paper);
-	}
-
-	.sidebar-accordion-trigger:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: 2px;
-	}
-
-	.sidebar-accordion-trigger.accordion-open {
-		color: var(--ink);
-		font-weight: 500;
-	}
-
-	.sidebar-accordion-trigger :global(.sidebar-icon) {
-		opacity: 0.6;
-		transition: opacity 0.12s var(--ease-out-quart);
-	}
-
-	.sidebar-accordion-trigger:hover :global(.sidebar-icon),
-	.sidebar-accordion-trigger.accordion-open :global(.sidebar-icon) {
-		opacity: 1;
-	}
-
-	.accordion-arrow {
-		font-size: 0.65rem;
-		color: var(--ink-faint);
-		transition: transform 0.15s var(--ease-out-quart);
-		line-height: 1;
-		margin-left: auto;
-		display: inline-block;
-	}
-
-	.accordion-arrow.arrow-open {
-		transform: rotate(180deg);
-	}
-
-	.sidebar-accordion-children {
-		display: flex;
-		flex-direction: column;
-		gap: 0.1rem;
-		margin-top: 0.1rem;
-		padding-left: 1.8rem;
-	}
-
-	.sidebar-child-link {
-		display: block;
-		padding: 0.4rem 0.7rem 0.4rem 1.7rem;
-		font-family: var(--font-mono);
-		font-size: 0.78rem;
-		font-weight: 400;
-		color: var(--ink-soft);
-		text-decoration: none;
-		border-left: 2px solid transparent;
-		transition:
-			color 0.12s var(--ease-out-quart),
-			background 0.12s var(--ease-out-quart),
-			border-left-color 0.12s var(--ease-out-quart);
-	}
-
-	.sidebar-child-link:hover {
-		color: var(--ink);
-		background: var(--paper);
-	}
-
-	.sidebar-child-link.active {
-		color: var(--ink);
-		font-weight: 500;
-		background: var(--paper);
-		border-left-color: var(--accent);
-	}
-
-	.sidebar-child-link:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: 2px;
-	}
-
-	.sidebar-child-label {
-		text-transform: lowercase;
-		letter-spacing: 0.02em;
-	}
-
 	@media (prefers-reduced-motion: reduce) {
-		.sidebar-accordion-trigger {
-			transition: none;
-		}
-		.accordion-arrow {
-			transition: none;
-		}
 		.fab-btn {
 			transition: none;
 		}

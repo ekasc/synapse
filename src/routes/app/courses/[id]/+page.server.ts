@@ -30,6 +30,7 @@ export function load({ params }) {
 	return {
 		course,
 		semester,
+		semesters,
 		edges,
 		incoming,
 		outgoing,

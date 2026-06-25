@@ -63,6 +63,7 @@ export type Course = {
 	instructor?: string;
 	credits?: number;
 	tag?: string;
+	color?: string;
 	signals?: CourseSignal;
 };
 

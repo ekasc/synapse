@@ -304,6 +304,118 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 
 ---
 
+## 13. Academic Catalog UI Direction (June 24)
+
+### Prompt (to OpenCode Go, multi-turn)
+
+> "make the ui feel more academic / catalog-like" → follow-up feedback rejecting notebook ornaments like stamps, hand-drawn arrows, date tapes, page footers, and small decorative labels.
+
+**Context:** The app had gone through a Field Notebook visual direction, but it was drifting into decorative UI. I wanted the product to feel like an academic catalog: structured, mature, readable, and intentional, without fake notebook artifacts.
+
+**What came back:** A full visual direction shift across `/app/*`:
+
+- New catalog design primitives: `CatalogHeader`, `IndexBar`, `BookCard`, `BookShelf`, `SectionHead`, `StatusChip`, `TermBlock`, `TermList`
+- Reworked global tokens in `src/routes/layout.css`
+- Font system using Kalam for brand/title accents, Source Serif 4 for display, JetBrains Mono for data labels, and Inter for body text
+- Sidebar redesigned into a paper-shelf catalog layout with a red left-border active state
+- Dashboard, Calendar, Digest, Practice, Brief, Manage Courses, Semesters, and Syllabus brought into the same page-cover/catalog system
+
+**What I changed:**
+
+- Rejected the first pass of decorative notebook elements because they looked too gimmicky.
+- Asked for smaller UI to be removed or scaled up; labels under readable size were not acceptable.
+- Asked to remove misleading fake metadata like fake dates, fake "today" badges, or untrusted deadline counts.
+- Removed Settings from the sidebar because it was a dead placeholder route.
+
+**Verification:** Prettier and focused lint/type checks were run during the implementation. Impeccable audit later reported 0 findings on the `/app` routes.
+
+---
+
+## 14. Course Detail Page + Material Uploads (June 25)
+
+### Prompt (to OpenCode Go)
+
+> "courses need their own detail page. also each course should have materials. also when i click into a course i need to go back to where i came from."
+
+**Context:** The course graph and manage table listed courses, but there was no per-course destination. Users needed a detail page that showed course status, topics, graph relationships, and uploaded course files. The back behavior also needed to return to the exact origin page instead of always going to one hardcoded page.
+
+**What came back:**
+
+- New dynamic route: `src/routes/app/courses/[id]/+page.svelte`
+- New loader: `src/routes/app/courses/[id]/+page.server.ts`
+- Detail page sections: course cover, status strip, topics, incoming/outgoing graph connections, materials, and activity
+- Backref design using `?from=` query param, validated as an internal path and defaulting to `/app/courses/manage`
+- Links from Dashboard, Manage Courses, and Course Graph now include `?from=<current path>`
+- New `Material` type and file storage functions in `src/lib/server/store.ts`
+- New upload/list/delete API: `/api/courses/[id]/materials`
+- New download API: `/api/courses/[id]/materials/[materialId]/download`
+- Materials UI with drag/drop upload, multi-file selection, list, file-kind chip, download link, size/date metadata, and delete button
+
+**What I changed:**
+
+- Required any file type, not just PDFs, because course materials include slides, docs, images, and other formats.
+- Chose `?from=` over browser history because direct deep links still need a deterministic fallback.
+- Kept the implementation local-file based under `.data/uploads/` rather than introducing cloud storage before it was needed.
+- Kept Demi-owned backend/AI logic out of scope except for shared store additions needed by the UI.
+
+**Verification:**
+
+- Uploaded a test text file through the API and received `200`
+- Listed course materials and confirmed the uploaded file appeared
+- Downloaded the uploaded file and confirmed contents matched
+- Deleted the material and confirmed list returned empty
+- Checked nonexistent course upload returns `404`
+- Focused eslint and `svelte-check` clean for the new route/API files
+
+---
+
+## 15. Demi PR Merge and Conflict Reconciliation (June 25)
+
+### Prompt (to OpenCode Go)
+
+> "i want to merge the pr demi made. and make sure there are no conflicts. she added her stuff using the older ui. i want to keep her backend as it is and keep the current state of my code. ask me questions if needed"
+
+**Context:** Demi's PR #4 (`codex/syllabus-intelligence-ui`) added syllabus parser/backend work, but also included an older UI version. My local app already had the newer catalog UI and manually integrated compatible syllabus backend pieces. The goal was to merge her PR without losing my current UI.
+
+**What came back:**
+
+- Inspected PR #4 changed files and identified the risky overlaps:
+  - `src/routes/app/+layout.svelte`
+  - `src/routes/app/syllabus/+page.svelte`
+  - `src/lib/server/store.ts`
+  - `package.json`
+  - `pnpm-lock.yaml`
+- Imported/kept Demi backend pieces:
+  - `openai`
+  - `pdf-parse`
+  - `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` env examples
+  - `src/lib/server/syllabus-parser.ts`
+  - `/api/syllabus`, `/api/syllabus/extract`, `/api/syllabus/textbook`
+  - syllabus import types and store functions
+- Preserved current catalog UI versions of the layout and syllabus page
+- Committed the current local work before merging the remote PR
+- Merged PR #4 on GitHub
+- Fetched `origin/main`, merged it locally, resolved conflicts in favor of the current UI and already-merged backend
+- Pushed final `main` back to GitHub
+
+**What I changed:**
+
+- I chose not to run a blind `git pull` because the working tree had many uncommitted UI changes and the PR touched the same files.
+- I asked the agent to follow the safest path: commit first, merge PR remotely, fetch, merge locally, resolve conflicts deliberately.
+- I kept Demi's backend/API behavior but rejected older UI chunks from her PR.
+
+**Verification:**
+
+- `git status` clean before final push
+- No conflict markers found
+- Focused eslint clean for merged syllabus backend + syllabus UI
+- Focused `svelte-check` clean for merged files
+- Syllabus endpoints returned `200` after the merge:
+  - `GET /api/syllabus`
+  - `POST /api/syllabus/extract`
+
+---
+
 ## Summary of AI Usage Pattern
 
 | Phase                            | Tool         | Prompt Count | AI Output                        | Human Review                                     |
@@ -319,6 +431,9 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 | Dashboard depth                  | OpenCode Go  | 1            | Full restyle                     | Mobile media query scoping                       |
 | App UI overhaul                  | OpenCode Go  | 1            | All P0–P4 priorities             | Lint, a11y on flashcard, intentional non-changes |
 | UX audit + 2-agent parallel impl | OpenCode Go  | 3            | 14-issue list, 2 parallel agents | File-ownership check, contract verification      |
+| Academic catalog UI direction    | OpenCode Go  | ~4           | App-wide catalog redesign        | Rejected gimmicks, preserved trusted data only   |
+| Course detail + materials        | OpenCode Go  | ~2           | Detail route + upload APIs       | File type scope, backref design, API tests       |
+| Demi PR merge reconciliation     | OpenCode Go  | ~3           | Safe merge + conflict resolution | Preserved current UI, verified backend endpoints |
 
 **Key principle:** AI output is always reviewed. Nothing goes from prompt to submission without verification. The most valuable AI contribution was accelerating the scaffolding (proposal structure, graph canvas boilerplate, design system primitives) so I could focus on the parts that needed human judgment (architecture decisions, data model, quality control, deciding what NOT to change).
 

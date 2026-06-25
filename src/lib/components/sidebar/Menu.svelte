@@ -18,8 +18,8 @@
 	:global(.sidebar-menu) {
 		display: flex;
 		flex-direction: column;
-		gap: 0.15rem;
-		padding: 0 0.75rem;
+		gap: 0;
+		padding: 0;
 		min-height: 0;
 	}
 </style>

@@ -325,7 +325,7 @@
 
 				<section class="knowledge">
 					<SectionHead
-						eyebrow="Step 03"
+						eyebrow="Section 05"
 						title="Key knowledge"
 						meta={extracted.keyKnowledge.source}
 					/>
@@ -357,7 +357,7 @@
 
 				<section class="materials">
 					<div class="materials-copy">
-						<div class="materials-eyebrow font-mono">Step 04</div>
+						<div class="materials-eyebrow font-mono">Section 06</div>
 						<h3 class="group-title font-mono">Required materials</h3>
 						{#if textbookUploaded}
 							<p class="materials-title font-display">

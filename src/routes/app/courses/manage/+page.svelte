@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { resolveRoute } from '$app/paths';
-	import { AlertDialog, Dialog } from '$lib/components/ui';
+	import { AlertDialog } from '$lib/components/ui';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
+	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
 
 	let { data }: { data: { semesters: Semester[]; courses: Course[] } } = $props();
 
@@ -24,6 +25,7 @@
 		instructor?: string;
 		credits?: number;
 		tag?: string;
+		color?: string;
 		signals?: CourseSignal;
 	};
 
@@ -32,24 +34,9 @@
 	let searchQuery = $state('');
 
 	let showModal = $state(false);
-	let editingId = $state<string | null>(null);
-	let form = $state({
-		code: '',
-		name: '',
-		semesterId: '',
-		instructor: '',
-		credits: '',
-		tag: '',
-		status: 'planned' as CourseStatus,
-		riskLevel: 'none' as RiskLevel,
-		currentGrade: '',
-		topics: ''
-	});
-	let saving = $state(false);
+	let editingCourse = $state<Course | null>(null);
 	let deleteConfirm = $state<string | null>(null);
 	let error = $state<string | null>(null);
-
-	const TAGS = ['core', 'programming', 'math', 'systems', 'ai', 'writing'];
 
 	const semestersById = $derived.by(() => {
 		const m: Record<string, Semester> = {};
@@ -80,104 +67,13 @@
 	}
 
 	function openAdd() {
-		editingId = null;
-		form = {
-			code: '',
-			name: '',
-			semesterId: semesters[0]?.id ?? '',
-			instructor: '',
-			credits: '',
-			tag: '',
-			status: 'planned',
-			riskLevel: 'none',
-			currentGrade: '',
-			topics: ''
-		};
-		error = null;
+		editingCourse = null;
 		showModal = true;
 	}
 
 	function openEdit(course: Course) {
-		editingId = course.id;
-		form = {
-			code: course.code,
-			name: course.name,
-			semesterId: course.semesterId,
-			instructor: course.instructor ?? '',
-			credits: course.credits ? String(course.credits) : '',
-			tag: course.tag ?? '',
-			status: course.signals?.status ?? 'planned',
-			riskLevel: course.signals?.riskLevel ?? 'none',
-			currentGrade:
-				course.signals?.currentGrade !== undefined ? String(course.signals.currentGrade) : '',
-			topics: course.signals?.topics ? course.signals.topics.join(', ') : ''
-		};
-		error = null;
+		editingCourse = course;
 		showModal = true;
-	}
-
-	function closeModal() {
-		showModal = false;
-		editingId = null;
-		error = null;
-	}
-
-	async function save() {
-		if (!form.code.trim() || !form.name.trim() || !form.semesterId) {
-			error = 'Code, name, and semester are required.';
-			return;
-		}
-
-		saving = true;
-		error = null;
-
-		const topics = form.topics
-			.split(',')
-			.map((t) => t.trim())
-			.filter(Boolean);
-
-		const signals: CourseSignal = {
-			status: form.status,
-			riskLevel: form.status === 'active' ? form.riskLevel : 'none',
-			...(form.status === 'active' && form.currentGrade
-				? { currentGrade: parseFloat(form.currentGrade) }
-				: {}),
-			...(topics.length > 0 ? { topics } : {})
-		};
-
-		const body: Record<string, unknown> = {
-			code: form.code.trim().toUpperCase(),
-			name: form.name.trim(),
-			semesterId: form.semesterId,
-			instructor: form.instructor.trim() || undefined,
-			credits: form.credits ? parseInt(form.credits) : undefined,
-			tag: form.tag.trim() || undefined,
-			signals
-		};
-
-		try {
-			const res = editingId
-				? await fetch('/api/courses', {
-						method: 'PATCH',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ id: editingId, ...body })
-					})
-				: await fetch('/api/courses', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ id: crypto.randomUUID(), ...body })
-					});
-			if (!res.ok) {
-				error = editingId ? 'Failed to update course' : 'Failed to create course';
-				return;
-			}
-			await invalidateAll();
-			closeModal();
-		} catch {
-			error = 'Network error. Is the server running?';
-		} finally {
-			saving = false;
-		}
 	}
 
 	async function confirmDelete(id: string) {
@@ -293,133 +189,7 @@
 	</div>
 </div>
 
-<Dialog bind:open={showModal} title={editingId ? 'Edit Course' : 'Add Course'} class="modal">
-	<div class="modal-body">
-		<label>
-			<span class="field-label font-mono">Course Code *</span>
-			<input
-				type="text"
-				class="modal-input font-mono"
-				placeholder="e.g. CSIS 3375"
-				bind:value={form.code}
-			/>
-		</label>
-		<label>
-			<span class="field-label font-mono">Course Name *</span>
-			<input
-				type="text"
-				class="modal-input"
-				placeholder="e.g. Database Systems"
-				bind:value={form.name}
-			/>
-		</label>
-		<label>
-			<span class="field-label font-mono">Semester *</span>
-			<select class="modal-input" bind:value={form.semesterId}>
-				<option value="">Select semester…</option>
-				{#each semesters as sem (sem.id)}
-					<option value={sem.id}>{sem.term} {sem.year}</option>
-				{/each}
-			</select>
-		</label>
-		<label>
-			<span class="field-label font-mono">Instructor</span>
-			<input
-				type="text"
-				class="modal-input"
-				placeholder="e.g. Dr. Anil Goel"
-				bind:value={form.instructor}
-			/>
-		</label>
-		<div class="modal-row">
-			<label>
-				<span class="field-label font-mono">Credits</span>
-				<input
-					type="number"
-					class="modal-input short"
-					placeholder="3"
-					min="1"
-					max="6"
-					bind:value={form.credits}
-				/>
-			</label>
-			<label>
-				<span class="field-label font-mono">Tag</span>
-				<input
-					type="text"
-					class="modal-input"
-					placeholder="e.g. core"
-					list="known-tags"
-					bind:value={form.tag}
-				/>
-				<datalist id="known-tags">
-					{#each TAGS as tag (tag)}
-						<option value={tag}></option>
-					{/each}
-				</datalist>
-			</label>
-		</div>
-
-		<div class="modal-row">
-			<label>
-				<span class="field-label font-mono">Status</span>
-				<select class="modal-input" bind:value={form.status}>
-					<option value="planned">planned</option>
-					<option value="active">active</option>
-					<option value="completed">completed</option>
-					<option value="at-risk">at-risk</option>
-				</select>
-			</label>
-			{#if form.status === 'active'}
-				<label>
-					<span class="field-label font-mono">Risk Level</span>
-					<select class="modal-input" bind:value={form.riskLevel}>
-						<option value="none">none</option>
-						<option value="low">low</option>
-						<option value="medium">medium</option>
-						<option value="high">high</option>
-					</select>
-				</label>
-			{/if}
-		</div>
-
-		{#if form.status === 'active'}
-			<label>
-				<span class="field-label font-mono">Current Grade</span>
-				<input
-					type="number"
-					class="modal-input short"
-					placeholder="e.g. 87.5"
-					min="0"
-					max="100"
-					step="0.1"
-					bind:value={form.currentGrade}
-				/>
-			</label>
-		{/if}
-
-		<label>
-			<span class="field-label font-mono">Topics (comma-separated)</span>
-			<textarea
-				class="modal-input"
-				rows="2"
-				placeholder="e.g. SQL, normalization, indexing"
-				bind:value={form.topics}
-			></textarea>
-		</label>
-
-		{#if error}
-			<p class="modal-error font-mono">{error}</p>
-		{/if}
-	</div>
-
-	<div class="modal-actions">
-		<button type="button" class="btn btn-ghost btn-sm" onclick={closeModal}>cancel</button>
-		<button type="button" class="btn btn-primary btn-sm" onclick={save} disabled={saving}>
-			{saving ? 'saving…' : editingId ? 'save changes' : 'add course'}
-		</button>
-	</div>
-</Dialog>
+<CourseEditDialog bind:open={showModal} course={editingCourse} {semesters} />
 
 <AlertDialog
 	open={deleteConfirm !== null}
@@ -563,67 +333,5 @@
 		font-size: 0.8rem;
 		padding: 2rem !important;
 		font-style: italic;
-	}
-
-	.modal-body {
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
-		margin-bottom: 1.25rem;
-	}
-
-	.modal-body label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.field-label {
-		font-size: 0.7rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.modal-input {
-		padding: 0.5rem 0.6rem;
-		border: 1px solid var(--rule);
-		background: white;
-		color: var(--ink);
-		font-size: 0.85rem;
-		font-family: var(--font-body);
-		outline: none;
-	}
-
-	.modal-input:focus {
-		outline: 2px solid var(--ink);
-		outline-offset: -1px;
-	}
-
-	.modal-input.short {
-		width: 100px;
-	}
-
-	.modal-row {
-		display: flex;
-		gap: 1rem;
-	}
-
-	.modal-row label {
-		flex: 1;
-	}
-
-	.modal-error {
-		font-size: 0.72rem;
-		color: var(--accent);
-		margin: 0;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-	}
-
-	.modal-actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
 	}
 </style>

@@ -32,6 +32,13 @@
 	--color-pen-red: #c2362a;
 	--color-tape: rgba(232, 220, 193, 0.85);
 	--color-shadow-ink: rgba(26, 26, 23, 0.12);
+	--color-subject-comp: #4a6fa5;
+	--color-subject-math: #5a7a4a;
+	--color-subject-csis: #7a5a8a;
+	--color-subject-stat: #3a8a7a;
+	--color-subject-econ: #b08a3a;
+	--color-subject-isys: #b04a6a;
+	--color-subject-humn: #6a5a8a;
 
 	--font-hand: 'Kalam', 'Caveat', cursive;
 	--font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -57,6 +64,13 @@
 	--pen-red: #c2362a;
 	--tape: rgba(232, 220, 193, 0.85);
 	--shadow-ink: rgba(26, 26, 23, 0.12);
+	--subject-comp: #4a6fa5;
+	--subject-math: #5a7a4a;
+	--subject-csis: #7a5a8a;
+	--subject-stat: #3a8a7a;
+	--subject-econ: #b08a3a;
+	--subject-isys: #b04a6a;
+	--subject-humn: #6a5a8a;
 	--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 	--sidebar-width: 220px;
 	--sidebar-width-mobile: 18rem;

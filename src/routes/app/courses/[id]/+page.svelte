@@ -4,6 +4,10 @@
 	import { resolveRoute } from '$app/paths';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import DocumentViewer from '$lib/components/course-materials/DocumentViewer.svelte';
+	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
+
+	type CourseStatus = 'planned' | 'active' | 'completed' | 'at-risk';
+	type RiskLevel = 'none' | 'low' | 'medium' | 'high';
 
 	type Course = {
 		id: string;
@@ -13,9 +17,10 @@
 		instructor?: string;
 		credits?: number;
 		tag?: string;
+		color?: string;
 		signals?: {
-			status?: 'planned' | 'active' | 'completed' | 'at-risk';
-			riskLevel?: 'none' | 'low' | 'medium' | 'high';
+			status?: CourseStatus;
+			riskLevel?: RiskLevel;
 			currentGrade?: number;
 			projectedGrade?: number;
 			deadlinesThisWeek?: number;
@@ -53,6 +58,7 @@
 		data: {
 			course: Course;
 			semester: Semester | null;
+			semesters: Semester[];
 			incoming: Edge[];
 			outgoing: Edge[];
 			materials: Material[];
@@ -62,6 +68,7 @@
 
 	const course = $derived(data.course);
 	const semester = $derived(data.semester);
+	const semesters = $derived(data.semesters);
 	const incoming = $derived(data.incoming);
 	const outgoing = $derived(data.outgoing);
 	const materials = $derived(data.materials);
@@ -110,6 +117,8 @@
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- backHref is a user-supplied ?from= param, validated to be an internal path
 		void goto(backHref);
 	}
+
+	let showEditModal = $state(false);
 
 	let uploading = $state(false);
 	let uploadError = $state<string | null>(null);
@@ -264,10 +273,7 @@
 					</div>
 				{/if}
 			</div>
-			<button
-				class="btn btn-secondary btn-sm"
-				onclick={() => goto(resolveRoute('/app/courses/manage'))}>manage</button
-			>
+			<button class="btn btn-secondary btn-sm" onclick={() => (showEditModal = true)}>edit</button>
 		</div>
 
 		<div class="state-strip" aria-label="Course state">
@@ -481,7 +487,13 @@
 	{/if}
 </div>
 
-<DocumentViewer material={selectedMaterial} open={selectedMaterial !== null} onClose={closeViewer} />
+<DocumentViewer
+	material={selectedMaterial}
+	open={selectedMaterial !== null}
+	onClose={closeViewer}
+/>
+
+<CourseEditDialog bind:open={showEditModal} {course} {semesters} />
 
 <style>
 	.page {
