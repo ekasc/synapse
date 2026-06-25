@@ -6,11 +6,12 @@
 	const nav = [
 		{ href: '/app', label: 'Dashboard', icon: '◫' },
 		{ href: '/app/courses', label: 'Courses', icon: '◰' },
+		{ href: '/app/syllabus', label: 'Syllabus', icon: '◱' },
 		{ href: '/app/calendar', label: 'Calendar', icon: '◷' },
 		{ href: '/app/digest', label: 'Digest', icon: '◶' },
 		{ href: '/app/practice', label: 'Practice', icon: '◵' },
 		{ href: '/app/brief', label: 'Brief', icon: '◴' },
-		{ href: '/app/settings', label: 'Settings', icon: '⚙' },
+		{ href: '/app/settings', label: 'Settings', icon: '⚙' }
 	];
 </script>
 
@@ -23,11 +24,7 @@
 
 		<nav class="sidebar-nav">
 			{#each nav as item}
-				<a
-					href={item.href}
-					class="sidebar-link"
-					class:active={$page.url.pathname === item.href}
-				>
+				<a href={item.href} class="sidebar-link" class:active={$page.url.pathname === item.href}>
 					<span class="sidebar-icon">{item.icon}</span>
 					<span class="sidebar-label">{item.label}</span>
 				</a>
@@ -105,7 +102,9 @@
 		text-decoration: none;
 		font-size: 0.9rem;
 		font-family: var(--font-body);
-		transition: background 0.15s, color 0.15s;
+		transition:
+			background 0.15s,
+			color 0.15s;
 	}
 
 	.sidebar-link:hover {
