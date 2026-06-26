@@ -60,3 +60,19 @@ export const insights = sqliteTable('insights', {
 	contextHash: text('context_hash'),
 	createdAt: text('created_at').notNull()
 });
+
+export const calendarEvents = sqliteTable('calendar_events', {
+	id: text('id').primaryKey(),
+	courseCode: text('course_code').notNull(),
+	title: text('title').notNull(),
+	type: text('type').notNull().default('assignment'), // assignment | midterm | final | quiz | lecture | study_session
+	date: integer('date').notNull(), // day of month 1-31
+	month: integer('month').notNull(), // 0-11
+	year: integer('year').notNull(),
+	time: text('time'),
+	gradeWeight: integer('grade_weight'), // percentage weight of this event toward final grade
+	status: text('status').default('pending'), // pending | completed | at_risk
+	notes: text('notes'), // free-text notes
+	createdAt: text('created_at').notNull(),
+	updatedAt: text('updated_at').notNull()
+});

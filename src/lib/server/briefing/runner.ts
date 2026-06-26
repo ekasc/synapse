@@ -7,7 +7,7 @@ import * as schema from '../db/d1-schema';
 export type BriefingJob = {
 	id: string;
 	courseCode: string;
-	status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+	status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled' | 'expired';
 	frozenContext: string;
 	contextHash: string;
 	cacheKey: string;
@@ -19,6 +19,23 @@ export type BriefingJob = {
 	expiresAt: string;
 	completedAt: string | null;
 };
+
+export const RUNNING_JOB_TIMEOUT_MS = 30 * 60 * 1000;
+
+export function isReusableBriefingJob(job: BriefingJob, now = new Date()): boolean {
+	if (job.status === 'queued') {
+		return new Date(job.expiresAt).getTime() > now.getTime();
+	}
+
+	if (job.status === 'running') {
+		const startedAt = job.startedAt
+			? new Date(job.startedAt).getTime()
+			: new Date(job.createdAt).getTime();
+		return now.getTime() - startedAt <= RUNNING_JOB_TIMEOUT_MS;
+	}
+
+	return false;
+}
 
 /** SHA-256 hex hash using Web Crypto API (available in Workers) */
 async function sha256Hex(input: string): Promise<string> {
@@ -32,18 +49,40 @@ async function sha256Hex(input: string): Promise<string> {
 export function createBriefingRunner(binding: D1Database) {
 	const db = drizzle(binding, { schema });
 
+	async function expireStaleJobs(): Promise<void> {
+		const now = new Date();
+		const nowIso = now.toISOString();
+		const runningCutoff = new Date(now.getTime() - RUNNING_JOB_TIMEOUT_MS).toISOString();
+
+		await binding
+			.prepare(
+				`UPDATE briefing_jobs
+			 SET status = 'expired', error_code = 'EXPIRED', error_message = 'Briefing job expired before completion', completed_at = ?
+			 WHERE status = 'queued' AND expires_at < ?`
+			)
+			.bind(nowIso, nowIso)
+			.run();
+
+		await binding
+			.prepare(
+				`UPDATE briefing_jobs
+			 SET status = 'expired', error_code = 'EXPIRED', error_message = 'Briefing job timed out', completed_at = ?
+			 WHERE status = 'running' AND coalesce(started_at, created_at) < ?`
+			)
+			.bind(nowIso, runningCutoff)
+			.run();
+	}
+
 	/** Claim the next queued job atomically. */
 	async function claimNextJob(): Promise<BriefingJob | null> {
 		const now = new Date().toISOString();
 
-		// Cleanup expired queued jobs
-		await binding.prepare(
-			`DELETE FROM briefing_jobs WHERE expires_at < ? AND status = 'queued'`
-		).bind(now).run();
+		await expireStaleJobs();
 
 		// Claim one queued job
-		const result = await binding.prepare(
-			`UPDATE briefing_jobs
+		const result = await binding
+			.prepare(
+				`UPDATE briefing_jobs
 			 SET status = 'running', started_at = ?
 			 WHERE id = (
 			   SELECT id FROM briefing_jobs
@@ -51,19 +90,53 @@ export function createBriefingRunner(binding: D1Database) {
 			   LIMIT 1
 			 )
 			 RETURNING *`
-		).bind(now, now).first<Record<string, unknown>>();
+			)
+			.bind(now, now)
+			.first<Record<string, unknown>>();
 
 		if (!result) return null;
 		return rowToJob(result);
 	}
 
+	/** Start a specific queued job. */
+	async function startJob(id: string): Promise<BriefingJob | null> {
+		const now = new Date().toISOString();
+
+		await expireStaleJobs();
+
+		const result = await binding
+			.prepare(
+				`UPDATE briefing_jobs
+				 SET status = 'running', started_at = ?
+				 WHERE id = ? AND status = 'queued' AND expires_at > ?
+				 RETURNING *`
+			)
+			.bind(now, id, now)
+			.first<Record<string, unknown>>();
+
+		return result ? rowToJob(result) : null;
+	}
+
 	/** Create a new briefing job */
-	async function createJob(params: { courseCode: string; professorName?: string; institution?: string }): Promise<BriefingJob> {
+	async function createJob(params: {
+		courseCode: string;
+		professorName?: string;
+		institution?: string;
+	}): Promise<BriefingJob> {
 		const id = crypto.randomUUID();
 		const now = new Date().toISOString();
 
-		const frozenContext = JSON.stringify({ courseCode: params.courseCode, professorName: params.professorName ?? null, institution: params.institution ?? null, researchedAt: now });
-		const stableContext = JSON.stringify({ courseCode: params.courseCode, professorName: params.professorName ?? null, institution: params.institution ?? null });
+		const frozenContext = JSON.stringify({
+			courseCode: params.courseCode,
+			professorName: params.professorName ?? null,
+			institution: params.institution ?? null,
+			researchedAt: now
+		});
+		const stableContext = JSON.stringify({
+			courseCode: params.courseCode,
+			professorName: params.professorName ?? null,
+			institution: params.institution ?? null
+		});
 		const contextHash = await sha256Hex(stableContext);
 		const cacheKey = `briefing:${params.courseCode}:${contextHash}`;
 		const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
@@ -85,51 +158,90 @@ export function createBriefingRunner(binding: D1Database) {
 		});
 
 		return {
-			id, courseCode: params.courseCode, status: 'queued' as const,
-			frozenContext, contextHash, cacheKey,
-			output: null, errorCode: null, errorMessage: null,
-			createdAt: now, startedAt: null, expiresAt, completedAt: null
+			id,
+			courseCode: params.courseCode,
+			status: 'queued' as const,
+			frozenContext,
+			contextHash,
+			cacheKey,
+			output: null,
+			errorCode: null,
+			errorMessage: null,
+			createdAt: now,
+			startedAt: null,
+			expiresAt,
+			completedAt: null
 		};
 	}
 
 	/** Mark a job as succeeded */
 	async function completeJob(id: string, output: string): Promise<void> {
 		const now = new Date().toISOString();
-		await binding.prepare(
-			`UPDATE briefing_jobs SET status = 'succeeded', output = ?, completed_at = ? WHERE id = ?`
-		).bind(output, now, id).run();
+		await binding
+			.prepare(
+				`UPDATE briefing_jobs SET status = 'succeeded', output = ?, completed_at = ? WHERE id = ?`
+			)
+			.bind(output, now, id)
+			.run();
 	}
 
 	/** Mark a job as failed */
 	async function failJob(id: string, errorCode: string, errorMessage: string): Promise<void> {
 		const now = new Date().toISOString();
-		await binding.prepare(
-			`UPDATE briefing_jobs SET status = 'failed', error_code = ?, error_message = ?, completed_at = ? WHERE id = ?`
-		).bind(errorCode, errorMessage, now, id).run();
+		await binding
+			.prepare(
+				`UPDATE briefing_jobs SET status = 'failed', error_code = ?, error_message = ?, completed_at = ? WHERE id = ?`
+			)
+			.bind(errorCode, errorMessage, now, id)
+			.run();
 	}
 
 	/** Get recent jobs for a course code */
 	async function getJobs(courseCode: string): Promise<BriefingJob[]> {
-		const rows = await binding.prepare(
-			`SELECT * FROM briefing_jobs WHERE course_code = ? ORDER BY created_at DESC`
-		).bind(courseCode).all<Record<string, unknown>>();
+		await expireStaleJobs();
+		const rows = await binding
+			.prepare(`SELECT * FROM briefing_jobs WHERE course_code = ? ORDER BY created_at DESC`)
+			.bind(courseCode)
+			.all<Record<string, unknown>>();
 		return (rows.results ?? []).map(rowToJob);
 	}
 
 	/** Get a single job by id */
 	async function getJob(id: string): Promise<BriefingJob | null> {
-		const row = await binding.prepare(
-			`SELECT * FROM briefing_jobs WHERE id = ?`
-		).bind(id).first<Record<string, unknown>>();
+		await expireStaleJobs();
+		const row = await binding
+			.prepare(`SELECT * FROM briefing_jobs WHERE id = ?`)
+			.bind(id)
+			.first<Record<string, unknown>>();
 		return row ? rowToJob(row) : null;
+	}
+
+	/** Get all jobs, newest first */
+	async function getAllJobs(): Promise<BriefingJob[]> {
+		await expireStaleJobs();
+		const rows = await binding
+			.prepare(`SELECT * FROM briefing_jobs ORDER BY created_at DESC LIMIT 100`)
+			.all<Record<string, unknown>>();
+		return (rows.results ?? []).map(rowToJob);
+	}
+
+	/** Cancel a queued/running job */
+	async function cancelJob(id: string): Promise<void> {
+		await binding
+			.prepare(
+				`UPDATE briefing_jobs SET status = 'canceled', completed_at = ? WHERE id = ? AND status IN ('queued', 'running')`
+			)
+			.bind(new Date().toISOString(), id)
+			.run();
 	}
 
 	/** Read from prompt cache */
 	async function getCachedOutput(cacheKey: string): Promise<string | null> {
 		const now = new Date().toISOString();
-		const row = await binding.prepare(
-			`SELECT output FROM prompt_cache WHERE cache_key = ? AND expires_at > ?`
-		).bind(cacheKey, now).first<{ output: string }>();
+		const row = await binding
+			.prepare(`SELECT output FROM prompt_cache WHERE cache_key = ? AND expires_at > ?`)
+			.bind(cacheKey, now)
+			.first<{ output: string }>();
 		return row?.output ?? null;
 	}
 
@@ -137,15 +249,27 @@ export function createBriefingRunner(binding: D1Database) {
 	async function setCachedOutput(cacheKey: string, output: string): Promise<void> {
 		const now = new Date().toISOString();
 		const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-		await binding.prepare(
-			`INSERT OR REPLACE INTO prompt_cache (cache_key, output, created_at, expires_at)
+		await binding
+			.prepare(
+				`INSERT OR REPLACE INTO prompt_cache (cache_key, output, created_at, expires_at)
 			 VALUES (?, ?, ?, ?)`
-		).bind(cacheKey, output, now, expiresAt).run();
+			)
+			.bind(cacheKey, output, now, expiresAt)
+			.run();
 	}
 
 	return {
-		claimNextJob, createJob, completeJob, failJob, getJobs, getJob,
-		getCachedOutput, setCachedOutput
+		claimNextJob,
+		startJob,
+		createJob,
+		completeJob,
+		failJob,
+		getJobs,
+		getJob,
+		getAllJobs,
+		cancelJob,
+		getCachedOutput,
+		setCachedOutput
 	};
 }
 

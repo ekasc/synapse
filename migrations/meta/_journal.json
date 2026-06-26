@@ -15,6 +15,20 @@
       "when": 1782432721326,
       "tag": "0001_amazing_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1782459101508,
+      "tag": "0002_glamorous_tony_stark",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1782460282779,
+      "tag": "0003_nifty_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

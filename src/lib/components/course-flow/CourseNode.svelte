@@ -155,7 +155,7 @@
 		box-shadow:
 			0 0 0 2px var(--ink),
 			0 2px 0 var(--ink);
-		z-index: 10;
+		z-index: var(--z-node);
 	}
 
 	.course-node.status-completed {
@@ -194,7 +194,7 @@
 		box-shadow:
 			0 0 0 2px var(--ink),
 			0 3px 0 var(--ink);
-		z-index: 12;
+		z-index: var(--z-node-active);
 	}
 
 	.course-node.atlas-upstream {

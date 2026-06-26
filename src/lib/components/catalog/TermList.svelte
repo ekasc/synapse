@@ -74,7 +74,7 @@
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		white-space: nowrap;
+		white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 	}
 
 	.sidebar-count {

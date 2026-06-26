@@ -352,7 +352,7 @@
 	.connection-row,
 	.empty-panel {
 		border: 1px solid var(--ink);
-		background: #fbf8f0;
+		background: var(--surface-paper);
 		box-shadow: 6px 6px 0 rgba(31, 28, 20, 0.09);
 	}
 
@@ -398,7 +398,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		text-decoration: none;
-		transition: border-color 0.12s;
+		transition: border-color 0.12s var(--ease-out-quart);
 	}
 
 	.course-card:hover {
@@ -540,7 +540,7 @@
 		color: var(--ink-faint);
 	}
 
-	@media (max-width: 920px) {
+	@media (max-width: 1024px) {
 		.catalog-stats {
 			width: 100%;
 		}

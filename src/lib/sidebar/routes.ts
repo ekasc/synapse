@@ -6,7 +6,8 @@ type SidebarHref =
 	| '/app/digest'
 	| '/app/practice'
 	| '/app/brief'
-	| '/app/syllabus';
+	| '/app/syllabus'
+	| '/app/activity';
 
 export interface SidebarRoute {
 	href: SidebarHref;
@@ -31,7 +32,8 @@ export const routes: SidebarRoute[] = [
 	{ href: '/app/digest', label: 'Digest' },
 	{ href: '/app/practice', label: 'Practice' },
 	{ href: '/app/brief', label: 'Brief' },
-	{ href: '/app/syllabus', label: 'Syllabus' }
+	{ href: '/app/syllabus', label: 'Syllabus' },
+	{ href: '/app/activity', label: 'Activity' }
 ];
 
 export function isRouteActive(pathname: string, route: SidebarRoute): boolean {

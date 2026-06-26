@@ -19,9 +19,9 @@
 	"workers_dev": true,
 	"preview_urls": true,
 	"vars": {
-		"GOOGLE_CLIENT_ID": "",
-		"GOOGLE_CLIENT_SECRET": "",
-		"GOOGLE_REDIRECT_URI": ""
+		"DATABASE_URL": "",
+		"OPENROUTER_API_KEY": "",
+		"OPENROUTER_MODEL": ""
 	},
 	"d1_databases": [
 		{

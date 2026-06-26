@@ -39,11 +39,12 @@
 		display: inline-grid;
 		width: 1.25rem;
 		height: 1.25rem;
+		transition: transform 0.15s var(--ease-out-quart);
 		place-items: center;
 		flex: none;
 		border: 1px solid var(--ink);
-		border-radius: 3px;
-		background: #fbf8f0;
+		border-radius: 0;
+		background: var(--paper);
 		color: var(--ink);
 		font-size: 0.8rem;
 		cursor: pointer;
@@ -51,6 +52,18 @@
 
 	:global(.ui-checkbox[data-state='checked']) {
 		background: var(--highlight);
+		transform: scale(1);
+		animation: ui-check-pop 0.2s var(--ease-out-quart);
+	}
+
+	@keyframes ui-check-pop {
+		0% { transform: scale(0.85); }
+		50% { transform: scale(1.12); }
+		100% { transform: scale(1); }
+	}
+
+	:global(.ui-checkbox:active) {
+		transform: scale(0.92);
 	}
 
 	:global(.ui-checkbox:focus-visible) {

@@ -1,7 +1,3 @@
-@import 'tailwindcss';
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
-
 @import '@fontsource/kalam/400.css';
 @import '@fontsource/kalam/700.css';
 @import '@fontsource/inter/400.css';
@@ -9,42 +5,8 @@
 @import '@fontsource/inter/600.css';
 @import '@fontsource/source-serif-4/400.css';
 @import '@fontsource/source-serif-4/600.css';
-@import '@fontsource/source-serif-4/700.css';
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
-@import '@fontsource/jetbrains-mono/600.css';
-
-@theme {
-	--color-paper: #f4ede0;
-	--color-paper-edge: #e8dcc1;
-	--color-paper-shelf: #ebe0c8;
-	--color-ink: #1f1c14;
-	--color-ink-soft: #4a4538;
-	--color-ink-faint: #5e5849;
-	--color-rule: #c4b494;
-	--color-rule-soft: #d8c8a4;
-	--color-rule-strong: #1f1c14;
-	--color-accent: #b03a2e;
-	--color-warn: #c08a2e;
-	--color-ok: #5a7a4a;
-	--color-highlight: #d8ff5c;
-	--color-highlight-soft: #e6ff8a;
-	--color-pen-red: #c2362a;
-	--color-tape: rgba(232, 220, 193, 0.85);
-	--color-shadow-ink: rgba(26, 26, 23, 0.12);
-	--color-subject-comp: #4a6fa5;
-	--color-subject-math: #5a7a4a;
-	--color-subject-csis: #7a5a8a;
-	--color-subject-stat: #3a8a7a;
-	--color-subject-econ: #b08a3a;
-	--color-subject-isys: #b04a6a;
-	--color-subject-humn: #6a5a8a;
-
-	--font-hand: 'Kalam', 'Caveat', cursive;
-	--font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-	--font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-	--font-display: 'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, serif;
-}
 
 :root {
 	--paper: #f4ede0;
@@ -64,6 +26,12 @@
 	--pen-red: #c2362a;
 	--tape: rgba(232, 220, 193, 0.85);
 	--shadow-ink: rgba(26, 26, 23, 0.12);
+	--surface-paper: #fbf8f0;
+	--border-faint: rgba(26, 26, 23, 0.18);
+	--border-soft: rgba(26, 26, 23, 0.25);
+	--border-input: rgba(26, 26, 23, 0.28);
+	--backdrop-overlay: rgba(26, 26, 23, 0.38);
+	--backdrop-faint: rgba(26, 26, 23, 0.05);
 	--subject-comp: #4a6fa5;
 	--subject-math: #5a7a4a;
 	--subject-csis: #7a5a8a;
@@ -71,9 +39,21 @@
 	--subject-econ: #b08a3a;
 	--subject-isys: #b04a6a;
 	--subject-humn: #6a5a8a;
+	--font-hand: 'Kalam', 'Caveat', cursive;
+	--font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+	--font-display: 'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, serif;
 	--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+	--z-dropdown: 1000;
+	--z-fab: 100;
+	--z-dialog-overlay: 1100;
+	--z-dialog-content: 1101;
+	--z-node: 10;
+	--z-node-active: 12;
+	--z-viewer: 80;
 	--sidebar-width: 220px;
 	--sidebar-width-mobile: 18rem;
+	--page-width: 1100px;
 }
 
 html {
@@ -120,6 +100,10 @@ body {
 	letter-spacing: -0.02em;
 }
 
+.flex-1 {
+	flex: 1;
+}
+
 .paper {
 	background-color: var(--paper);
 }
@@ -133,9 +117,9 @@ body {
 }
 
 .polaroid {
-	background: #fbf8f0;
+	background: var(--surface-paper);
 	padding: 6px 6px 22px;
-	border: 1px solid rgba(26, 26, 23, 0.18);
+	border: 1px solid var(--border-faint);
 }
 
 .highlighter {
@@ -166,14 +150,14 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 .surface {
-	background: #fbf8f0;
+	background: var(--surface-paper);
 	border: 1px solid var(--rule);
 	padding: 1.25rem;
 }
 
 .surface-polaroid {
-	background: #fbf8f0;
-	border: 1px solid rgba(26, 26, 23, 0.18);
+	background: var(--surface-paper);
+	border: 1px solid var(--border-faint);
 	padding: 1.25rem;
 }
 
@@ -414,7 +398,7 @@ body {
 	grid-template-columns: 1fr;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
 	.shelf {
 		grid-template-columns: 1fr;
 	}
@@ -441,7 +425,7 @@ body {
 	color: inherit;
 	font-family: inherit;
 	text-align: left;
-	transition: background 0.12s;
+	transition: background 0.12s var(--ease-out-quart);
 	padding: 0;
 }
 
@@ -619,7 +603,8 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Button hierarchy
+   Button hierarchy — used directly in app pages
+   (bits-ui Button component is the preferred path for new code)
    ═══════════════════════════════════════════════════════════════ */
 
 .btn {
@@ -635,9 +620,9 @@ body {
 	text-decoration: none;
 	white-space: nowrap;
 	transition:
-		background 0.15s,
-		border-color 0.15s,
-		color 0.15s;
+		background 0.15s var(--ease-out-quart),
+		border-color 0.15s var(--ease-out-quart),
+		color 0.15s var(--ease-out-quart);
 	border: 1px solid var(--ink);
 	background: var(--ink);
 	color: var(--paper);
@@ -649,7 +634,8 @@ body {
 }
 
 .btn:hover:not(:disabled) {
-	background: #2e2e28;
+	background: var(--ink);
+	opacity: 0.85;
 }
 
 .btn-primary {
@@ -661,11 +647,11 @@ body {
 .btn-secondary {
 	background: var(--paper);
 	color: var(--ink);
-	border-color: rgba(26, 26, 23, 0.25);
+	border-color: var(--border-soft);
 }
 
 .btn-secondary:hover:not(:disabled) {
-	background: #fbf8f0;
+	background: var(--surface-paper);
 	border-color: var(--ink);
 	color: var(--ink);
 }
@@ -679,7 +665,7 @@ body {
 
 .btn-ghost:hover:not(:disabled) {
 	color: var(--ink);
-	background: rgba(26, 26, 23, 0.05);
+	background: var(--backdrop-faint);
 }
 
 .btn-danger {

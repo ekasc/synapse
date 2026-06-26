@@ -1,19 +1,14 @@
-export type Source = {
-	claim: string;
-	url?: string;
-	kind: 'url' | 'user_context' | 'model_knowledge';
-	confidence: 'high' | 'medium' | 'low';
+import type { Briefing } from '$lib/server/db/d1';
+
+type RawSource = {
+	description?: unknown;
+	url?: unknown;
+	found?: unknown;
 };
 
-export type BriefingOutput = Record<string, unknown> & {
-	entity_snapshot?: {
-		summary?: string;
-		recent_context?: string[];
-		sources?: Source[];
-	};
-	action_items?: { theme: string; point: string }[];
-	flags?: { issue: string; severity: string; advice: string }[];
-	recommendations?: string[];
+type RawGradeItem = {
+	item?: unknown;
+	weight?: unknown;
 };
 
 export class ValidationError extends Error {
@@ -23,57 +18,89 @@ export class ValidationError extends Error {
 	}
 }
 
-/** Normalize a source: fill in defaults, rewrite training_data kind */
-function normalizeSource(src: Record<string, unknown>): Source {
-	const claim = String(src.claim ?? '').trim();
-	const url = src.url ? String(src.url).trim() : undefined;
-	let kind = String(src.kind ?? '').trim().toLowerCase();
-
-	// Infer kind from URL presence
-	if (!kind && url) kind = 'url';
-	if (!kind) kind = 'model_knowledge';
-
-	// Rewrite training_data → model_knowledge
-	if (kind === 'training_data') kind = 'model_knowledge';
-
-	const confidence = ['high', 'medium', 'low'].includes(src.confidence as string)
-		? (src.confidence as 'high' | 'medium' | 'low')
-		: 'low';
-
-	return { claim, url, kind: kind as Source['kind'], confidence };
+function requiredString(value: unknown, field: string): string {
+	const normalized = typeof value === 'string' ? value.trim() : '';
+	if (!normalized) throw new ValidationError(`${field} is required`);
+	return normalized;
 }
 
-/** Validate a source entry */
-function validateSource(src: Source): void {
-	if (!src.claim) throw new ValidationError('Source claim is empty');
-	if (src.kind === 'url' && src.url && !/^https?:\/\//.test(src.url)) {
-		throw new ValidationError(`Source URL "${src.url}" must be http/https`);
+function optionalString(value: unknown): string | null {
+	if (value == null) return null;
+	const normalized = String(value).trim();
+	return normalized || null;
+}
+
+function normalizeGradeStructure(value: unknown): Briefing['gradeStructure'] {
+	if (!Array.isArray(value)) return [];
+
+	return value
+		.map((entry: RawGradeItem) => ({
+			item: typeof entry?.item === 'string' ? entry.item.trim() : '',
+			weight: typeof entry?.weight === 'string' ? entry.weight.trim() : ''
+		}))
+		.filter((entry) => entry.item && entry.weight);
+}
+
+function normalizeSources(value: unknown): Briefing['sources'] {
+	if (!Array.isArray(value)) {
+		throw new ValidationError('sources must be an array');
 	}
+
+	const sources = value.map((entry: RawSource) => {
+		const description = requiredString(entry?.description, 'source description');
+		const found = entry?.found === true;
+		const url = optionalString(entry?.url) ?? undefined;
+
+		if (found && !url) {
+			throw new ValidationError('Found sources must include a URL');
+		}
+
+		if (url && !/^https?:\/\//i.test(url)) {
+			throw new ValidationError(`Source URL "${url}" must be http/https`);
+		}
+
+		return { description, url, found };
+	});
+
+	if (!sources.some((source) => source.found)) {
+		throw new ValidationError('At least one found source is required');
+	}
+
+	return sources;
 }
 
-/** Validate the full briefing output. Returns normalized output or throws. */
-export function validateBriefing(output: unknown): BriefingOutput {
+export function extractBriefingJson(text: string): string {
+	const firstBrace = text.indexOf('{');
+	const lastBrace = text.lastIndexOf('}');
+
+	if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+		throw new ValidationError('No JSON object found in response');
+	}
+
+	return text.slice(firstBrace, lastBrace + 1);
+}
+
+export function validateBriefing(output: unknown): Briefing {
 	if (!output || typeof output !== 'object') {
 		throw new ValidationError('Output is not an object');
 	}
 
 	const obj = output as Record<string, unknown>;
+	const rmpCount = obj.rmpCount == null ? undefined : Number(obj.rmpCount);
 
-	// Normalize sources if present
-	if (obj.entity_snapshot?.sources) {
-		const sources = (obj.entity_snapshot.sources as Record<string, unknown>[]).map(normalizeSource);
-		sources.forEach(validateSource);
-		obj.entity_snapshot.sources = sources;
-	}
-
-	// Check minimum requirements
-	const actionItems = (obj.action_items as { theme: string; point: string }[]) ?? [];
-	const flags = (obj.flags as { issue: string; severity: string; advice: string }[]) ?? [];
-	const recommendations = (obj.recommendations as string[]) ?? [];
-
-	if (actionItems.length < 1 && recommendations.length < 1) {
-		throw new ValidationError('Need at least 1 action item or recommendation');
-	}
-
-	return obj as BriefingOutput;
+	return {
+		code: requiredString(obj.code, 'code').toUpperCase(),
+		name: requiredString(obj.name, 'name'),
+		institution: requiredString(obj.institution, 'institution'),
+		professor: requiredString(obj.professor, 'professor'),
+		rmpRating: requiredString(obj.rmpRating, 'rmpRating'),
+		rmpCount: Number.isFinite(rmpCount) ? rmpCount : undefined,
+		workload: requiredString(obj.workload, 'workload'),
+		weeklyHours: optionalString(obj.weeklyHours),
+		prereqReadiness: requiredString(obj.prereqReadiness, 'prereqReadiness'),
+		gradeStructure: normalizeGradeStructure(obj.gradeStructure),
+		recommendation: requiredString(obj.recommendation, 'recommendation'),
+		sources: normalizeSources(obj.sources),
+		researchedAt: new Date().toISOString()
+	};
 }

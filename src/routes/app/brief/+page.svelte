@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import BookShelf from '$lib/components/catalog/BookShelf.svelte';
@@ -20,6 +21,21 @@
 		researchedAt: string;
 	};
 
+	type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled' | 'expired';
+
+	type BriefingJob = {
+		id: string;
+		status: JobStatus;
+		output: string | null;
+		errorMessage: string | null;
+	};
+
+	type JobResponse = {
+		job?: BriefingJob | null;
+		output?: Briefing | null;
+		error?: string;
+	};
+
 	let { data }: { data: { briefs: Briefing[] } } = $props();
 
 	const briefs = $derived(data.briefs ?? []);
@@ -30,6 +46,9 @@
 	let selectedCode = $state<string | null>(null);
 	let researching = $state(false);
 	let researchError = $state<string | null>(null);
+	let jobStatus = $state<JobStatus | null>(null);
+	let jobErrorMsg = $state<string | null>(null);
+	let pollTimer = $state<ReturnType<typeof setInterval> | undefined>();
 	let deleting = $state(false);
 	let confirmDeleteCode = $state<string | null>(null);
 
@@ -56,30 +75,51 @@
 		selectedCode ? (briefs.find((b) => b.code === selectedCode) ?? null) : null
 	);
 
-	type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+	let pollCount = $state(0);
+	let statusMessage = $derived.by(() => {
+		switch (jobStatus) {
+			case 'queued':
+				return 'Queued — waiting for worker…';
+			case 'running':
+				return pollCount > 3
+					? 'Still researching… gathering sources'
+					: 'Researching course… checking syllabus, ratings, prerequisites';
+			case 'succeeded':
+				return 'Briefing complete';
+			case 'failed':
+				return jobErrorMsg || 'Briefing failed';
+			case 'expired':
+				return jobErrorMsg || 'Briefing expired. Try again.';
+			default:
+				return '';
+		}
+	});
 
-	let jobStatus = $state<JobStatus | null>(null);
-	let jobOutput = $state<Briefing | null>(null);
-	let pollTimer = $state<ReturnType<typeof setInterval> | null>(null);
+	function stopPolling() {
+		if (!pollTimer) return;
+		clearInterval(pollTimer);
+		pollTimer = undefined;
+	}
 
 	function startPolling(jobId: string) {
+		stopPolling();
+		pollCount = 0;
 		pollTimer = setInterval(async () => {
+			pollCount++;
 			try {
 				const res = await fetch(`/api/briefing/jobs/${jobId}`);
-				const data = await res.json();
-				if (data.job) {
-					jobStatus = data.job.status;
-					if (data.job.status === 'succeeded' && data.output) {
-						jobOutput = data.output;
+				const data = (await res.json()) as JobResponse;
+				const job = data.job;
+				if (job) {
+					jobStatus = job.status;
+					if (job.status === 'succeeded' && data.output) {
+						stopPolling();
 						selectedCode = data.output.code;
-						clearInterval(pollTimer);
-						pollTimer = null;
 						await invalidateAll();
 						researching = false;
-					} else if (data.job.status === 'failed') {
-						researchError = data.job.errorMessage || 'Briefing failed';
-						clearInterval(pollTimer);
-						pollTimer = null;
+					} else if (job.status === 'failed' || job.status === 'expired') {
+						jobErrorMsg = job.errorMessage || statusMessage;
+						stopPolling();
 						researching = false;
 					}
 				}
@@ -100,7 +140,7 @@
 		researching = true;
 		researchError = null;
 		jobStatus = null;
-		jobOutput = null;
+		jobErrorMsg = null;
 
 		try {
 			const res = await fetch('/api/briefing/jobs', {
@@ -113,7 +153,7 @@
 				})
 			});
 
-			const result = await res.json();
+			const result = (await res.json()) as JobResponse;
 
 			if (!res.ok) {
 				researchError = result.error ?? `Server error (${res.status})`;
@@ -130,14 +170,15 @@
 
 			if (job.status === 'succeeded' && job.output) {
 				try {
-					jobOutput = JSON.parse(job.output);
-					selectedCode = jobOutput.code;
+					const parsed = JSON.parse(job.output);
+					selectedCode = parsed.code;
 				} catch {}
+				await invalidateAll();
 				researching = false;
 				return;
 			}
 
-			if (job.status === 'failed') {
+			if (job.status === 'failed' || job.status === 'expired') {
 				researchError = job.errorMessage || 'Briefing failed';
 				researching = false;
 				return;
@@ -149,6 +190,12 @@
 			researchError = 'Failed to research course. Is the server running?';
 			researching = false;
 		}
+	}
+
+	function retry() {
+		researchError = null;
+		jobErrorMsg = null;
+		researchCourse();
 	}
 
 	function formatDate(iso: string) {
@@ -168,7 +215,6 @@
 		}
 	}
 
-
 	async function deleteBriefing(code: string) {
 		if (deleting) return;
 		confirmDeleteCode = null;
@@ -183,6 +229,7 @@
 			deleting = false;
 		}
 	}
+
 	function ratingVariant(rating: string): 'crit' | 'ok' | 'warn' | 'idle' {
 		if (rating === 'N/A') return 'idle';
 		const num = parseFloat(rating);
@@ -190,6 +237,8 @@
 		if (num >= 4) return 'ok';
 		return 'warn';
 	}
+
+	onDestroy(stopPolling);
 </script>
 
 <svelte:head><title>Synapse · Course Brief</title></svelte:head>
@@ -248,7 +297,7 @@
 					</button>
 				</div>
 			</div>
-			{#if researchError}
+			{#if researchError && !jobStatus}
 				<p class="search-note">{researchError}</p>
 			{/if}
 			{#if briefs.length > 0}
@@ -259,12 +308,86 @@
 			{/if}
 		</div>
 
-		{#if researching}
-			<div class="loading-state">
-				<p class="loading-text">Researching course… checking syllabus, ratings, prerequisites</p>
+		{#if researching || jobStatus}
+			<div class="job-tracker" role="status" aria-live="polite" aria-label="Briefing job status">
+				<div class="job-tracker-head">
+					<span class="job-tracker-label font-mono">job</span>
+					<span class="job-tracker-code font-mono">{courseCode.trim().toUpperCase()}</span>
+				</div>
+				<div class="job-steps">
+					<div
+						class="job-step"
+						class:job-step-done={jobStatus === 'succeeded'}
+						class:job-step-active={jobStatus === 'queued' || jobStatus === 'running'}
+					>
+						<span class="job-step-indicator">
+							{#if jobStatus === 'succeeded'}
+								<span class="job-step-check">✓</span>
+							{:else if jobStatus === 'queued' || jobStatus === 'running'}
+								<span class="job-step-dot animate-pulse"></span>
+							{:else}
+								<span class="job-step-num">1</span>
+							{/if}
+						</span>
+						<span class="job-step-text">Queued</span>
+					</div>
+					<div
+						class="job-step-connector"
+						class:job-step-connector-done={jobStatus === 'succeeded' || jobStatus === 'running'}
+					></div>
+					<div
+						class="job-step"
+						class:job-step-done={jobStatus === 'succeeded'}
+						class:job-step-active={jobStatus === 'running'}
+					>
+						<span class="job-step-indicator">
+							{#if jobStatus === 'succeeded'}
+								<span class="job-step-check">✓</span>
+							{:else if jobStatus === 'running'}
+								<span class="job-step-dot animate-pulse"></span>
+							{:else if jobStatus === 'failed' || jobStatus === 'expired'}
+								<span class="job-step-err">✗</span>
+							{:else}
+								<span class="job-step-num">2</span>
+							{/if}
+						</span>
+						<span class="job-step-text">Researching</span>
+					</div>
+					<div
+						class="job-step-connector"
+						class:job-step-connector-done={jobStatus === 'succeeded'}
+					></div>
+					<div
+						class="job-step"
+						class:job-step-done={jobStatus === 'succeeded'}
+						class:job-step-active={false}
+					>
+						<span class="job-step-indicator">
+							{#if jobStatus === 'succeeded'}
+								<span class="job-step-check">✓</span>
+							{:else if jobStatus === 'failed' || jobStatus === 'expired'}
+								<span class="job-step-err">✗</span>
+							{:else}
+								<span class="job-step-num">3</span>
+							{/if}
+						</span>
+						<span class="job-step-text">Complete</span>
+					</div>
+				</div>
+				<div class="job-tracker-msg">
+					{#if jobStatus === 'failed' || jobStatus === 'expired'}
+						<span class="job-tracker-err font-mono">{statusMessage}</span>
+						<button class="btn btn-sm font-mono" onclick={retry}>retry</button>
+					{:else if jobStatus === 'succeeded'}
+						<span class="job-tracker-done font-mono">Done — refreshing…</span>
+					{:else}
+						<span class="job-tracker-status">{statusMessage}</span>
+					{/if}
+				</div>
 			</div>
 		{/if}
-		{#if !researching}
+
+		{#if !researching && !jobStatus}
 			{#if filtered.length > 0}
 				<SectionHead
 					eyebrow={`${filtered.length} ${filtered.length === 1 ? 'brief' : 'briefs'}`}
@@ -374,31 +497,52 @@
 					<span class="field-label font-mono">Sources</span>
 					<div class="source-list">
 						{#each selected.sources as source, i (i)}
-							<span
-								class="source-item"
-								class:source-found={source.found}
-								class:source-missed={!source.found}
-							>
-								{source.found ? '✓' : '✗'}
-								{source.description}
-							</span>
+							{#if source.url}
+								<a
+									class="source-item"
+									class:source-found={source.found}
+									class:source-missed={!source.found}
+									href={source.url}
+									target="_blank"
+									rel="noreferrer"
+								>
+									{source.found ? '✓' : '✗'}
+									{source.description}
+								</a>
+							{:else}
+								<span
+									class="source-item"
+									class:source-found={source.found}
+									class:source-missed={!source.found}
+								>
+									{source.found ? '✓' : '✗'}
+									{source.description}
+								</span>
+							{/if}
 						{/each}
 					</div>
 				</div>
 			{/if}
-		<div class="detail-delete">
-			{#if confirmDeleteCode === selected.code}
-				<span class="delete-label font-mono">Delete this briefing?</span>
-				<button class="btn btn-sm btn-ghost" onclick={() => (confirmDeleteCode = null)}>cancel</button>
-				<button class="btn btn-sm btn-danger" onclick={() => deleteBriefing(selected.code)} disabled={deleting}>
-					{deleting ? 'deleting…' : 'delete'}
-				</button>
-			{:else}
-				<button class="btn btn-ghost btn-sm font-mono" onclick={() => (confirmDeleteCode = selected.code)}>
-					delete briefing
-			</button>
-			{/if}
-		</div>
+			<div class="detail-delete">
+				{#if confirmDeleteCode === selected.code}
+					<span class="delete-label font-mono">Delete this briefing?</span>
+					<button class="btn btn-sm btn-ghost" onclick={() => (confirmDeleteCode = null)}
+						>cancel</button
+					>
+					<button
+						class="btn btn-sm btn-danger"
+						onclick={() => deleteBriefing(selected.code)}
+						disabled={deleting}
+					>
+						{deleting ? 'deleting…' : 'delete'}
+					</button>
+				{:else}
+					<button
+						class="btn btn-ghost btn-sm font-mono"
+						onclick={() => (confirmDeleteCode = selected.code)}>delete briefing</button
+					>
+				{/if}
+			</div>
 		</article>
 	{/if}
 </div>
@@ -476,17 +620,167 @@
 		color: var(--ink-faint);
 	}
 
-	.loading-state {
-		padding: 2rem;
-		text-align: center;
+	/* ═══════════════════════════════════════════════════════════════
+	   Job tracker — visual state machine
+	   ═══════════════════════════════════════════════════════════════ */
+
+	.job-tracker {
 		margin-bottom: 1.5rem;
+		padding: 1rem 1.5rem;
+		border: 1px solid var(--rule);
+		background: var(--surface-paper);
 	}
 
-	.loading-text {
-		font-size: 0.9rem;
-		color: var(--ink-soft);
-		margin: 0;
+	.job-tracker-head {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 0.75rem;
 	}
+
+	.job-tracker-label {
+		font-size: 0.65rem;
+		color: var(--ink-faint);
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		border: 1px solid var(--rule);
+		padding: 0.1rem 0.4rem;
+		line-height: 1.2;
+	}
+
+	.job-tracker-code {
+		font-size: 0.8rem;
+		color: var(--ink);
+		font-weight: 500;
+	}
+
+	.job-steps {
+		display: flex;
+		align-items: center;
+		gap: 0;
+		margin-bottom: 0.75rem;
+	}
+
+	.job-step {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.job-step-indicator {
+		display: grid;
+		width: 1.4rem;
+		height: 1.4rem;
+		place-items: center;
+		border: 1px solid var(--rule);
+		background: var(--paper-shelf);
+		font-size: 0.65rem;
+		color: var(--ink-faint);
+		flex-shrink: 0;
+	}
+
+	.job-step-done .job-step-indicator {
+		border-color: var(--ok);
+		background: var(--ok);
+		color: var(--paper);
+	}
+
+	.job-step-active .job-step-indicator {
+		border-color: var(--highlight);
+		background: var(--highlight);
+		color: var(--ink);
+	}
+
+	.job-step-check {
+		font-size: 0.7rem;
+	}
+
+	.job-step-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--ink);
+		opacity: 1;
+	}
+
+	.job-step-err {
+		font-size: 0.7rem;
+		font-weight: 700;
+	}
+
+	.job-step-num {
+		font-family: var(--font-mono);
+		font-size: 0.6rem;
+	}
+
+	.job-step-text {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		color: var(--ink-soft);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		white-space: nowrap;
+	}
+
+	.job-step-done .job-step-text {
+		color: var(--ok);
+	}
+
+	.job-step-active .job-step-text {
+		color: var(--ink);
+		font-weight: 500;
+	}
+
+	.job-step-connector {
+		width: 1.5rem;
+		height: 1px;
+		background: var(--rule);
+		margin: 0 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.job-step-connector-done {
+		background: var(--ok);
+	}
+
+	.job-tracker-msg {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.job-tracker-status {
+		font-size: 0.82rem;
+		color: var(--ink-soft);
+	}
+
+	.job-tracker-err {
+		font-size: 0.78rem;
+		color: var(--accent);
+	}
+
+	.job-tracker-done {
+		font-size: 0.78rem;
+		color: var(--ok);
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.3;
+		}
+	}
+
+	.animate-pulse {
+		animation: pulse 1.2s var(--ease-out-quart) infinite;
+	}
+
+	/* ═══════════════════════════════════════════════════════════════
+	   Legacy styles (unchanged)
+	   ═══════════════════════════════════════════════════════════════ */
 
 	.brief-book {
 		text-align: left;
@@ -590,6 +884,7 @@
 		font-size: 0.9rem;
 		color: var(--ink);
 		line-height: 1.4;
+		overflow-wrap: break-word;
 	}
 
 	.field-hint {
@@ -657,10 +952,21 @@
 	}
 
 	.source-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
 		font-size: 0.72rem;
 		padding: 0.2rem 0.5rem;
 		background: var(--paper-shelf);
 		color: var(--ink-soft);
+		text-decoration: none;
+		border: 1px solid transparent;
+	}
+
+	a.source-item:hover,
+	a.source-item:focus-visible {
+		border-color: var(--ink);
+		color: var(--ink);
 	}
 
 	.source-missed {
@@ -682,4 +988,43 @@
 		margin-right: auto;
 	}
 
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	@media (max-width: 700px) {
+		.page {
+			padding-inline: 1rem;
+		}
+
+		.search-block,
+		.job-tracker {
+			padding-inline: 1rem;
+		}
+
+		.sf-row,
+		.job-tracker-msg,
+		.detail-delete {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.job-steps {
+			align-items: flex-start;
+			overflow-x: auto;
+			padding-bottom: 0.25rem;
+		}
+
+		.detail-grid {
+			grid-template-columns: 1fr;
+		}
+	}
 </style>
