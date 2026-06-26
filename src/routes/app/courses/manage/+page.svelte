@@ -301,7 +301,7 @@
 		color: var(--ink);
 		text-decoration: none;
 		border-bottom: 1px solid transparent;
-		transition: border-color 0.12s;
+		transition: border-color 0.12s var(--ease-out-quart);
 	}
 
 	.cell-code-link:hover {

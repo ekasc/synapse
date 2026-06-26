@@ -190,7 +190,7 @@
 										y="0"
 										width="52"
 										height="24"
-										fill="#fbf8f0"
+										fill="var(--surface-paper)"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
@@ -203,7 +203,7 @@
 										y="0"
 										width="52"
 										height="24"
-										fill="#fbf8f0"
+										fill="var(--surface-paper)"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
@@ -216,7 +216,7 @@
 										y="0"
 										width="52"
 										height="24"
-										fill="#fbf8f0"
+										fill="var(--surface-paper)"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
@@ -229,7 +229,7 @@
 										y="0"
 										width="52"
 										height="24"
-										fill="#fbf8f0"
+										fill="var(--surface-paper)"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
@@ -242,7 +242,7 @@
 										y="0"
 										width="52"
 										height="24"
-										fill="#fbf8f0"
+										fill="var(--surface-paper)"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
@@ -255,7 +255,7 @@
 										y="0"
 										width="52"
 										height="24"
-										fill="#fbf8f0"
+										fill="var(--surface-paper)"
 										stroke="var(--ink)"
 										stroke-width="1.2"
 										rx="2"
@@ -436,7 +436,7 @@
 					x="60"
 					y="50"
 					text-anchor="middle"
-					font-family="Kalam, cursive"
+					font-family="var(--font-hand)"
 					font-size="28"
 					fill="var(--ink-soft)">extract</text
 				>
@@ -621,17 +621,7 @@
 		background: var(--paper);
 	}
 
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
-	}
+	
 
 	/* ============================================================
 	   SECTION SCAFFOLD
@@ -826,7 +816,7 @@
 		margin: 0;
 	}
 
-	@media (max-width: 800px) {
+	@media (max-width: 768px) {
 		.problem-top {
 			grid-template-columns: 1fr;
 			gap: 2rem;
@@ -840,7 +830,7 @@
 
 	.messy-page {
 		position: relative;
-		background: #fbf8f0;
+		background: var(--surface-paper);
 		border: 1px solid rgba(26, 26, 23, 0.18);
 		padding: 28px 32px 36px;
 		min-height: 36rem;
@@ -955,7 +945,7 @@
 		position: absolute;
 		top: 50px;
 		right: 32px;
-		background: #fff4b0;
+		background: var(--highlight-soft);
 		padding: 12px 14px;
 		font-family: var(--font-hand);
 		font-size: 1.1rem;
@@ -1110,7 +1100,7 @@
 	}
 
 	.extracted-card {
-		background: #fbf8f0;
+		background: var(--surface-paper);
 		border: 1px solid var(--ink);
 		padding: 22px 26px 28px;
 		max-width: 36rem;
@@ -1221,7 +1211,7 @@
 
 	.query-card {
 		max-width: 38rem;
-		background: #fbf8f0;
+		background: var(--surface-paper);
 		border: 1.5px solid var(--ink);
 		border-radius: 4px;
 		padding: 1.75rem 2rem 1.25rem;
@@ -1246,7 +1236,7 @@
 	}
 
 	.query-mini {
-		background: #fbf8f0;
+		background: var(--surface-paper);
 		border: 1.5px solid var(--ink);
 		border-radius: 4px;
 		padding: 1rem 1.25rem;
@@ -1300,7 +1290,7 @@
 		border-radius: 999px;
 	}
 
-	@media (max-width: 900px) {
+	@media (max-width: 1024px) {
 		.query-spread {
 			grid-template-columns: 1fr;
 		}
@@ -1582,7 +1572,7 @@
 	/* ============================================================
 	   RESPONSIVE
 	   ============================================================ */
-	@media (max-width: 1023px) {
+	@media (max-width: 1024px) {
 		.cover-grid {
 			grid-template-columns: 1fr;
 		}

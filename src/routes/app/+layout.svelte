@@ -6,6 +6,7 @@
 	import MenuItem from '$lib/components/sidebar/MenuItem.svelte';
 	import TermList from '$lib/components/catalog/TermList.svelte';
 	import { routes, isRouteActive } from '$lib/sidebar/routes';
+	import { onMount } from 'svelte';
 
 	let { data, children } = $props();
 	const semesters = $derived(data.semesters ?? []);
@@ -38,6 +39,43 @@
 
 	import { afterNavigate } from '$app/navigation';
 
+	// ── Activity badge state ──
+	let runningCount = $state(0);
+	let unreadCount = $state(0);
+
+	type ActivityJob = {
+		status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled' | 'expired';
+		completedAt: string | null;
+	};
+
+	async function checkActivity() {
+		try {
+			const res = await fetch('/api/briefing/activity');
+			const { jobs } = (await res.json()) as { jobs?: ActivityJob[] };
+			if (!jobs) return;
+			runningCount = jobs.filter((j) => j.status === 'queued' || j.status === 'running').length;
+			const stored = localStorage.getItem('activity_last_read');
+			const lastRead = stored ? parseInt(stored, 10) : 0;
+			unreadCount = jobs.filter(
+				(j) =>
+					(j.status === 'succeeded' || j.status === 'failed' || j.status === 'expired') &&
+					j.completedAt &&
+					new Date(j.completedAt).getTime() > lastRead
+			).length;
+		} catch (err) {
+			console.error('Failed to check activity:', err);
+		}
+	}
+
+	// Check on mount and every 10s
+	onMount(() => {
+		checkActivity();
+		const id = setInterval(checkActivity, 10000);
+		return () => {
+			clearInterval(id);
+		};
+	});
+
 	afterNavigate(() => {
 		fabOpen = false;
 	});
@@ -62,6 +100,11 @@
 							ariaLabel={route.label}
 						>
 							<span class="sidebar-label">{route.label}</span>
+							{#if route.href === '/app/activity' && runningCount > 0}
+								<span class="sidebar-activity-dot" title="Job running"></span>
+							{:else if route.href === '/app/activity' && unreadCount > 0}
+								<span class="sidebar-badge font-mono">{unreadCount}</span>
+							{/if}
 							{#if route.href === '/app/courses'}
 								<span class="sidebar-count">{courses.length}</span>
 							{/if}
@@ -192,6 +235,33 @@
 		white-space: nowrap;
 	}
 
+	.sidebar-activity-dot {
+		width: 6px;
+		height: 6px;
+		flex-shrink: 0;
+		background: var(--warn);
+		border-radius: 0;
+		animation: sb-pulse 1.2s ease-in-out infinite;
+	}
+	.sidebar-badge {
+		font-size: 0.65rem;
+		color: var(--paper);
+		background: var(--accent);
+		padding: 0 5px;
+		line-height: 1.4;
+		font-weight: 500;
+		min-width: 1rem;
+		text-align: center;
+	}
+	@keyframes sb-pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.3;
+		}
+	}
 	.sidebar-count {
 		font-family: var(--font-mono);
 		font-size: 0.7rem;
@@ -231,7 +301,7 @@
 		position: fixed;
 		bottom: 1.25rem;
 		right: 1.25rem;
-		z-index: 100;
+		z-index: var(--z-fab);
 	}
 
 	@media (min-width: 768px) {
@@ -245,7 +315,7 @@
 		bottom: calc(100% + 12px);
 		right: 0;
 		min-width: 12rem;
-		background: #fbf8f0;
+		background: var(--surface-paper);
 		border: 1px solid var(--rule);
 		overflow: hidden;
 	}

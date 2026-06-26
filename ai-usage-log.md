@@ -438,3 +438,289 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **Key principle:** AI output is always reviewed. Nothing goes from prompt to submission without verification. The most valuable AI contribution was accelerating the scaffolding (proposal structure, graph canvas boilerplate, design system primitives) so I could focus on the parts that needed human judgment (architecture decisions, data model, quality control, deciding what NOT to change).
 
 **Key principle (parallel agents):** When splitting work across multiple agents, use file-ownership partitioning, not issue-ownership partitioning. The contract between agents should be a stateless, well-defined surface (URL, API, file format), not implicit shared state. Both agents in this run were able to work independently because the deep-link contract was a single URL query param — neither needed to read the other's output to verify their work.
+
+---
+
+## 16. Full Course Briefing Rewrite — D1, Async Jobs, Web Search (June 25)
+
+### Prompt (to Codex, multi-turn)
+
+> "implement the course briefing feature end to end. you can use my openrouter api key to make it works. do not read the key. i will be using cloudflare D1 for this."
+
+**Context:** The Course Brief feature was using a flat JSON file store and had hardcoded fallback data. Needed a real database, proper async job queue, and LLM integration.
+
+**What came back across ~15 turns:**
+
+**D1 Infrastructure:**
+- New D1 schema (`briefings`, `briefing_jobs`, `prompt_cache`, `insights` tables)
+- D1 client helper with full CRUD (`getBriefs`, `saveBrief`, `deleteBrief` — also cleans jobs + cache)
+- Drizzle config for D1 migrations
+- Migration files for all tables, applied to both local and remote D1
+
+**Async Job Queue:**
+- `createBriefingRunner()` in `src/lib/server/briefing/runner.ts` with `claimNextJob`, `createJob`, `completeJob`, `failJob`, `getJobs`, `getJob`, `getAllJobs`, `cancelJob` + prompt cache (7-day TTL)
+- `POST /api/briefing/jobs` — creates a job, fires background processing via `platform.ctx.waitUntil`
+- `GET /api/briefing/jobs?courseCode=X` — list jobs for a course
+- `GET /api/briefing/jobs/[id]` — poll single job status
+- Output validation module (`src/lib/server/briefing/validation.ts`)
+
+**Frontend:**
+- Full async UI: create job → poll every 2s → 3-step visual progress tracker (Queued → Researching → Complete) with animated pulse dot
+- Delete button with confirmation two-step flow
+- Retry button on failure
+
+**LLM Integration:**
+- Switched from `process.env` → `$env/dynamic/private`
+- Fixed `response_format` incompatibility with DeepSeek models
+- Added `plugins: [{ id: "web" }]` for actual web search
+- Fixed response parsing: `content` fallback → `reasoning`, JSON extraction by brace matching (handles thinking tokens)
+
+**What I changed:**
+- Fixed `platform.ctx.waitUntil` being a no-op in dev mode (fired promise directly)
+- Removed `lastSuccess` shortcut that bypassed job creation
+- Fixed cache key to use stable context hash (excluded timestamp)
+- Fixed `clearInterval` before `pollTimer = null` ordering
+- Rewrote Drizzle row mapping after understanding D1 ORM field name conventions
+- Removed both hardcoded fallbacks and mock syllabus data entirely
+
+**Verification:** Build clean, svelte-check clean. Remote D1 has all tables created and migrated.
+
+---
+
+## 17. Bits-UI Theme Alignment + Design System Audit (June 25)
+
+### Prompt (to Codex)
+
+> "make all the interactive components match the theme. it includes all bitsui primitives"
+
+**Context:** The bits-ui component wrappers (Button, Checkbox, Dialog, AlertDialog, DropdownMenu, Input, Select, Textarea, ToggleGroup, Toolbar) had inconsistent styling: hardcoded `#fbf8f0` backgrounds, non-zero border-radius, wrong font families, and mismatched focus rings.
+
+**What came back:** All 10 components updated to use the Field Notebook design system tokens (`var(--paper)`, `var(--ink)`, `var(--highlight)`, `var(--ink-soft)`), flat corners (`border-radius: 0`), consistent focus styles (highlight for inputs, ink for buttons), and proper transitions with `var(--ease-out-quart)`.
+
+**What I changed:**
+- ToggleGroup selected state: solid ink bg → highlighter yellow per DESIGN.md
+- Button primary hover: hardcoded `#2a2a27` → `var(--ink)` with opacity
+- Input disabled bg: hand-mixed rgba → `var(--paper-edge)`
+
+**Follow-up: Delight skill (June 25):**
+- Checkbox: stamp-pop scale animation on check
+- Dialog/AlertDialog: gentle fade-in entrance animation
+- DropdownMenu: scale + translate entrance
+- Input/Textarea: border + shadow transition on focus
+- Select: item background transition on hover
+- ToggleGroup: press-down on active items
+- Toolbar: subtle opacity fade on child hover
+
+**Verification:** Build clean.
+
+---
+
+## 18. DESIGN.md Rewrite — Full Catalog App Description (June 25)
+
+### Prompt (to Codex)
+
+> "i dont think the design.md file reflects what we have right now. update it to match the design"
+
+**Context:** The DESIGN.md was written when most app pages were placeholders. It still described the Syllabus Intelligence feature as a future direction, listed Calendar/Digest/Practice as placeholder pages, and didn't document the actual interactive controls, theme tokens, or sidebar behavior.
+
+**What came back:** Complete DESIGN.md rewrite:
+- Colors section: added `--paper-shelf`, `--rule` variants, `--subject-*` fills, `--ease-out-quart`, `--sidebar-width`
+- Typography: added `--font-display` (Source Serif 4) and `--font-mono` (JetBrains Mono) usage rules
+- New sections: "Animations and Motion" (every component's transition documented), "Interactive Controls" (bits-ui primitive specs)
+- App Shell: accurate sidebar description (paper-shelf bg, accent-red active border, no "vol. 01" tape)
+- App Pages: all 10 implemented pages described with real features, none called "placeholder"
+- Focus/Accessibility: documented the highlight/ink split for focus rings
+- Implementation notes: references bits-ui components
+
+**Verification:** Build clean.
+
+---
+
+## 19. Full UI Audit — Hardcoded Colors, Breakpoints, CSS Quality (June 25–26)
+
+### Prompt (to Codex)
+
+> "do an audit of the ui. find any inconsistencies, bad code, hacky fixes, etc. find and fix all of them. refer to your agents.md file"
+
+**Context:** The UI had accumulated inconsistencies from rapid iteration — unused imports, hardcoded colors, non-standard breakpoints, redundant CSS variable fallbacks, missing overflow protection.
+
+**What came back across 3 rounds:**
+
+**Round 1 — CSS consolidation:**
+- Replaced `#fbf8f0` → `var(--surface-paper)`, `#2e2e28` → `var(--ink)` with opacity
+- Added CSS variables: `--surface-paper`, `--border-faint`, `--border-soft`, `--border-input`, `--backdrop-overlay`, `--backdrop-faint`
+- Semantic z-index scale through `--z-*` variables in layout.css
+- Removed Tailwind CSS entirely (not actually used, was ~800KB dependency)
+- All 10+ transitions without easing updated to use `var(--ease-out-quart)`
+- Kalam 400 font import removed (only 700 used)
+
+**Round 2 — Breakpoints + structure:**
+- Standardized from 13 disjoint breakpoints to 3: 640px / 768px / 1024px
+- Fixed sidebar/FAB overlap at 768px (sidebar hides at 767px)
+- Unified max-widths: 1100px (list pages), 900px (detail pages), 500px (flashcard)
+- Fixed unused imports, removed dead CSS classes, collapsed malformed button HTML
+
+**Round 3 — Overflow:**
+- Syllabus grid column `minmax(480px, 1.4fr)` → `1fr` (was overflowing 1100px container)
+- Added `overflow: hidden` + `text-overflow: ellipsis` to sidebar labels, code cells, material actions
+- Added `overflow-wrap: break-word` to brief field values, practice questions, calendar items
+- Calendar day nav buttons: removed from tiny 1.75rem square constraint, given proper padding
+
+**Verification:** Build clean. 0 theming issues found in subsequent re-audit.
+
+---
+
+## 20. Calendar Intelligence System — Google Removal, CRUD, Grade Analytics (June 25–26)
+
+### Prompt (to Codex, multi-turn)
+
+> "remove the google calendar integration. instead of that, make your own calendar integration. it must play into the AI intelligence system."
+
+**Context:** The Google Calendar integration (OAuth, sync, token refresh) was complex, fragile, and duplicative of Google's own strengths. Needed a purpose-built calendar system with grade awareness and AI context generation.
+
+**What came back:**
+
+**Google removal:**
+- Deleted all Google API routes (authorize, callback, disconnect, status, sync)
+- Deleted `src/lib/server/google/calendar.ts`
+- Removed GoogleTokenStore, GoogleSyncedEvent, all Google functions from store.ts
+- Removed Google UI from settings page and calendar page
+- Cleaned env vars from `.env`, `.env.example`, `env.d.ts`, `wrangler.jsonc`
+
+**Enhanced calendar_events schema:**
+- Added `grade_weight` (integer, percentage of final grade)
+- Added `status` (pending / completed / at_risk)
+- Added `notes` (free text)
+- D1 migration applied to both local and remote
+
+**Calendar intelligence module (`src/lib/server/calendar/intelligence.ts`):**
+- Crunch detection: clusters events within 4 days, calculates density score + total grade weight at stake
+- Grade stakes: per-event weight, impact per point, links to course grades
+- Study gaps: long gaps between events for same course → review suggestions
+- Full context string: human-readable summary for AI features (digest, practice, brief)
+
+**Mindblowing calendar UI:**
+- Grade weight bars in month grid cells
+- Crunch zone cards in sidebar (red-bordered, events listed, weight at stake)
+- Weight visualization bar charts
+- Status badges (done/at-risk) in popovers and sidebar
+- Quick action buttons: ✓ mark complete, ! flag at-risk, × delete
+- Enhanced add form with grade weight % and Study Session type
+- Calendar grid always renders even without events
+- Removed cluttered course legend (sidebar filter chips suffice)
+
+**What I changed:**
+- Fixed multiple `{@const}` scoping issues in Svelte 5 template
+- Fixed orphaned `{/if}` from removed empty state
+- Removed outer `events.length > 0` guard hiding the entire sidebar
+- Added welcoming empty state in sidebar when no events exist
+- Made click-any-day popover open even for days without events
+- Added permanent "+ event" button in calendar header
+
+**Verification:** Build clean. All 29 calendar features verified.
+
+---
+
+## 21. Activity Page — Job History, Running Indicator, Sidebar Badge (June 26)
+
+### Prompt (to Codex)
+
+> "make a route for all the ai tasks ever executed, currently running and a option to stop them. also, this route should be accessible from the sidebar. while the job is running the sidebar must have an appropriate icon depicting a job is running. after the job is done, it must turn into a number."
+
+**Context:** There was no unified view of AI task status. Jobs were created per-course on the Brief page but there was no way to see all jobs, cancel a stuck one, or know if a new result was waiting.
+
+**What came back:**
+
+**Infrastructure:**
+- `getAllJobs()` in runner — returns last 100 jobs across all courses
+- `cancelJob()` — cancels queued/running jobs
+- `GET /api/briefing/activity` — list all jobs
+- `POST /api/briefing/activity` with `{ action: 'cancel', jobId }` — cancel endpoint
+
+**Activity page (`/app/activity`):**
+- Full job list with status indicators (queued/running/succeeded/failed/canceled)
+- Timestamps with relative time ("3m ago", "2h ago")
+- Error messages displayed inline
+- Cancel button (only on queued/running jobs)
+- Auto-polls every 5s when active jobs exist, stops when idle
+- Marks jobs as read on visit via localStorage
+
+**Sidebar badge system (`+layout.svelte`):**
+- Polls activity API every 10s
+- **Job running**: pulsing amber dot next to "Activity"
+- **Completed + unread**: red badge with count
+- "Read" state tracked via `localStorage.getItem('activity_last_read')`
+- Works on both desktop sidebar and mobile FAB nav
+
+**Code quality fixes (round 2 — "make sure its not hacky"):**
+- Activity page: removed dead `statusVariant()` function, fixed loading flicker on polling refetches
+- Activity API: added JSON parse error handling, jobId type/empty validation
+- Layout: added error logging to catch block, fixed interval leak (cleanup uses local id ref), fixed fragile localStorage fallback
+- Fixed infinite loop bug: `$effect` tracked `jobs` as reactive dependency because `loadJobs()` read `jobs.length` — replaced with `onMount` for initial load
+
+**Verification:** Build clean. 19/19 requirement audit checks pass.
+
+---
+
+## 22. AI Usage Log Update (June 26)
+
+### Prompt (to Codex)
+
+> "update the ai usage log accordingly after reading it"
+
+**Context:** Entries 16–21 needed to be appended to the log after the session's work was complete.
+
+**What came back:** This entry.
+
+---
+
+## 23. Course Briefing Prompt + Web Search Hardening (June 26)
+
+### Prompt (to Codex, multi-turn)
+
+> "harden and improve the course research prompt itself. leave the least chance for an error. im using deepseek v4 flash with it so adjust accordingly"
+
+> "the model is missing obvious stuff from a web search..."
+
+> "refer to this https://openrouter.ai/docs/guides/features/server-tools/web-search"
+
+**Context:** The Course Briefing agent was too willing to stop after the first official catalog result. In the CSIS 3560 / Gabriel Vitus / Douglas College test case, it leaned on an old 2021 outline, failed to work hard enough on professor/RMP evidence, and treated OpenRouter-injected search snippets as if they were user-provided context. The app was also still using the older OpenRouter plugin-style web search format.
+
+**What changed:**
+- Moved the briefing instructions into `src/lib/server/briefing/prompt.ts` as a shared prompt module used by both briefing endpoints.
+- Reworked the system prompt for DeepSeek v4 Flash: JSON-only output, no markdown, no extra keys, compact fields, no invented facts, and explicit null/empty-array behavior.
+- Added mandatory search coverage: course + institution, course outline/syllabus, timetable/section instructor, professor + institution, professor + course, professor + RateMyProfessor.
+- Added exact dynamic search targets to the user prompt so cases like `CSIS 3560`, `Gabriel Vitus`, and `Douglas College` force professor-specific and RMP-specific searches before the model can conclude "not verified".
+- Added a minimum-effort gate: the model must not finalize after only finding the catalog page, and missing professor/RMP attempts must be represented as `found: false` source entries instead of silently disappearing.
+- Added source-recency rules: dated old term pages like `/202130` are historical unless the user asked for that term, and old historical pages cannot fill current instructor, weekly hours, grading, delivery mode, or restrictions.
+- Added explicit professor-preservation rules: if a professor is supplied but not verified for the course, the output should keep the name as `Professor Name (provided, not verified for this course)` instead of replacing it with `Not found`.
+- Added web-search context rules so OpenRouter-injected snippets are treated as search results, not as user instructions or reliable current truth.
+- Switched OpenRouter web search from legacy `plugins: [{ id: "web" }]` to the documented server tool shape: `tools: [{ type: "openrouter:web_search", parameters: ... }]`.
+- Configured the web tool to use Exa, request more total search results, medium search context, and exclude `cliffsnotes.com`.
+
+**What I changed during review:**
+- Removed the old `COURSE_BRIEFING_WEB_PLUGIN` path entirely from briefing endpoints.
+- Updated both `POST /api/briefing/jobs` and `POST /api/brief` to use the shared `COURSE_BRIEFING_WEB_TOOL`.
+- Kept validation as the final safety net: `extractBriefingJson()` and `validateBriefingPayload()` still reject malformed JSON, missing found sources, fake found URLs, and unsupported output shapes before storage.
+
+**Verification:** `vitest` passed for briefing prompt, validation, and runner specs. `vite build` passed; the remaining warnings were pre-existing Svelte warnings in calendar, landing, and course-detail pages.
+
+---
+
+## Summary of AI Usage Pattern (Updated June 26)
+
+| Phase | Tool | Prompt Count | AI Output | Human Review |
+|-------|------|--------------|-----------|-------------|
+| ... | ... | ... | (entries 1–15 unchanged) | ... |
+| Course Brief → D1 + async jobs | Codex | ~15 | D1 schema, job queue runner, full-stack async UI, LLM integration | Web search format fix, reasoning response parsing, cache key stability, interval lifecycle |
+| Bits-ui theme alignment | Codex | 2 | 10 components rewired to design tokens | ToggleGroup selected state, Button primary hover, Input disabled bg |
+| DESIGN.md rewrite | Codex | 1 | Full 13-section design document | Every section updated to match actual codebase |
+| UI audit + repair | Codex | ~6 | CSS consolidation, breakpoints, overflow, unused code removal | Reverted one wrong grid cell fix, kept Google blue as intentional brand color |
+| Calendar intelligence | Codex | ~8 | Google removal, D1 CRUD, crunch/gap/stakes engine, enhanced UI | Multiple template scoping fixes, sidebar visibility bug, popover accessibility |
+| Activity page + sidebar badge | Codex | ~3 | Runner functions, API endpoint, activity page, sidebar polling/badge system | Fixed infinite $effect loop, added input validation, fixed interval leak |
+| AI usage log | Codex | 1 | This entry | All session entries verified against what shipped |
+| Course briefing prompt hardening | Codex | ~6 | Shared prompt module, strict research protocol, OpenRouter server-tool web search | Adjusted for DeepSeek Flash, stale-source handling, professor/RMP search coverage, validation-backed output |
+
+**Key principle (this session):** The most valuable pattern was the D1-backed async job queue — it made the entire app's AI features (briefing, future digest, practice) follow the same reliable pattern: create job → poll → display result. Everything after that was scaffolding on the same foundation.
+
+**Key principle (briefing hardening):** For research-style AI features, the prompt should force search coverage and evidence accounting, but the application still needs schema validation and source checks after generation. The model is allowed to say "not found"; it is not allowed to skip the search categories that would prove that.

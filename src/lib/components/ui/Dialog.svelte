@@ -38,23 +38,25 @@
 <style>
 	:global(.ui-dialog-overlay) {
 		position: fixed;
-		z-index: 1100;
+		z-index: var(--z-dialog-overlay);
 		inset: 0;
 		background: rgba(26, 26, 23, 0.38);
 	}
 
 	:global(.ui-dialog-content) {
 		position: fixed;
-		z-index: 1101;
+		z-index: var(--z-dialog-content);
 		top: 50%;
 		left: 50%;
+		animation: ui-dialog-in 0.18s var(--ease-out-quart);
+		overflow: auto;
 		width: min(38rem, calc(100vw - 2rem));
 		max-height: calc(100vh - 2rem);
 		overflow: auto;
 		padding: 1.5rem;
 		border: 1px solid var(--ink);
 		border-radius: 0;
-		background: #fbf8f0;
+		background: var(--paper);
 		box-shadow: 0 2px 6px rgba(26, 26, 23, 0.1);
 		transform: translate(-50%, -50%);
 	}
@@ -82,6 +84,7 @@
 		display: grid;
 		width: 2.25rem;
 		height: 2.25rem;
+		transition: border-color 0.15s var(--ease-out-quart);
 		place-items: center;
 		border: 1px solid transparent;
 		border-radius: 0;

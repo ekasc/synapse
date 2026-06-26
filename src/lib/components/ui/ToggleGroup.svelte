@@ -31,7 +31,7 @@
 		<ToggleGroup.Item
 			value={item.value}
 			disabled={item.disabled}
-			class="ui-toggle-group-item font-mono"
+			class="ui-toggle-group-item"
 		>
 			{item.label}
 		</ToggleGroup.Item>
@@ -49,6 +49,8 @@
 		min-height: 2.25rem;
 		padding: 0.45rem 0.75rem;
 		border: 1px solid var(--rule);
+		transition:
+			transform 0.1s var(--ease-out-quart);
 		background: var(--paper);
 		color: var(--ink-soft);
 		font-size: 0.75rem;
@@ -57,9 +59,9 @@
 		font-weight: 500;
 		cursor: pointer;
 		transition:
-			background 0.12s,
-			border-color 0.12s,
-			color 0.12s;
+			background 0.12s var(--ease-out-quart),
+			border-color 0.12s var(--ease-out-quart),
+			color 0.12s var(--ease-out-quart);
 	}
 
 	:global(.ui-toggle-group-item:hover) {
@@ -69,8 +71,12 @@
 
 	:global(.ui-toggle-group-item[data-state='on']) {
 		border-color: var(--ink);
-		background: var(--ink);
-		color: var(--paper);
+		background: var(--highlight);
+		color: var(--ink);
+	}
+
+	:global(.ui-toggle-group-item:active) {
+		transform: translateY(1px);
 	}
 
 	:global(.ui-toggle-group-item:focus-visible) {

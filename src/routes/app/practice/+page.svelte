@@ -691,7 +691,7 @@
 		font-size: 1rem;
 		color: var(--ink);
 		line-height: 1.5;
-		max-width: 400px;
+		max-width: 500px;
 	}
 
 	.fc-hint {

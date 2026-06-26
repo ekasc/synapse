@@ -426,7 +426,7 @@
 
 <style>
 	.page {
-		max-width: 1180px;
+		max-width: 1100px;
 		margin-inline: auto;
 		padding-block: 2rem 4rem;
 	}
@@ -453,7 +453,7 @@
 
 	.workspace {
 		display: grid;
-		grid-template-columns: minmax(280px, 0.85fr) minmax(480px, 1.4fr);
+		grid-template-columns: minmax(280px, 0.85fr) 1fr;
 		gap: 1.25rem;
 		align-items: start;
 	}
@@ -881,13 +881,13 @@
 		color: var(--ink);
 	}
 
-	@media (max-width: 980px) {
+	@media (max-width: 1024px) {
 		.workspace {
 			grid-template-columns: 1fr;
 		}
 	}
 
-	@media (max-width: 720px) {
+	@media (max-width: 768px) {
 		.materials {
 			flex-direction: column;
 			align-items: flex-start;

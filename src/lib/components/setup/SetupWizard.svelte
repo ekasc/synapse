@@ -409,7 +409,7 @@ CSIS 2100  Systems Analysis"
 		resize: vertical;
 		outline: none;
 		box-sizing: border-box;
-		transition: border-color 0.12s;
+		transition: border-color 0.12s var(--ease-out-quart);
 	}
 
 	.import-textarea:focus {
@@ -465,7 +465,7 @@ CSIS 2100  Systems Analysis"
 		font-size: 0.85rem;
 		color: var(--ink);
 		outline: none;
-		transition: border-color 0.12s;
+		transition: border-color 0.12s var(--ease-out-quart);
 	}
 
 	.course-input:focus {

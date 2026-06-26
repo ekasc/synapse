@@ -31,7 +31,7 @@
 		gap: 0.4rem;
 		padding: 0.5rem 0.9rem;
 		border: 1px solid rgba(26, 26, 23, 0.18);
-		border-radius: 5px;
+		border-radius: 0;
 		background: transparent;
 		color: var(--ink);
 		font-family: var(--font-body);
@@ -71,8 +71,9 @@
 	}
 
 	:global(.ui-button--primary:hover:not(:disabled)) {
-		background: #2a2a27;
+		background: var(--ink);
 		color: var(--paper);
+		opacity: 0.85;
 	}
 
 	:global(.ui-button--ghost) {

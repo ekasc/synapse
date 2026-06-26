@@ -63,10 +63,11 @@
 		padding: 0.5rem 0.65rem;
 		border: 1px solid rgba(26, 26, 23, 0.28);
 		border-radius: 0;
-		background: #fbf8f0;
+		background: var(--paper);
 		color: var(--ink);
 		font: inherit;
 		cursor: pointer;
+		transition: border-color 0.15s var(--ease-out-quart);
 	}
 
 	:global(.ui-select-trigger:focus-visible) {
@@ -76,14 +77,14 @@
 	}
 
 	:global(.ui-select-content) {
-		z-index: 1000;
+		z-index: var(--z-dropdown);
 		min-width: var(--bits-select-anchor-width);
 		max-height: min(20rem, var(--bits-select-content-available-height));
 		overflow: auto;
 		padding: 0.35rem;
 		border: 1px solid var(--ink);
 		border-radius: 0;
-		background: #fbf8f0;
+		background: var(--paper);
 		box-shadow: 0 2px 6px rgba(26, 26, 23, 0.1);
 	}
 
@@ -99,6 +100,7 @@
 		font-size: 0.78rem;
 		outline: none;
 		cursor: pointer;
+		transition: background 0.1s var(--ease-out-quart);
 	}
 
 	:global(.ui-select-item[data-highlighted]) {

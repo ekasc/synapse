@@ -261,17 +261,17 @@
 		body {
 			margin: 0;
 			padding: 28px;
-			color: #1a1a17;
-			background: #fffdf9;
+			color: var(--ink);
+			background: var(--surface-paper);
 			font: 15px/1.65 ui-serif, Georgia, Cambria, "Times New Roman", serif;
 		}
 		img { max-width: 100%; height: auto; }
 		table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-		td, th { border: 1px solid #d8d0c3; padding: 8px; vertical-align: top; }
-		th { font-weight: 650; background: #f6f0e6; }
+		td, th { border: 1px solid var(--rule-soft); padding: 8px; vertical-align: top; }
+		th { font-weight: 650; background: var(--paper-shelf); }
 		p { margin: 0 0 12px; }
 		ul, ol { padding-left: 24px; }
-		a { color: #255a92; }
+		a { color: var(--subject-comp); }
 	</style>
 </head>
 <body>${body}</body>
@@ -384,7 +384,7 @@
 	.viewer-shell {
 		position: fixed;
 		inset: 0;
-		z-index: 80;
+		z-index: var(--z-viewer);
 	}
 
 	.viewer-backdrop {
@@ -480,7 +480,7 @@
 		min-height: 0;
 		flex: 1;
 		overflow: auto;
-		background: #ebe4d7;
+		background: var(--paper-shelf);
 	}
 
 	.viewer-state {
@@ -537,7 +537,7 @@
 		min-height: 280px;
 		padding: 1.5rem;
 		border: 1px solid var(--rule);
-		background: #fffdf9;
+		background: var(--surface-paper);
 		box-shadow: 3px 3px 0 rgba(26, 26, 23, 0.12);
 	}
 

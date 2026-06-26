@@ -137,7 +137,7 @@
 		stroke-width: 3;
 		stroke-linecap: round;
 		opacity: 0.9;
-		transition: opacity 0.2s;
+		transition: opacity 0.2s var(--ease-out-quart);
 	}
 
 	:global(.course-edge.selected) {

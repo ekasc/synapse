@@ -59,23 +59,24 @@
 <style>
 	:global(.ui-dialog-overlay) {
 		position: fixed;
-		z-index: 1100;
+		z-index: var(--z-dialog-overlay);
 		inset: 0;
 		background: rgba(26, 26, 23, 0.38);
 	}
 
 	:global(.ui-dialog-content) {
 		position: fixed;
-		z-index: 1101;
+		z-index: var(--z-dialog-content);
 		top: 50%;
 		left: 50%;
 		width: min(30rem, calc(100vw - 2rem));
+		animation: ui-dialog-in 0.18s var(--ease-out-quart);
 		max-height: calc(100vh - 2rem);
 		overflow: auto;
 		padding: 1.5rem;
 		border: 1px solid var(--ink);
 		border-radius: 0;
-		background: #fbf8f0;
+		background: var(--paper);
 		box-shadow: 0 2px 6px rgba(26, 26, 23, 0.1);
 		transform: translate(-50%, -50%);
 	}
@@ -104,6 +105,7 @@
 	:global(.ui-dialog-button) {
 		min-height: 2.5rem;
 		padding: 0.5rem 0.9rem;
+		transition: transform 0.1s var(--ease-out-quart);
 		border: 1px solid rgba(26, 26, 23, 0.25);
 		border-radius: 0;
 		background: transparent;
@@ -113,7 +115,7 @@
 	}
 
 	:global(.ui-dialog-button:focus-visible) {
-		outline: 2px solid var(--ink);
+		outline: 2px solid var(--highlight);
 		outline-offset: 2px;
 	}
 
@@ -121,5 +123,9 @@
 		border-color: var(--pen-red);
 		background: var(--pen-red);
 		color: var(--paper);
+	}
+
+	:global(.ui-dialog-button:active) {
+		transform: translateY(1px);
 	}
 </style>

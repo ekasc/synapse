@@ -553,7 +553,7 @@ let renameValue = $state('');
 
 <style>
 	.page {
-		max-width: 820px;
+		max-width: 900px;
 		margin-inline: auto;
 		padding-block: 2rem 4rem;
 	}
@@ -569,7 +569,7 @@ let renameValue = $state('');
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
 		cursor: pointer;
-		transition: color 0.12s;
+		transition: color 0.12s var(--ease-out-quart);
 	}
 
 	.back-link:hover {
@@ -677,17 +677,11 @@ let renameValue = $state('');
 		color: var(--ink-faint);
 	}
 
-	.state-ok {
-		color: var(--ok, #5a7a4a);
-	}
+	
 
-	.state-warn {
-		color: var(--warn, #b88a2e);
-	}
+	
 
-	.state-crit {
-		color: var(--accent);
-	}
+	
 
 	.state-next {
 		font-size: 0.95rem;
@@ -915,7 +909,7 @@ let renameValue = $state('');
 		padding: 0.65rem 0.85rem;
 		background: var(--paper);
 		border: 1px solid var(--rule);
-		transition: opacity 0.12s;
+		transition: opacity 0.12s var(--ease-out-quart);
 	}
 
 	.material-deleting {
@@ -942,7 +936,7 @@ let renameValue = $state('');
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		transition: border-color 0.12s;
+		transition: border-color 0.12s var(--ease-out-quart);
 	}
 
 	.material-name:hover {
