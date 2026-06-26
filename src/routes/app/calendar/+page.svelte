@@ -6,27 +6,42 @@
 	type CalendarEvent = {
 		id: string;
 		date: number;
+		month: number;
+		year: number;
 		title: string;
 		course: string;
-		type: 'assignment' | 'midterm' | 'final' | 'quiz' | 'lecture';
+		type: 'assignment' | 'midterm' | 'final' | 'quiz' | 'lecture' | 'google';
+		time?: string;
+		googleLink?: string;
 	};
 
-	let { data }: { data: { events?: CalendarEvent[]; courseColors?: CourseColor[] } } = $props();
+	let {
+		data,
+	}: {
+		data: {
+			events?: CalendarEvent[];
+			courseColors?: CourseColor[];
+			googleConnected?: boolean;
+			syncedCount?: number;
+		};
+	} = $props();
 
 	const now = new Date();
 	const today = now.getDate();
-	let viewYear = $state(now.getFullYear());
-	let viewMonth = $state(now.getMonth());
+	const currentMonthIdx = now.getMonth();
+	const currentYear = now.getFullYear();
+	let viewYear = $state(currentYear);
+	let viewMonth = $state(currentMonthIdx);
 
 	const monthName = $derived(
-		new Date(viewYear, viewMonth, 1).toLocaleString('en-US', { month: 'long' })
+		new Date(viewYear, viewMonth, 1).toLocaleString('en-US', { month: 'long' }),
 	);
 	const currentMonth = $derived(`${monthName} ${viewYear}`);
 	const daysInMonth = $derived(new Date(viewYear, viewMonth + 1, 0).getDate());
 	const startDay = $derived(new Date(viewYear, viewMonth, 1).getDay());
 
 	const monthShort = $derived(
-		new Date(viewYear, viewMonth, 1).toLocaleString('en-US', { month: 'short' })
+		new Date(viewYear, viewMonth, 1).toLocaleString('en-US', { month: 'short' }),
 	);
 
 	function prevMonth() {
@@ -48,31 +63,43 @@
 	}
 
 	function goToday() {
-		viewYear = now.getFullYear();
-		viewMonth = now.getMonth();
+		viewYear = currentYear;
+		viewMonth = currentMonthIdx;
 	}
 
-	const isCurrentMonth = $derived(viewYear === now.getFullYear() && viewMonth === now.getMonth());
+	const isCurrentMonth = $derived(viewYear === currentYear && viewMonth === currentMonthIdx);
 
 	const PALETTE = ['#1a1814', '#b03a2e', '#4a4a42', '#8a8270'];
 	const courseColors = $derived(data.courseColors ?? []);
 	const events = $derived(data.events ?? []);
+	const googleConnected = $derived(data.googleConnected ?? false);
+	const syncedCount = $derived(data.syncedCount ?? 0);
 
 	function courseColor(code: string): string {
+		if (code === 'Google') return '#4285F4'; // Google blue
 		const known = courseColors.find((c) => c.code === code);
 		if (known) return known.color;
 		const idx = (code.charCodeAt(0) + (code.charCodeAt(1) || 0)) % PALETTE.length;
 		return PALETTE[idx];
 	}
 
-	function eventsForDay(day: number): CalendarEvent[] {
-		return events.filter((e) => e.date === day);
+	function eventsInCurrentMonth(): CalendarEvent[] {
+		return events.filter((e) => e.month === viewMonth && e.year === viewYear);
 	}
 
-	const eventsInViewedMonth = $derived(events.filter((e) => e.date <= daysInMonth).length);
+	function eventsForDay(day: number): CalendarEvent[] {
+		return eventsInCurrentMonth().filter((e) => e.date === day);
+	}
+
+	const totalInViewedMonth = $derived(eventsInCurrentMonth().length);
 
 	const upcomingInSevenDays = $derived(
-		events.filter((e) => e.date >= today && e.date <= today + 7).length
+		events.filter((e) => {
+			const eventDate = new Date(e.year, e.month, e.date);
+			const todayDate = new Date(currentYear, currentMonthIdx, today);
+			const diffMs = eventDate.getTime() - todayDate.getTime();
+			return diffMs >= 0 && diffMs <= 7 * 86400000;
+		}).length,
 	);
 
 	const eventsByCourse = $derived.by(() => {
@@ -83,12 +110,63 @@
 		return Object.values(byCourse)
 			.map((group) => ({
 				...group,
-				events: group.events.sort((a, b) => a.date - b.date)
+				events: group.events.sort((a, b) => {
+					const da = new Date(a.year, a.month, a.date);
+					const db = new Date(b.year, b.month, b.date);
+					return da.getTime() - db.getTime();
+				}),
 			}))
 			.sort((a, b) => b.events.length - a.events.length || a.course.localeCompare(b.course));
 	});
 
-	const isOverdue = $derived(isCurrentMonth ? (day: number) => day < today : () => false);
+	const isOverdue = $derived((day: number) => (isCurrentMonth ? day < today : false));
+
+	// ── Google Calendar connection UI state ──
+	let connecting = $state(false);
+	let syncing = $state(false);
+	let syncMessage = $state('');
+	let showingSettings = $state(false);
+
+	async function handleConnect() {
+		connecting = true;
+		window.location.href = '/api/calendar/google/authorize';
+	}
+
+	async function handleDisconnect() {
+		if (!confirm('Disconnect Google Calendar? Synced events will remain in your Google Calendar.'))
+			return;
+		try {
+			const resp = await fetch('/api/calendar/google/disconnect', { method: 'POST' });
+			const body: { ok?: boolean } = await resp.json();
+			if (body.ok) {
+				window.location.reload();
+			}
+		} catch (err) {
+			console.error('Disconnect failed:', err);
+		}
+	}
+
+	async function handleSync() {
+		syncing = true;
+		syncMessage = 'Syncing...';
+		try {
+			const resp = await fetch('/api/calendar/sync', { method: 'POST' });
+			const body: { ok?: boolean; total?: number; created?: number; updated?: number; deleted?: number; error?: string } = await resp.json();
+			if (body.ok) {
+				syncMessage = body.total && body.total > 0
+					? `Synced ${body.created} created, ${body.updated} updated, ${body.deleted} removed`
+					: 'No deadlines to sync';
+			} else {
+				syncMessage = body.error || 'Sync failed';
+			}
+		} catch (err) {
+			syncMessage = 'Sync request failed';
+			console.error('Sync failed:', err);
+		} finally {
+			syncing = false;
+			setTimeout(() => (syncMessage = ''), 5000);
+		}
+	}
 </script>
 
 <svelte:head><title>Synapse · Calendar</title></svelte:head>
@@ -100,9 +178,8 @@
 		<h1 class="page-title font-hand">Calendar</h1>
 		<p class="page-tagline">
 			{#if events.length > 0}
-				<span class="tagline-num">{eventsInViewedMonth}</span> deadline{eventsInViewedMonth !== 1
-					? 's'
-					: ''} in
+				<span class="tagline-num">{totalInViewedMonth}</span> event{totalInViewedMonth !== 1
+					? 's' : ''} in
 				{monthName.toLowerCase()} · <span class="tagline-num">{upcomingInSevenDays}</span> in the next
 				7 days
 			{:else}
@@ -111,11 +188,75 @@
 		</p>
 	</div>
 
+	<!-- Google Calendar Connection Bar -->
+	<div class="gcal-bar">
+		{#if googleConnected}
+			<span class="gcal-status">
+				<span class="gcal-dot gcal-dot-online"></span>
+				Google Calendar connected
+				{#if syncedCount > 0}
+					· <span class="tagline-num">{syncedCount}</span> deadline{syncedCount !== 1 ? 's' : ''} synced
+				{/if}
+			</span>
+			<div class="gcal-actions">
+				<button
+					type="button"
+					class="btn btn-sm btn-ghost"
+					onclick={handleSync}
+					disabled={syncing}
+				>
+					{syncing ? 'Syncing…' : 'Sync deadlines'}
+				</button>
+				<button
+					type="button"
+					class="btn btn-sm btn-ghost"
+					onclick={() => (showingSettings = !showingSettings)}
+				>
+					Settings
+				</button>
+			</div>
+		{:else}
+			<span class="gcal-status">
+				Calendar not connected to Google
+			</span>
+			<div class="gcal-actions">
+				<button type="button" class="btn btn-sm" onclick={handleConnect} disabled={connecting}>
+					{connecting ? 'Connecting…' : 'Connect Google Calendar'}
+				</button>
+			</div>
+		{/if}
+	</div>
+
+	{#if googleConnected && showingSettings}
+		<div class="gcal-settings surface">
+			<div class="gcal-settings-row">
+				<span>
+					<strong>Connected to Google Calendar</strong>
+					<br /><span class="gcal-settings-hint">Deadlines are pushed to your primary Google Calendar</span>
+				</span>
+				<button
+					type="button"
+					class="btn btn-sm btn-danger"
+					onclick={handleDisconnect}
+				>
+					Disconnect
+				</button>
+			</div>
+			{#if syncMessage}
+				<p class="gcal-sync-msg">{syncMessage}</p>
+			{/if}
+		</div>
+	{/if}
+
+	{#if syncMessage && !showingSettings}
+		<p class="gcal-sync-msg">{syncMessage}</p>
+	{/if}
+
 	<div class="cal-layout">
 		{#if events.length === 0}
 			<div class="cal-empty">
 				<h2 class="empty-head font-hand">No deadlines yet</h2>
-				<p class="empty-text">Calendar events appear here once a syllabus is uploaded.</p>
+				<p class="empty-text">Calendar events appear here once a syllabus is uploaded or Google Calendar is connected.</p>
 			</div>
 		{:else}
 			<div class="cal-grid surface-polaroid">
@@ -140,6 +281,12 @@
 									<span class="cal-legend-label font-mono">{cc.code}</span>
 								</span>
 							{/each}
+							{#if googleConnected}
+								<span class="cal-legend-item">
+									<span class="cal-legend-dot" style="background: #4285F4"></span>
+									<span class="cal-legend-label font-mono">Google</span>
+								</span>
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -203,17 +350,23 @@
 								{#each group.events as ev (ev.id)}
 									<div
 										class="upcoming-item"
-										class:upcoming-overdue={!isCurrentMonth
-											? false
-											: isCurrentMonth && ev.date < today}
+										class:upcoming-overdue={isCurrentMonth && ev.date < today}
 									>
 										<div class="upcoming-left">
-											<span class="upcoming-name">{ev.title}</span>
+											<span class="upcoming-name">
+												{ev.title}
+												{#if ev.type === 'google' && ev.googleLink}
+													<a href={ev.googleLink} target="_blank" rel="noopener noreferrer" class="upcoming-gcal-link">↗</a>
+												{/if}
+											</span>
 											<div class="upcoming-meta">
 												<span class="upcoming-type font-mono">{ev.type}</span>
+												{#if ev.time}
+													<span class="upcoming-time font-mono">{ev.time}</span>
+												{/if}
 											</div>
 										</div>
-										<span class="upcoming-date-num font-mono">{monthShort} {ev.date}</span>
+										<span class="upcoming-date-num font-mono">{new Date(ev.year, ev.month, ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
 									</div>
 								{/each}
 							</div>
@@ -244,6 +397,69 @@
 		font-size: 0.92rem;
 		margin: 0.5rem 0 0;
 	}
+
+	/* ── Google Calendar Bar ── */
+
+	.gcal-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 1.25rem;
+		padding: 0.65rem 0.9rem;
+		border: 1px solid var(--rule);
+		background: var(--paper);
+		flex-wrap: wrap;
+	}
+
+	.gcal-status {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.85rem;
+		color: var(--ink-soft);
+	}
+
+	.gcal-dot {
+		width: 8px;
+		height: 8px;
+		flex-shrink: 0;
+	}
+
+	.gcal-dot-online {
+		background: #4285F4;
+	}
+
+	.gcal-actions {
+		display: flex;
+		gap: 0.4rem;
+	}
+
+	/* ── Google Settings Panel ── */
+
+	.gcal-settings {
+		margin-bottom: 1.25rem;
+	}
+
+	.gcal-settings-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.gcal-settings-hint {
+		font-size: 0.82rem;
+		color: var(--ink-faint);
+	}
+
+	.gcal-sync-msg {
+		margin: 0.5rem 0 0;
+		font-size: 0.82rem;
+		color: var(--ok);
+	}
+
+	/* ── Layout ── */
 
 	.cal-layout {
 		display: grid;
@@ -527,9 +743,21 @@
 		line-height: 1.3;
 	}
 
+	.upcoming-gcal-link {
+		color: #4285F4;
+		text-decoration: none;
+		font-size: 0.75rem;
+		margin-left: 0.2rem;
+	}
+
+	.upcoming-gcal-link:hover {
+		text-decoration: underline;
+	}
+
 	.upcoming-meta {
 		display: flex;
 		gap: 0.5rem;
+		flex-wrap: wrap;
 	}
 
 	.upcoming-type {
@@ -539,13 +767,17 @@
 		letter-spacing: 0.08em;
 	}
 
+	.upcoming-time {
+		font-size: 0.7rem;
+		color: var(--ink-soft);
+		letter-spacing: 0.06em;
+	}
+
 	.upcoming-date-num {
 		font-size: 0.7rem;
 		color: var(--ink-soft);
 		flex-shrink: 0;
 		margin-top: 2px;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
 	}
 
 	@media (max-width: 768px) {

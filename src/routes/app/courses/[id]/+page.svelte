@@ -125,6 +125,8 @@
 	let dragOver = $state(false);
 	let deletingId = $state<string | null>(null);
 	let selectedMaterial = $state<Material | null>(null);
+let renamingId = $state<string | null>(null);
+let renameValue = $state('');
 
 	const totalSize = $derived(materials.reduce((sum, m) => sum + m.size, 0));
 
@@ -173,6 +175,39 @@
 
 	function onDragLeave() {
 		dragOver = false;
+	}
+
+	async function startRename(material: Material) {
+		renamingId = material.id;
+		renameValue = material.fileName;
+	}
+
+	async function commitRename() {
+		if (!renamingId || !renameValue.trim()) return;
+		const id = renamingId;
+		renamingId = null;
+		try {
+			const res = await fetch(`/api/courses/${course.id}/materials`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, fileName: renameValue.trim() })
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => null) as { error?: string } | null;
+				uploadError = body?.error ?? 'Rename failed';
+				return;
+			}
+			await invalidateAll();
+		} catch {
+			uploadError = 'Rename failed. Is the server running?';
+		} finally {
+			renamingId = null;
+		}
+	}
+
+	function cancelRename() {
+		renamingId = null;
+		renameValue = '';
 	}
 
 	async function deleteMaterial(id: string) {
@@ -412,14 +447,26 @@
 						<div class="material-kind font-mono">{fileKind(material.mimeType)}</div>
 						<div class="material-info">
 							<!-- eslint-disable svelte/no-navigation-without-resolve -- href is an API download endpoint, not an app route -->
-							<a
-								class="material-name"
-								href={`/api/courses/${course.id}/materials/${material.id}/download`}
-								download={material.fileName}
-								aria-label={`Download ${material.fileName}`}
-							>
-								{material.fileName}
-							</a>
+								{#if renamingId === material.id}
+								<input
+									type="text"
+									class="rename-input font-mono"
+									bind:value={renameValue}
+									onkeydown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') cancelRename(); }}
+									onblur={commitRename}
+									autofocus
+									aria-label="Rename file"
+								/>
+							{:else}
+								<a
+									class="material-name"
+									href={`/api/courses/${course.id}/materials/${material.id}/download`}
+									download={material.fileName}
+									aria-label={`Download ${material.fileName}`}
+								>
+									{material.fileName}
+								</a>
+							{/if}
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 							<div class="material-meta font-mono">
 								{formatSize(material.size)} · uploaded {formatDate(material.uploadedAt)}
@@ -436,6 +483,15 @@
 									preview
 								</button>
 							{/if}
+							<button
+								type="button"
+								class="btn btn-ghost btn-sm material-action"
+								disabled={renamingId !== null}
+								onclick={() => startRename(material)}
+								aria-label={`Rename ${material.fileName}`}
+							>
+								rename
+							</button>
 							<button
 								type="button"
 								class="btn btn-ghost btn-sm material-delete material-action"
@@ -679,6 +735,17 @@
 		border: 1px solid var(--rule);
 		font-size: 0.72rem;
 		color: var(--ink);
+	}
+
+	.rename-input {
+		box-sizing: border-box;
+		width: 100%;
+		padding: 0.15rem 0.3rem;
+		border: 1px solid var(--ink);
+		background: var(--paper);
+		color: var(--ink);
+		font-size: 0.9rem;
+		outline: none;
 	}
 
 	.empty {

@@ -1,13 +1,11 @@
 import { error } from '@sveltejs/kit';
+import { getCourses, getGraphState, getSemesters } from '$lib/server/store';
 import {
-	getCourses,
-	getGraphState,
-	getMaterials,
-	getSemesters,
-	type Material
-} from '$lib/server/store';
+	listMaterials,
+	listMaterialsFallback
+} from '$lib/server/r2';
 
-export function load({ params }) {
+export async function load({ params, platform }) {
 	const courses = getCourses();
 	const course = courses.find((c) => c.id === params.id);
 	if (!course) {
@@ -23,9 +21,12 @@ export function load({ params }) {
 	const incoming = edges.filter((e) => e.target === course.id);
 	const outgoing = edges.filter((e) => e.source === course.id);
 
-	const materials: Material[] = getMaterials(course.id).sort((a, b) =>
-		b.uploadedAt.localeCompare(a.uploadedAt)
-	);
+	const bucket = platform?.env?.MATERIALS;
+	const materials = bucket
+		? await listMaterials(bucket, course.id)
+		: listMaterialsFallback(course.id);
+
+	materials.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 
 	return {
 		course,
