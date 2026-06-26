@@ -30,6 +30,8 @@
 	let selectedCode = $state<string | null>(null);
 	let researching = $state(false);
 	let researchError = $state<string | null>(null);
+	let deleting = $state(false);
+	let confirmDeleteCode = $state<string | null>(null);
 
 	let hasAnySearch = $derived(courseCode.trim().length > 0 || professorName.trim().length > 0);
 
@@ -54,6 +56,39 @@
 		selectedCode ? (briefs.find((b) => b.code === selectedCode) ?? null) : null
 	);
 
+	type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+
+	let jobStatus = $state<JobStatus | null>(null);
+	let jobOutput = $state<Briefing | null>(null);
+	let pollTimer = $state<ReturnType<typeof setInterval> | null>(null);
+
+	function startPolling(jobId: string) {
+		pollTimer = setInterval(async () => {
+			try {
+				const res = await fetch(`/api/briefing/jobs/${jobId}`);
+				const data = await res.json();
+				if (data.job) {
+					jobStatus = data.job.status;
+					if (data.job.status === 'succeeded' && data.output) {
+						jobOutput = data.output;
+						selectedCode = data.output.code;
+						clearInterval(pollTimer);
+						pollTimer = null;
+						await invalidateAll();
+						researching = false;
+					} else if (data.job.status === 'failed') {
+						researchError = data.job.errorMessage || 'Briefing failed';
+						clearInterval(pollTimer);
+						pollTimer = null;
+						researching = false;
+					}
+				}
+			} catch {
+				// keep polling
+			}
+		}, 2000);
+	}
+
 	async function researchCourse() {
 		if (researching) return;
 		const code = courseCode.trim();
@@ -64,44 +99,54 @@
 
 		researching = true;
 		researchError = null;
-
-		type ApiResponse = {
-			brief?: Briefing;
-			cached?: boolean;
-			source?: string;
-			error?: string;
-			hint?: string;
-		};
+		jobStatus = null;
+		jobOutput = null;
 
 		try {
-			const res = await fetch('/api/brief', {
+			const res = await fetch('/api/briefing/jobs', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					code,
-					institution: institution.trim() || undefined,
-					professorName: professorName.trim() || undefined
+					courseCode: code,
+					professorName: professorName.trim() || undefined,
+					institution: institution.trim() || undefined
 				})
 			});
 
-			const result: ApiResponse = await res.json();
+			const result = await res.json();
 
-			if (!res.ok || result.error) {
+			if (!res.ok) {
 				researchError = result.error ?? `Server error (${res.status})`;
+				researching = false;
 				return;
 			}
 
-			if (result.brief) {
-				selectedCode = result.brief.code;
-				await invalidateAll();
+			const job = result.job;
+			if (!job) {
+				researchError = 'No job returned';
+				researching = false;
+				return;
 			}
 
-			if (!result.cached && result.source === 'mock') {
-				researchError = 'Using sample data. Configure API keys for live research.';
+			if (job.status === 'succeeded' && job.output) {
+				try {
+					jobOutput = JSON.parse(job.output);
+					selectedCode = jobOutput.code;
+				} catch {}
+				researching = false;
+				return;
 			}
+
+			if (job.status === 'failed') {
+				researchError = job.errorMessage || 'Briefing failed';
+				researching = false;
+				return;
+			}
+
+			jobStatus = job.status;
+			startPolling(job.id);
 		} catch {
 			researchError = 'Failed to research course. Is the server running?';
-		} finally {
 			researching = false;
 		}
 	}
@@ -123,6 +168,21 @@
 		}
 	}
 
+
+	async function deleteBriefing(code: string) {
+		if (deleting) return;
+		confirmDeleteCode = null;
+		deleting = true;
+		try {
+			const res = await fetch(`/api/brief?code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+			if (res.ok) {
+				selectedCode = null;
+				await invalidateAll();
+			}
+		} finally {
+			deleting = false;
+		}
+	}
 	function ratingVariant(rating: string): 'crit' | 'ok' | 'warn' | 'idle' {
 		if (rating === 'N/A') return 'idle';
 		const num = parseFloat(rating);
@@ -326,6 +386,19 @@
 					</div>
 				</div>
 			{/if}
+		<div class="detail-delete">
+			{#if confirmDeleteCode === selected.code}
+				<span class="delete-label font-mono">Delete this briefing?</span>
+				<button class="btn btn-sm btn-ghost" onclick={() => (confirmDeleteCode = null)}>cancel</button>
+				<button class="btn btn-sm btn-danger" onclick={() => deleteBriefing(selected.code)} disabled={deleting}>
+					{deleting ? 'deleting…' : 'delete'}
+				</button>
+			{:else}
+				<button class="btn btn-ghost btn-sm font-mono" onclick={() => (confirmDeleteCode = selected.code)}>
+					delete briefing
+			</button>
+			{/if}
+		</div>
 		</article>
 	{/if}
 </div>
@@ -593,4 +666,20 @@
 	.source-missed {
 		opacity: 0.6;
 	}
+
+	.detail-delete {
+		border-top: 1px dashed var(--rule);
+		padding-top: 1rem;
+		margin-top: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.delete-label {
+		font-size: 0.78rem;
+		color: var(--accent);
+		margin-right: auto;
+	}
+
 </style>

@@ -63,6 +63,7 @@ export type Course = {
 	instructor?: string;
 	credits?: number;
 	tag?: string;
+	color?: string;
 	signals?: CourseSignal;
 };
 
@@ -242,107 +243,6 @@ export function saveGraphState(state: GraphState): void {
 	write('graph', [state]);
 }
 
-// ── Course Briefs ──
-
-export type Briefing = {
-	code: string;
-	name: string;
-	institution: string;
-	professor: string;
-	rmpRating: string;
-	rmpCount?: number;
-	workload: string;
-	weeklyHours?: string;
-	prereqReadiness: string;
-	gradeStructure: { item: string; weight: string }[];
-	recommendation: string;
-	sources: { description: string; url?: string; found: boolean }[];
-	researchedAt: string;
-};
-
-export function getBriefs(): Briefing[] {
-	return read<Briefing>('briefs');
-}
-
-export function saveBrief(brief: Briefing): void {
-	const all = getBriefs().filter((b) => b.code !== brief.code);
-	all.push(brief);
-	write('briefs', all);
-}
-
-export function getBrief(code: string): Briefing | undefined {
-	return getBriefs().find((b) => b.code.toUpperCase() === code.toUpperCase());
-}
-
-// ── Course Materials ──
-
-const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
-
-function ensureUploadsDir() {
-	ensureDir();
-	if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
-export type Material = {
-	id: string;
-	courseId: string;
-	fileName: string;
-	mimeType: string;
-	size: number;
-	uploadedAt: string;
-};
-
-export function getMaterials(courseId?: string): Material[] {
-	const all = read<Material>('materials');
-	return courseId ? all.filter((m) => m.courseId === courseId) : all;
-}
-
-export function getMaterial(id: string): Material | undefined {
-	return read<Material>('materials').find((m) => m.id === id);
-}
-
-export async function addMaterial(courseId: string, file: File): Promise<Material> {
-	ensureUploadsDir();
-	const id = crypto.randomUUID();
-	const safeName = path.basename(file.name).replace(/[^\w.\- ]/g, '_');
-	const ext = path.extname(safeName);
-	const storageName = id + ext;
-	const buffer = Buffer.from(await file.arrayBuffer());
-	fs.writeFileSync(path.join(UPLOADS_DIR, storageName), buffer);
-	const material: Material = {
-		id,
-		courseId,
-		fileName: safeName,
-		mimeType: file.type || 'application/octet-stream',
-		size: buffer.byteLength,
-		uploadedAt: new Date().toISOString()
-	};
-	const all = getMaterials();
-	all.push(material);
-	write('materials', all);
-	return material;
-}
-
-export function deleteMaterial(id: string): void {
-	const all = getMaterials();
-	const target = all.find((m) => m.id === id);
-	if (target) {
-		const ext = path.extname(target.fileName);
-		const filePath = path.join(UPLOADS_DIR, id + ext);
-		if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-	}
-	write(
-		'materials',
-		all.filter((m) => m.id !== id)
-	);
-}
-
-export function readMaterialBytes(material: Material): Buffer {
-	const ext = path.extname(material.fileName);
-	const filePath = path.join(UPLOADS_DIR, material.id + ext);
-	return fs.readFileSync(filePath);
-}
-
 // ── Syllabus Intelligence ──
 
 export function getSyllabusImport(): SyllabusImport | null {
@@ -407,4 +307,62 @@ export function updateSyllabusTextbook(fileName: string): SyllabusImport {
 	write('syllabus-imports', [record]);
 	void fileName;
 	return record;
+}
+
+// ── Google Calendar Integration ──
+
+export type GoogleTokenStore = {
+	id: string; // 'google-token'
+	token: {
+		access_token: string;
+		refresh_token: string;
+		expiry_date: number;
+		scope: string;
+	};
+	connectedAt: string;
+	updatedAt: string;
+	calendarId: string; // 'primary' or the id of the calendar we're using
+	calendarSummary?: string; // e.g. 'Synapse Deadlines'
+};
+
+export type GoogleSyncedEvent = {
+	id: string; // internal deadline id (e.g. `${courseId}-${label}`)
+	googleEventId: string;
+	calendarId: string;
+	lastSyncedAt: string;
+};
+
+const GOOGLE_TOKEN_FILE = 'google-token';
+const GOOGLE_SYNCED_EVENTS_FILE = 'google-synced-events';
+
+export function getGoogleToken(): GoogleTokenStore | null {
+	const [record] = read<GoogleTokenStore>(GOOGLE_TOKEN_FILE);
+	return record ?? null;
+}
+
+export function saveGoogleToken(token: GoogleTokenStore): void {
+	write(GOOGLE_TOKEN_FILE, [token]);
+}
+
+export function deleteGoogleToken(): void {
+	write(GOOGLE_TOKEN_FILE, []);
+}
+
+export function getGoogleSyncedEvents(): GoogleSyncedEvent[] {
+	return read<GoogleSyncedEvent>(GOOGLE_SYNCED_EVENTS_FILE);
+}
+
+export function saveGoogleSyncedEvent(event: GoogleSyncedEvent): void {
+	const all = getGoogleSyncedEvents().filter((e) => e.id !== event.id);
+	all.push(event);
+	write(GOOGLE_SYNCED_EVENTS_FILE, all);
+}
+
+export function removeGoogleSyncedEvent(id: string): void {
+	const all = getGoogleSyncedEvents().filter((e) => e.id !== id);
+	write(GOOGLE_SYNCED_EVENTS_FILE, all);
+}
+
+export function clearGoogleSyncedEvents(): void {
+	write(GOOGLE_SYNCED_EVENTS_FILE, []);
 }

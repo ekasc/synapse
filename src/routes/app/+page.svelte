@@ -47,6 +47,22 @@
 		if (!s) return '—';
 		return `${s.term[0]}${String(s.year).slice(-2)}`;
 	}
+
+	const subjectColors: Record<string, string> = {
+		COMP: 'var(--subject-comp)',
+		MATH: 'var(--subject-math)',
+		CSIS: 'var(--subject-csis)',
+		STAT: 'var(--subject-stat)',
+		ECON: 'var(--subject-econ)',
+		ISYS: 'var(--subject-isys)',
+		HUMN: 'var(--subject-humn)'
+	};
+
+	function courseColor(course: { code: string; color?: string }): string | undefined {
+		if (course.color) return course.color;
+		const prefix = course.code.split(/[\s-]/)[0];
+		return subjectColors[prefix];
+	}
 </script>
 
 <svelte:head><title>Synapse · Dashboard</title></svelte:head>
@@ -94,6 +110,7 @@
 								<BookCard
 									href={`${resolveRoute(`/app/courses/${course.id}`)}?from=${encodeURIComponent(here)}`}
 									spine={spineForSemester(semester.id)}
+									spineColor={courseColor(course)}
 									meta={course.code}
 									title={course.name}
 									detail={`${semester.term} ${semester.year}`}

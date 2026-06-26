@@ -4,6 +4,10 @@
 	import { resolveRoute } from '$app/paths';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import DocumentViewer from '$lib/components/course-materials/DocumentViewer.svelte';
+	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
+
+	type CourseStatus = 'planned' | 'active' | 'completed' | 'at-risk';
+	type RiskLevel = 'none' | 'low' | 'medium' | 'high';
 
 	type Course = {
 		id: string;
@@ -13,9 +17,10 @@
 		instructor?: string;
 		credits?: number;
 		tag?: string;
+		color?: string;
 		signals?: {
-			status?: 'planned' | 'active' | 'completed' | 'at-risk';
-			riskLevel?: 'none' | 'low' | 'medium' | 'high';
+			status?: CourseStatus;
+			riskLevel?: RiskLevel;
 			currentGrade?: number;
 			projectedGrade?: number;
 			deadlinesThisWeek?: number;
@@ -53,6 +58,7 @@
 		data: {
 			course: Course;
 			semester: Semester | null;
+			semesters: Semester[];
 			incoming: Edge[];
 			outgoing: Edge[];
 			materials: Material[];
@@ -62,6 +68,7 @@
 
 	const course = $derived(data.course);
 	const semester = $derived(data.semester);
+	const semesters = $derived(data.semesters);
 	const incoming = $derived(data.incoming);
 	const outgoing = $derived(data.outgoing);
 	const materials = $derived(data.materials);
@@ -111,11 +118,15 @@
 		void goto(backHref);
 	}
 
+	let showEditModal = $state(false);
+
 	let uploading = $state(false);
 	let uploadError = $state<string | null>(null);
 	let dragOver = $state(false);
 	let deletingId = $state<string | null>(null);
 	let selectedMaterial = $state<Material | null>(null);
+let renamingId = $state<string | null>(null);
+let renameValue = $state('');
 
 	const totalSize = $derived(materials.reduce((sum, m) => sum + m.size, 0));
 
@@ -164,6 +175,39 @@
 
 	function onDragLeave() {
 		dragOver = false;
+	}
+
+	async function startRename(material: Material) {
+		renamingId = material.id;
+		renameValue = material.fileName;
+	}
+
+	async function commitRename() {
+		if (!renamingId || !renameValue.trim()) return;
+		const id = renamingId;
+		renamingId = null;
+		try {
+			const res = await fetch(`/api/courses/${course.id}/materials`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, fileName: renameValue.trim() })
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => null) as { error?: string } | null;
+				uploadError = body?.error ?? 'Rename failed';
+				return;
+			}
+			await invalidateAll();
+		} catch {
+			uploadError = 'Rename failed. Is the server running?';
+		} finally {
+			renamingId = null;
+		}
+	}
+
+	function cancelRename() {
+		renamingId = null;
+		renameValue = '';
 	}
 
 	async function deleteMaterial(id: string) {
@@ -264,10 +308,7 @@
 					</div>
 				{/if}
 			</div>
-			<button
-				class="btn btn-secondary btn-sm"
-				onclick={() => goto(resolveRoute('/app/courses/manage'))}>manage</button
-			>
+			<button class="btn btn-secondary btn-sm" onclick={() => (showEditModal = true)}>edit</button>
 		</div>
 
 		<div class="state-strip" aria-label="Course state">
@@ -406,14 +447,26 @@
 						<div class="material-kind font-mono">{fileKind(material.mimeType)}</div>
 						<div class="material-info">
 							<!-- eslint-disable svelte/no-navigation-without-resolve -- href is an API download endpoint, not an app route -->
-							<a
-								class="material-name"
-								href={`/api/courses/${course.id}/materials/${material.id}/download`}
-								download={material.fileName}
-								aria-label={`Download ${material.fileName}`}
-							>
-								{material.fileName}
-							</a>
+								{#if renamingId === material.id}
+								<input
+									type="text"
+									class="rename-input font-mono"
+									bind:value={renameValue}
+									onkeydown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') cancelRename(); }}
+									onblur={commitRename}
+									autofocus
+									aria-label="Rename file"
+								/>
+							{:else}
+								<a
+									class="material-name"
+									href={`/api/courses/${course.id}/materials/${material.id}/download`}
+									download={material.fileName}
+									aria-label={`Download ${material.fileName}`}
+								>
+									{material.fileName}
+								</a>
+							{/if}
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 							<div class="material-meta font-mono">
 								{formatSize(material.size)} · uploaded {formatDate(material.uploadedAt)}
@@ -430,6 +483,15 @@
 									preview
 								</button>
 							{/if}
+							<button
+								type="button"
+								class="btn btn-ghost btn-sm material-action"
+								disabled={renamingId !== null}
+								onclick={() => startRename(material)}
+								aria-label={`Rename ${material.fileName}`}
+							>
+								rename
+							</button>
 							<button
 								type="button"
 								class="btn btn-ghost btn-sm material-delete material-action"
@@ -481,7 +543,13 @@
 	{/if}
 </div>
 
-<DocumentViewer material={selectedMaterial} open={selectedMaterial !== null} onClose={closeViewer} />
+<DocumentViewer
+	material={selectedMaterial}
+	open={selectedMaterial !== null}
+	onClose={closeViewer}
+/>
+
+<CourseEditDialog bind:open={showEditModal} {course} {semesters} />
 
 <style>
 	.page {
@@ -667,6 +735,17 @@
 		border: 1px solid var(--rule);
 		font-size: 0.72rem;
 		color: var(--ink);
+	}
+
+	.rename-input {
+		box-sizing: border-box;
+		width: 100%;
+		padding: 0.15rem 0.3rem;
+		border: 1px solid var(--ink);
+		background: var(--paper);
+		color: var(--ink);
+		font-size: 0.9rem;
+		outline: none;
 	}
 
 	.empty {

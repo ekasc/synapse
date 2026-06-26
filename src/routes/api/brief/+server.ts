@@ -1,98 +1,85 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
-import { getBrief, saveBrief, type Briefing } from '$lib/server/store';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { env } from '$env/dynamic/private';
+import { createDb } from '$lib/server/db/d1';
+import type { Briefing } from '$lib/server/db/d1';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const FALLBACK_BRIEFINGS: Briefing[] = [
-	{
-		code: 'CSIS 3375',
-		name: 'Database Systems',
-		institution: 'Douglas College',
-		professor: 'Dr. Anil Goel',
-		rmpRating: '3.8 / 5.0',
-		workload: 'Medium — 1 midterm, 1 final, 4 assignments, 1 group project',
-		prereqReadiness: 'CSIS 2100 (Systems Analysis) recommended — strong overlap in data modeling',
-		gradeStructure: [
-			{ item: 'Midterm', weight: '25%' },
-			{ item: 'Final', weight: '30%' },
-			{ item: 'Assignments', weight: '20%' },
-			{ item: 'Group Project', weight: '25%' }
-		],
-		recommendation:
-			'Take it. Fits Spring 2027 alongside capstone. Moderate workload, Goel is well-organized.',
-		sources: [
-			{ description: 'Douglas College course catalogue', found: true },
-			{ description: 'RateMyProfessor', found: true }
-		],
-		researchedAt: new Date().toISOString()
-	},
-	{
-		code: 'CSIS 4495',
-		name: 'Applied Research Project (Capstone)',
-		institution: 'Douglas College',
-		professor: 'Dr. Sarah Vitus',
-		rmpRating: '4.2 / 5.0',
-		workload: 'High — weekly deliverables, team meetings, final presentation + report',
-		prereqReadiness: 'All core CSIS courses completed. Ready.',
-		gradeStructure: [
-			{ item: 'Project Proposal', weight: '10%' },
-			{ item: 'Progress Report 1', weight: '15%' },
-			{ item: 'Progress Report 2', weight: '15%' },
-			{ item: 'Final Presentation', weight: '25%' },
-			{ item: 'Final Report', weight: '35%' }
-		],
-		recommendation: 'Your capstone. Synapse IS this project. Know it well.',
-		sources: [
-			{ description: 'Douglas College course catalogue', found: true },
-			{ description: 'Course syllabus', found: true }
-		],
-		researchedAt: new Date().toISOString()
-	},
-	{
-		code: 'CSIS 3500',
-		name: 'Network Security',
-		institution: 'Douglas College',
-		professor: 'Dr. Marcus Chen',
-		rmpRating: '2.4 / 5.0',
-		workload: 'Heavy — weekly labs, 2 midterms, comprehensive final, group pentest project',
-		prereqReadiness: 'CSIS 2200 (Networking) required — check your grade; below B- will be rough',
-		gradeStructure: [
-			{ item: 'Labs', weight: '20%' },
-			{ item: 'Midterm 1', weight: '20%' },
-			{ item: 'Midterm 2', weight: '20%' },
-			{ item: 'Pentest Project', weight: '15%' },
-			{ item: 'Final Exam', weight: '25%' }
-		],
-		recommendation:
-			'Skip this semester if you can. Heavy courseload and Chen is known for low averages.',
-		sources: [
-			{ description: 'Douglas College course catalogue', found: true },
-			{ description: 'RateMyProfessor', found: true }
-		],
-		researchedAt: new Date().toISOString()
-	}
-];
+const SYSTEM_PROMPT = `# Course Intelligence Brief — System Prompt
 
-function loadPromptTemplate(): string {
-	try {
-		return readFileSync(resolve('course-brief-prompt.md'), 'utf-8');
-	} catch {
-		return 'You are a course research agent. Given a course code, research it and produce a structured briefing.';
-	}
-}
+## Role
+
+You are Synapse's Course Intelligence Agent. You research prospective courses for a student planning their upcoming semester. You produce structured, verified briefings that help them decide what to take and what to expect.
+
+## Task
+
+Given one or more course identifiers (course code, title, institution), research each course independently and produce a structured briefing.
+
+## Research Sources
+
+For each course, search the following sources and synthesize the results:
+
+1. **Institution website** — official course description, learning objectives, topics covered, delivery format (online/in-person/hybrid), credits, prerequisites, restrictions
+2. **RateMyProfessor** — professor name(s) who typically teach this course, overall rating, difficulty rating, would-take-again percentage, top review themes (do not quote reviews verbatim — summarize sentiment and common themes)
+3. **Course outline / syllabus** — if publicly available, extract: assignment types and weights, exam structure, textbook requirements, weekly workload estimate, late policy highlights
+4. **Known prerequisite edges** — check against the student's existing academic graph. For each prerequisite: is it in their history, and what grade did they get? Flag topics from older courses that would need review.
+
+If a source is unreachable or returns no data, state "Not found" — do not fabricate information.
+
+## Output Format
+
+Return one briefing per course. Use this structure:
+
+\`\`\`
+COURSE: {code} - {title}
+────────────────────────────
+Professor: {name(s)} (RMP: {rating}/5 · {count} ratings)
+  "{thematic summary of reviews}"
+
+Workload Estimate: {LOW / MEDIUM / HIGH}
+  Weekly: {estimated hours outside class}
+  Deliverables: {comma-separated list of assignment types}
+
+Grading Structure:
+  {assignment type 1}: {weight}%
+  {assignment type 2}: {weight}%
+  ...
+
+Prereq Readiness: {X/Y prerequisites in graph}
+  ✅ {course code} — {grade} (taken {term})
+  ⚠ {course code} — not in your history. Review {topics}.
+
+{Pacing note / cluster warning if applicable}
+\`\`\`
+
+If grading structure is not found, omit that section rather than guessing.
+
+## Tone & Style
+
+- Direct, factual. No fluff.
+- The student is making a real decision — be honest about red flags (low RMP ratings, heavy workload that conflicts with their other courses, missing prerequisites).
+- Use markdown where it helps readability, but keep it compact.
+- Lead with the most actionable information: professor + workload + prereq readiness.
+- If multiple professors teach the same course, list the most common one and note if alternatives exist.
+
+## Constraints
+
+- Do NOT make up course data. If you cannot find it, say "Not found."
+- Do NOT fabricate professor reviews. Summarize what you actually find.
+- Do NOT recommend or discourage taking the course — present facts, let the student decide.
+- If a course code seems ambiguous, ask for clarification rather than guessing.
+- Keep each briefing under 400 words.
+`;
 
 async function researchViaLLM(
 	code: string,
 	institution: string,
 	professorName: string
 ): Promise<Briefing | null> {
-	const apiKey = process.env['OPENROUTER_API_KEY'];
+	const apiKey = env.OPENROUTER_API_KEY;
 	if (!apiKey) return null;
 
-	const systemPrompt = loadPromptTemplate();
 	const instPart = institution ? `\nInstitution: ${institution}` : '';
 	const profPart = professorName ? `\nProfessor: ${professorName}` : '';
 	const userPrompt = `Research this course and produce a structured briefing:
@@ -133,12 +120,11 @@ Return ONLY valid JSON matching this schema (no markdown, no explanation):
 				'X-Title': 'Synapse Course Brief'
 			},
 			body: JSON.stringify({
-				model: 'openai/gpt-4o-mini',
+				model: env.OPENROUTER_MODEL || 'deepseek/deepseek-v4-flash',
 				messages: [
-					{ role: 'system', content: systemPrompt },
+					{ role: 'system', content: SYSTEM_PROMPT },
 					{ role: 'user', content: userPrompt }
 				],
-				response_format: { type: 'json_object' },
 				temperature: 0.3,
 				max_tokens: 2000
 			})
@@ -154,7 +140,9 @@ Return ONLY valid JSON matching this schema (no markdown, no explanation):
 		const content = data?.choices?.[0]?.message?.content;
 		if (!content) return null;
 
-		const parsed = JSON.parse(content) as Record<string, unknown>;
+		// Strip markdown code fences if the model wraps JSON in them
+		const cleaned = content.replace(/^```(?:json)?\s*|[\s```]+$/g, '').trim();
+		const parsed = JSON.parse(cleaned) as Record<string, unknown>;
 		if (!parsed.code || !parsed.name) return null;
 
 		return {
@@ -165,7 +153,7 @@ Return ONLY valid JSON matching this schema (no markdown, no explanation):
 			rmpRating: String(parsed.rmpRating ?? 'N/A'),
 			rmpCount: parsed.rmpCount ? Number(parsed.rmpCount) : undefined,
 			workload: String(parsed.workload ?? 'Unknown'),
-			weeklyHours: parsed.weeklyHours ? String(parsed.weeklyHours) : undefined,
+			weeklyHours: parsed.weeklyHours ? String(parsed.weeklyHours) : null,
 			prereqReadiness: String(parsed.prereqReadiness ?? 'Not researched'),
 			gradeStructure: Array.isArray(parsed.gradeStructure)
 				? (parsed.gradeStructure as { item: string; weight: string }[])
@@ -182,18 +170,11 @@ Return ONLY valid JSON matching this schema (no markdown, no explanation):
 	}
 }
 
-function getMockBrief(code: string, professorName: string): Briefing | undefined {
-	const upper = code.toUpperCase();
-	const byCode = FALLBACK_BRIEFINGS.find((b) => b.code.toUpperCase() === upper);
-	if (byCode) return byCode;
-	if (professorName) {
-		const lower = professorName.toLowerCase();
-		return FALLBACK_BRIEFINGS.find((b) => b.professor.toLowerCase().includes(lower));
+export async function POST({ request, platform }: RequestEvent) {
+	if (!platform) {
+		return json({ error: 'Cloudflare platform not available' }, { status: 500 });
 	}
-	return undefined;
-}
 
-export async function POST({ request }: RequestEvent) {
 	const body = (await request.json()) as {
 		code: string;
 		institution?: string;
@@ -208,29 +189,38 @@ export async function POST({ request }: RequestEvent) {
 	}
 
 	const normalizedCode = code.trim().toUpperCase();
-	const normalizedProf = professorName.trim();
 	const normalizedInst = institution.trim();
+	const normalizedProf = professorName.trim();
 
-	const cached = getBrief(normalizedCode);
+	const db = createDb(platform.env.BRIEF_DB);
+
+	const cached = await db.getBrief(normalizedCode);
 	if (cached) {
 		return json({ brief: cached, cached: true });
 	}
 
 	const llmResult = await researchViaLLM(normalizedCode, normalizedInst, normalizedProf);
 	if (llmResult) {
-		saveBrief(llmResult);
+		await db.saveBrief(llmResult);
 		return json({ brief: llmResult, cached: false, source: 'llm' });
-	}
-
-	const mock = getMockBrief(normalizedCode, normalizedProf);
-	if (mock) {
-		saveBrief(mock);
-		return json({ brief: mock, cached: false, source: 'mock' });
 	}
 
 	return json({
 		brief: null,
 		error: 'Course not found',
-		hint: 'Try a different code or add an LLM API key for live research'
+		hint: 'Configure OPENROUTER_API_KEY in .env for live research'
 	});
+}
+
+export async function DELETE({ url, platform }: RequestEvent) {
+	if (!platform) {
+		return json({ error: 'Cloudflare platform not available' }, { status: 500 });
+	}
+	const code = url.searchParams.get('code');
+	if (!code) {
+		return json({ error: 'Course code is required' }, { status: 400 });
+	}
+	const db = createDb(platform.env.BRIEF_DB);
+	await db.deleteBrief(code.trim().toUpperCase());
+	return json({ deleted: true });
 }

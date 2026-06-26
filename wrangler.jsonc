@@ -2,12 +2,32 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "synapse",
 	"compatibility_date": "2026-06-10",
-	"compatibility_flags": ["nodejs_als"],
+	"compatibility_flags": [
+		"nodejs_als"
+	],
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"assets": {
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare"
 	},
+	"r2_buckets": [
+		{
+			"binding": "MATERIALS",
+			"bucket_name": "synapse-materials"
+		}
+	],
 	"workers_dev": true,
-	"preview_urls": true
+	"preview_urls": true,
+	"vars": {
+		"GOOGLE_CLIENT_ID": "",
+		"GOOGLE_CLIENT_SECRET": "",
+		"GOOGLE_REDIRECT_URI": ""
+	},
+	"d1_databases": [
+		{
+			"binding": "BRIEF_DB",
+			"database_name": "synapse-briefs",
+			"database_id": "08029d46-ff0a-41d9-bed3-5e837620170e"
+		}
+	]
 }
