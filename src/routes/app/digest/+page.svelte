@@ -52,7 +52,78 @@
 		}>;
 	};
 
-	const courses: CourseDigest[] = [
+	type SetupCourse = {
+		id: string;
+		semesterId: string;
+		code: string;
+		name: string;
+		instructor?: string;
+		credits?: number;
+		signals?: {
+			currentGrade?: number;
+			projectedGrade?: number;
+		};
+	};
+
+	type SetupSemester = {
+		id: string;
+		term: string;
+		year: number;
+		order: number;
+	};
+
+	type AcademicDigest = {
+		id: string;
+		source: 'sample' | 'setup-import' | 'transcript-upload';
+		fileName?: string;
+		summary: string;
+		totalGpa: number;
+		projectedGpa: number;
+		currentCourseCount: number;
+		finishedCourseCount: number;
+		currentCredits: number;
+		finishedCredits: number;
+		courses: TranscriptCourse[];
+		trend: Array<{
+			label: string;
+			term: string;
+			gpa: number;
+			credits: number;
+			note: string;
+		}>;
+		insights: string[];
+		extractionSource: 'openrouter' | 'fallback';
+		updatedAt: string;
+	};
+
+	let { data }: { data: { courses: SetupCourse[]; digest: AcademicDigest; semesters: SetupSemester[] } } =
+		$props();
+
+	const defaultWeights: WeightItem[] = [
+		{ category: 'Assignments', weight: 30, source: 'course import' },
+		{ category: 'Projects', weight: 25, source: 'course import' },
+		{ category: 'Participation', weight: 10, source: 'course import' },
+		{ category: 'Final', weight: 35, source: 'course import' }
+	];
+
+	const emptyCourse: CourseDigest = {
+		id: '',
+		code: 'No course',
+		name: 'No course selected',
+		term: '',
+		instructor: '',
+		credits: 0,
+		courseHref: '/app/courses',
+		syllabusHref: '/app/syllabus',
+		weights: [],
+		initialGrades: [],
+		transcript: {
+			currentPercent: 0,
+			projectedPercent: 0
+		}
+	};
+
+	const demoCourses: CourseDigest[] = [
 		{
 			id: 'csis-4495',
 			code: 'CSIS 4495',
@@ -390,25 +461,83 @@
 		}
 	];
 
-	let selectedCourseId = $state(courses[0].id);
-	let selectedCategory = $state(courses[0].weights[0].category);
-	let gradeItemsByCourse = $state<Record<string, GradeItem[]>>(
-		Object.fromEntries(courses.map((course) => [course.id, course.initialGrades]))
-	);
+	let selectedCourseId = $state('');
+	let selectedCategory = $state('');
+	let gradeItemsByCourse = $state<Record<string, GradeItem[]>>({});
 	let gradeLabel = $state('');
 	let gradeScore = $state('');
 	let gradeMax = $state('100');
 	let targetGrade = $state(85);
 	let targetGpa = $state(3.5);
 	let activeDigestTab = $state<'gpa' | 'term'>('gpa');
-	let selectedPerformanceTerm = $state('Summer 2026');
+	let selectedPerformanceTerm = $state('');
+	let performanceTermTouched = $state(false);
 	let selectedHistoryCourseId = $state<string | null>(null);
+	let backendDigest = $state<AcademicDigest | null>(null);
+	let transcriptUploading = $state(false);
+	let digestResetting = $state(false);
+	let transcriptUploadError = $state('');
+
+	const importedCourseDigests = $derived.by(() =>
+		data.courses.map((course, index) => {
+			const semester = data.semesters.find((item) => item.id === course.semesterId);
+			const currentPercent = course.signals?.currentGrade ?? 86 + (index % 5);
+			const projectedPercent = course.signals?.projectedGrade ?? Math.min(96, currentPercent + 1);
+
+			return {
+				id: course.id,
+				code: course.code,
+				name: course.name,
+				term: semester ? `${semester.term} ${semester.year}` : 'Imported term',
+				instructor: course.instructor ?? 'Instructor TBD',
+				credits: course.credits ?? 3,
+				courseHref: `/app/courses/${course.id}`,
+				syllabusHref: '/app/syllabus',
+				weights: defaultWeights,
+				initialGrades: [],
+				transcript: {
+					currentPercent,
+					projectedPercent
+				}
+			};
+		})
+	);
+
+	const courses = $derived(importedCourseDigests);
+	const hasSetupCourseImport = $derived(importedCourseDigests.length > 0);
+	const activeBackendDigest = $derived(backendDigest ?? data.digest);
+	const digestInsight = $derived(
+		activeBackendDigest.insights?.[0] && activeBackendDigest.insights[0] !== activeBackendDigest.summary
+			? activeBackendDigest.insights[0]
+			: ''
+	);
+	const transcriptSourceLabel = $derived(
+		activeBackendDigest.fileName
+			? activeBackendDigest.fileName
+			: activeBackendDigest.source === 'setup-import' || hasSetupCourseImport
+				? 'Setup course import'
+				: 'No transcript imported'
+	);
+	const digestSourceBadge = $derived(
+		activeBackendDigest.source === 'transcript-upload'
+			? activeBackendDigest.extractionSource === 'openrouter'
+				? 'AI analytics'
+				: 'fallback analytics'
+			: hasSetupCourseImport
+				? `${importedCourseDigests.length} setup courses`
+				: 'empty'
+	);
+	const performanceTrendSource = $derived(activeBackendDigest.trend ?? []);
+	const latestPerformanceTerm = $derived(
+		performanceTrendSource[performanceTrendSource.length - 1]?.term ?? ''
+	);
 
 	const activeCourse = $derived(
-		courses.find((course) => course.id === selectedCourseId) ?? courses[0]
+		courses.find((course) => course.id === selectedCourseId) ?? courses[0] ?? emptyCourse
 	);
 	const syllabusWeights = $derived(activeCourse.weights);
 	const gradeItems = $derived(gradeItemsByCourse[selectedCourseId] ?? []);
+	const hasGradeEntries = $derived(gradeItems.length > 0);
 	const weightsByCategory = $derived.by(() => {
 		const weights: Record<string, number> = {};
 		for (const item of syllabusWeights) weights[item.category] = item.weight;
@@ -462,6 +591,7 @@
 	);
 	const finalCategory = $derived(categoryAnalytics.find((item) => item.category === 'Final'));
 	const finalNeeded = $derived.by(() => {
+		if (!hasGradeEntries) return 0;
 		const finalWeight = weightsByCategory.Final ?? 0;
 		if (finalWeight === 0) return 0;
 		const nonFinalContribution = categoryAnalytics
@@ -492,8 +622,22 @@
 		})
 	);
 	const transcriptCourses = $derived([...currentTranscriptCourses, ...finishedCourses]);
+	const backendTranscriptCourses = $derived(activeBackendDigest.courses ?? []);
+	const dashboardCurrentTranscriptCourses = $derived(
+		backendTranscriptCourses.filter((course) => course.status === 'current')
+	);
+	const dashboardFinishedCourses = $derived(
+		backendTranscriptCourses.filter((course) => course.status === 'finished')
+	);
+	const dashboardTranscriptCourses = $derived([
+		...dashboardCurrentTranscriptCourses,
+		...dashboardFinishedCourses
+	]);
+	const hasAcademicProgressData = $derived(dashboardTranscriptCourses.length > 0);
 	const totalGpa = $derived(weightedGpa(transcriptCourses, 'currentPercent'));
 	const projectedGpa = $derived(weightedGpa(transcriptCourses, 'projectedPercent'));
+	const dashboardTotalGpa = $derived(activeBackendDigest.totalGpa ?? totalGpa);
+	const dashboardProjectedGpa = $derived(activeBackendDigest.projectedGpa ?? projectedGpa);
 	const currentGpaBeforeSelectedProjection = $derived.by(() => {
 		const baselineCourses = transcriptCourses.map((course) =>
 			course.id === selectedCourseId
@@ -512,28 +656,25 @@
 		projectedGpaDelta > 0 ? 'up' : projectedGpaDelta < 0 ? 'down' : 'same'
 	);
 	const targetGpaDelta = $derived(targetGpa - projectedGpa);
-	const totalCredits = $derived(transcriptCourses.reduce((sum, course) => sum + course.credits, 0));
-	const finishedCredits = $derived(
-		finishedCourses.reduce((sum, course) => sum + course.credits, 0)
-	);
-	const currentCredits = $derived(
-		currentTranscriptCourses.reduce((sum, course) => sum + course.credits, 0)
-	);
 	const selectedTranscriptCourse = $derived(
-		transcriptCourses.find((course) => course.id === selectedCourseId) ?? transcriptCourses[0]
+		dashboardTranscriptCourses.find((course) => course.id === selectedCourseId) ??
+			dashboardTranscriptCourses[0]
 	);
 	const selectedHistoryCourse = $derived(
-		finishedCourses.find((course) => course.id === selectedHistoryCourseId) ?? null
+		dashboardFinishedCourses.find((course) => course.id === selectedHistoryCourseId) ?? null
+	);
+	const selectedHistoryHasDetailedGrades = $derived(
+		Boolean(selectedHistoryCourse?.historyGrades?.length)
 	);
 	const performanceTermOptions = $derived(
-		Array.from(new Set(transcriptCourses.map((course) => course.term)))
+		Array.from(new Set(dashboardTranscriptCourses.map((course) => course.term)))
 	);
 	const selectedTermCourses = $derived(
-		transcriptCourses.filter((course) => course.term === selectedPerformanceTerm)
+		dashboardTranscriptCourses.filter((course) => course.term === selectedPerformanceTerm)
 	);
 	const performanceTrendWithDelta = $derived(
-		performanceTrend.map((item, index) => {
-			const previousGpa = performanceTrend[index - 1]?.gpa ?? item.gpa;
+		performanceTrendSource.map((item, index) => {
+			const previousGpa = performanceTrendSource[index - 1]?.gpa ?? item.gpa;
 			const delta = item.gpa - previousGpa;
 			return {
 				...item,
@@ -544,15 +685,32 @@
 			};
 		})
 	);
-	const firstYearGpa = $derived(performanceTrend[0]?.gpa ?? 0);
-	const latestGpa = $derived(performanceTrend[performanceTrend.length - 1]?.gpa ?? 0);
+	const firstYearGpa = $derived(performanceTrendSource[0]?.gpa ?? 0);
+	const latestGpa = $derived(performanceTrendSource[performanceTrendSource.length - 1]?.gpa ?? 0);
 	const performanceDelta = $derived(latestGpa - firstYearGpa);
+
+	$effect(() => {
+		if (courses.some((course) => course.id === selectedCourseId)) return;
+		selectedCourseId = courses[0]?.id ?? '';
+		selectedCategory = courses[0]?.weights[0]?.category ?? '';
+	});
+
+	$effect(() => {
+		if (!latestPerformanceTerm) return;
+		if (performanceTermTouched && performanceTermOptions.includes(selectedPerformanceTerm)) return;
+		selectedPerformanceTerm = latestPerformanceTerm;
+	});
 
 	function changeCourse(event: Event) {
 		const nextCourseId = (event.currentTarget as HTMLSelectElement).value;
 		const nextCourse = courses.find((course) => course.id === nextCourseId) ?? courses[0];
 		selectedCourseId = nextCourse.id;
 		selectedCategory = nextCourse.weights[0]?.category ?? '';
+	}
+
+	function changePerformanceTerm(event: Event) {
+		selectedPerformanceTerm = (event.currentTarget as HTMLSelectElement).value;
+		performanceTermTouched = true;
 	}
 
 	function updateGradeItems(items: GradeItem[]) {
@@ -638,6 +796,60 @@
 		]);
 	}
 
+	async function importTranscriptFile(event: Event) {
+		const file = (event.currentTarget as HTMLInputElement).files?.[0];
+		if (!file) return;
+		transcriptUploading = true;
+		transcriptUploadError = '';
+		try {
+			const form = new FormData();
+			form.append('transcript', file);
+			const response = await fetch('/api/digest/transcript', {
+				method: 'POST',
+				body: form
+			});
+			const result = (await response.json()) as { ok?: boolean; digest?: AcademicDigest; error?: string };
+			if (!response.ok || !result.ok || !result.digest) {
+				throw new Error(result.error ?? 'Could not digest transcript');
+			}
+			backendDigest = result.digest;
+			performanceTermTouched = false;
+			selectedPerformanceTerm =
+				result.digest.trend[result.digest.trend.length - 1]?.term ??
+				result.digest.courses[result.digest.courses.length - 1]?.term ??
+				selectedPerformanceTerm;
+			activeDigestTab = 'gpa';
+		} catch (error) {
+			transcriptUploadError =
+				error instanceof Error ? error.message : 'Could not digest transcript';
+		} finally {
+			transcriptUploading = false;
+			(event.currentTarget as HTMLInputElement).value = '';
+		}
+	}
+
+	async function resetAcademicDigest() {
+		digestResetting = true;
+		transcriptUploadError = '';
+		try {
+			const response = await fetch('/api/digest', { method: 'DELETE' });
+			const result = (await response.json()) as { ok?: boolean; digest?: AcademicDigest; error?: string };
+			if (!response.ok || !result.ok || !result.digest) {
+				throw new Error(result.error ?? 'Could not reset academic progress import');
+			}
+			backendDigest = result.digest;
+			performanceTermTouched = false;
+			selectedPerformanceTerm = result.digest.trend[result.digest.trend.length - 1]?.term ?? '';
+			selectedHistoryCourseId = null;
+			activeDigestTab = 'gpa';
+		} catch (error) {
+			transcriptUploadError =
+				error instanceof Error ? error.message : 'Could not reset academic progress import';
+		} finally {
+			digestResetting = false;
+		}
+	}
+
 	function removeGrade(id: string) {
 		updateGradeItems(gradeItems.filter((item) => item.id !== id));
 	}
@@ -700,69 +912,117 @@
 					<span class="gpa-kicker font-mono">GPA analytics + projection</span>
 					<h2 class="gpa-title">Total GPA</h2>
 					<p class="gpa-copy">
-						Completed history and current courses stay together in one transcript view.
+						{hasSetupCourseImport
+							? 'Courses imported during setup are digested into this academic progress view.'
+							: 'Completed history and current courses stay together in one transcript view.'}
 					</p>
 				</div>
+				<div class="transcript-upload-actions">
+					<label class="btn btn-primary upload-transcript">
+						<input
+							type="file"
+							accept=".pdf,.csv,.txt,.jpg,.jpeg,.png,image/*"
+							aria-label="Upload transcript for academic progress"
+							disabled={transcriptUploading || digestResetting}
+							onchange={importTranscriptFile}
+						/>
+						{transcriptUploading ? 'digesting transcript' : 'upload transcript'}
+					</label>
+					<button
+						type="button"
+						class="btn btn-secondary"
+						disabled={transcriptUploading || digestResetting || !hasAcademicProgressData}
+						onclick={resetAcademicDigest}
+					>
+						{digestResetting ? 'resetting' : 'reset import'}
+					</button>
+					<span class="source-note font-mono">Source: {transcriptSourceLabel}</span>
+				</div>
+				{#if transcriptUploadError}
+					<p class="upload-error font-mono">{transcriptUploadError}</p>
+				{/if}
 			</div>
 
 			<div class="gpa-metrics">
 				<div class="gpa-card total-card">
 					<span class="index-label">Total GPA</span>
-					<strong>{totalGpa.toFixed(2)}</strong>
-					<span class="index-sub">{totalCredits} credits tracked</span>
+					<strong>{hasAcademicProgressData ? dashboardTotalGpa.toFixed(2) : '--'}</strong>
+					<span class="index-sub">{activeBackendDigest.currentCredits + activeBackendDigest.finishedCredits} credits tracked</span>
 				</div>
 				<div class="gpa-card selected">
 					<span class="index-label">Current courses</span>
-					<strong>{currentCredits}</strong>
+					<strong>{activeBackendDigest.currentCredits}</strong>
 					<span class="index-sub">credits in progress</span>
 				</div>
 				<div class="gpa-card movement">
 					<span class="index-label">Finished courses</span>
-					<strong>{finishedCredits}</strong>
+					<strong>{activeBackendDigest.finishedCredits}</strong>
 					<span class="index-sub">credits from history</span>
 				</div>
+			</div>
+
+			<div class="digest-source-strip">
+				<div>
+					<span class="index-label">Academic history digest</span>
+					<strong>{activeBackendDigest.summary}</strong>
+					{#if digestInsight}
+						<span class="source-note">{digestInsight}</span>
+					{/if}
+				</div>
+				<span class="import-badge font-mono">{digestSourceBadge}</span>
 			</div>
 
 			<div class="transcript-columns" aria-label="Courses included in GPA">
 				<div class="transcript-column current-column">
 					<div class="transcript-column-head">
 						<span class="font-mono">Current courses</span>
-						<strong>{currentTranscriptCourses.length}</strong>
+						<strong>{dashboardCurrentTranscriptCourses.length}</strong>
 					</div>
 					<div class="transcript-list">
-						{#each currentTranscriptCourses as course}
-							<div class:active={course.id === selectedCourseId} class="gpa-course-row current">
-								<span class="font-mono">{course.code}</span>
-								<span>{course.term}</span>
-							</div>
-						{/each}
+						{#if dashboardCurrentTranscriptCourses.length > 0}
+							{#each dashboardCurrentTranscriptCourses as course}
+								<div class:active={course.id === selectedCourseId} class="gpa-course-row current">
+									<span class="font-mono">{course.code}</span>
+									<span>{course.term}</span>
+								</div>
+							{/each}
+						{:else}
+							<p class="empty-gradebook-note">No current courses have been imported.</p>
+						{/if}
 					</div>
 				</div>
 
 				<div class="transcript-column finished-column">
 					<div class="transcript-column-head">
 						<span class="font-mono">Finished courses</span>
-						<strong>{finishedCourses.length}</strong>
+						<strong>{dashboardFinishedCourses.length}</strong>
 					</div>
 					<div class="transcript-list">
-						{#each finishedCourses as course}
-							<button
-								type="button"
-								class="gpa-course-row finished history-trigger"
-								aria-label={`Open ${course.code} grade history`}
-								onclick={() => openHistoryCourse(course.id)}
-							>
-								<span class="font-mono">{course.code}</span>
-								<span>{course.term}</span>
-								<span>{course.letter} - {course.currentPercent.toFixed(0)}%</span>
-								<span class="history-open-label font-mono">open gradebook</span>
-							</button>
-						{/each}
+						{#if dashboardFinishedCourses.length > 0}
+							{#each dashboardFinishedCourses as course}
+								<button
+									type="button"
+									class="gpa-course-row finished history-trigger"
+									aria-label={`Open ${course.code} grade history`}
+									onclick={() => openHistoryCourse(course.id)}
+								>
+									<span class="font-mono">{course.code}</span>
+									<span>{course.term}</span>
+									<span>{course.letter} - {course.currentPercent.toFixed(0)}%</span>
+									<span class="history-open-label font-mono">
+										{course.historyGrades?.length ? 'open gradebook' : 'view transcript note'}
+									</span>
+								</button>
+							{/each}
+						{:else}
+							<p class="empty-gradebook-note">No finished course history has been imported.</p>
+						{/if}
 					</div>
 				</div>
 			</div>
 		</section>
 
+		{#if hasAcademicProgressData}
 		<section class="surface performance-panel" aria-label="Performance over time">
 			<div class="performance-head">
 				<div>
@@ -821,7 +1081,7 @@
 					<label class="term-select-box">
 						<span class="field-label font-mono">Choose term</span>
 						<div class="select-shell">
-							<select bind:value={selectedPerformanceTerm}>
+							<select value={selectedPerformanceTerm} onchange={changePerformanceTerm}>
 								{#each performanceTermOptions as term}
 									<option value={term}>{term}</option>
 								{/each}
@@ -850,6 +1110,19 @@
 				</div>
 			</div>
 		</section>
+		{:else}
+			<section class="surface performance-panel" aria-label="Performance over time">
+				<div class="performance-head">
+					<div>
+						<span class="gpa-kicker font-mono">Academic performance analytics</span>
+						<h2>No GPA trend yet</h2>
+						<p class="empty-gradebook-note">
+							Upload a transcript or import setup courses to generate academic progress analytics.
+						</p>
+					</div>
+				</div>
+			</section>
+		{/if}
 	{:else}
 		<div class="course-dashboard-heading">
 			<span class="gpa-kicker font-mono">Course grade dashboard</span>
@@ -857,6 +1130,16 @@
 			<p>Choose a course to view its grade analytics, projection, and import tools.</p>
 		</div>
 
+		{#if courses.length === 0}
+			<section class="surface empty-course-state" aria-label="No courses available">
+				<span class="gpa-kicker font-mono">No courses imported</span>
+				<h2>No course dashboard yet</h2>
+				<p>
+					Import courses during setup or upload a syllabus before course-specific grade analytics
+					are shown here.
+				</p>
+			</section>
+		{:else}
 		<section class="surface course-link" aria-label="Course dashboard selector">
 			<div class="course-link-main">
 				<div>
@@ -900,38 +1183,52 @@
 			<section class="index-bar" aria-label="Grade analytics overview">
 				<div class="index-cell">
 					<span class="index-label">Current standing</span>
-					<span class="index-num">{currentAverage.toFixed(1)}%</span>
-					<span class="index-sub">{completedWeight}% of {activeCourse.code} graded</span>
+					<span class="index-num">{hasGradeEntries ? `${currentAverage.toFixed(1)}%` : '--'}</span>
+					<span class="index-sub">
+						{hasGradeEntries ? `${completedWeight}% of ${activeCourse.code} graded` : 'no grade entries yet'}
+					</span>
 				</div>
 				<div class="index-cell">
 					<span class="index-label">Projected result</span>
 					<span class={`index-num trend-value ${courseProjectionDirection}`}>
-						{projectedFinal.toFixed(1)}%
-						<span
-							class="trend-change"
-							aria-label={`Course projection ${courseProjectionDirection}`}
-						>
-							<span class={`trend-icon ${courseProjectionDirection}`}></span>
-							{courseProjectionDelta > 0 ? '+' : ''}{courseProjectionDelta.toFixed(1)}%
-						</span>
+						{#if hasGradeEntries}
+							{projectedFinal.toFixed(1)}%
+							<span
+								class="trend-change"
+								aria-label={`Course projection ${courseProjectionDirection}`}
+							>
+								<span class={`trend-icon ${courseProjectionDirection}`}></span>
+								{courseProjectionDelta > 0 ? '+' : ''}{courseProjectionDelta.toFixed(1)}%
+							</span>
+						{:else}
+							--
+						{/if}
 					</span>
-					<span class="index-sub">if ungraded work hits target</span>
+					<span class="index-sub">
+						{hasGradeEntries ? 'if ungraded work hits target' : 'waiting for course grades'}
+					</span>
 				</div>
 				<div class="index-cell">
 					<span class="index-label">Projected GPA</span>
 					<span class={`index-num trend-value ${projectedGpaDirection}`}>
-						{projectedGpa.toFixed(2)}
-						<span class="trend-change" aria-label={`GPA projection ${projectedGpaDirection}`}>
-							<span class={`trend-icon ${projectedGpaDirection}`}></span>
-							{projectedGpaDelta > 0 ? '+' : ''}{projectedGpaDelta.toFixed(2)}
-						</span>
+						{#if hasGradeEntries}
+							{projectedGpa.toFixed(2)}
+							<span class="trend-change" aria-label={`GPA projection ${projectedGpaDirection}`}>
+								<span class={`trend-icon ${projectedGpaDirection}`}></span>
+								{projectedGpaDelta > 0 ? '+' : ''}{projectedGpaDelta.toFixed(2)}
+							</span>
+						{:else}
+							--
+						{/if}
 					</span>
-					<span class="index-sub">after selected course projection</span>
+					<span class="index-sub">
+						{hasGradeEntries ? 'after selected course projection' : 'waiting for course grades'}
+					</span>
 				</div>
 				<div class="index-cell">
 					<span class="index-label">Needed on final</span>
 					<span class="index-num {finalNeeded > 85 ? 'crit' : finalNeeded > 70 ? 'warn' : 'ok'}">
-						{finalNeeded.toFixed(0)}%
+						{hasGradeEntries ? `${finalNeeded.toFixed(0)}%` : '--'}
 					</span>
 					<span class="index-sub">{finalCategory?.weight ?? 0}% final weight</span>
 				</div>
@@ -960,13 +1257,13 @@
 				</p>
 				<div class="projection-scale compact" aria-label="GPA projection scale">
 					<div class="scale-line">
-						<span style="left: {Math.min(100, (totalGpa / 4) * 100)}%"></span>
-						<b style="left: {Math.min(100, (projectedGpa / 4) * 100)}%"></b>
+						<span style="left: {Math.min(100, (dashboardTotalGpa / 4) * 100)}%"></span>
+						<b style="left: {Math.min(100, (dashboardProjectedGpa / 4) * 100)}%"></b>
 						<i style="left: {Math.min(100, (targetGpa / 4) * 100)}%"></i>
 					</div>
 					<div class="scale-labels font-mono">
-						<span>total {totalGpa.toFixed(2)}</span>
-						<span>projected {projectedGpa.toFixed(2)}</span>
+						<span>total {dashboardTotalGpa.toFixed(2)}</span>
+						<span>projected {dashboardProjectedGpa.toFixed(2)}</span>
 						<span>target {targetGpa.toFixed(1)}</span>
 					</div>
 				</div>
@@ -1028,19 +1325,25 @@
 					</div>
 				</div>
 				<div class="projection-note">
-					<p>
-						To finish at <strong>{targetGrade}%</strong>, your current entries suggest you need
-						<strong>{finalNeeded.toFixed(1)}%</strong> on the final.
-					</p>
+					{#if hasGradeEntries}
+						<p>
+							To finish at <strong>{targetGrade}%</strong>, your current entries suggest you need
+							<strong>{finalNeeded.toFixed(1)}%</strong> on the final.
+						</p>
+					{:else}
+						<p>No course grades have been entered yet.</p>
+					{/if}
 				</div>
 
 				<div class="projection-scale" aria-label="Projection scale">
 					<div class="scale-line">
-						<span style="left: {Math.min(100, currentAverage)}%"></span>
+						{#if hasGradeEntries}
+							<span style="left: {Math.min(100, currentAverage)}%"></span>
+						{/if}
 						<i style="left: {Math.min(100, targetGrade)}%"></i>
 					</div>
 					<div class="scale-labels font-mono">
-						<span>current {currentAverage.toFixed(0)}%</span>
+						<span>current {hasGradeEntries ? `${currentAverage.toFixed(0)}%` : '--'}</span>
 						<span>target {targetGrade}%</span>
 					</div>
 				</div>
@@ -1067,28 +1370,35 @@
 		<section class="surface-polaroid gradebook">
 			<SectionHead title="Gradebook" meta={`${activeCourse.code} - ${gradeItems.length} entries`} />
 			<div class="gradebook-list">
-				{#each gradeItems as item}
-					<div class="grade-row">
-						<div class="grade-main">
-							<span class="grade-category font-mono">{item.category}</span>
-							<span class="grade-name">{item.label}</span>
+				{#if gradeItems.length > 0}
+					{#each gradeItems as item}
+						<div class="grade-row">
+							<div class="grade-main">
+								<span class="grade-category font-mono">{item.category}</span>
+								<span class="grade-name">{item.label}</span>
+							</div>
+							<div class="grade-score">
+								<span class="font-mono">{item.score}/{item.max}</span>
+								<span>{((item.score / item.max) * 100).toFixed(1)}%</span>
+								<button
+									type="button"
+									class="remove-btn"
+									aria-label="Remove grade"
+									onclick={() => removeGrade(item.id)}
+								>
+									x
+								</button>
+							</div>
 						</div>
-						<div class="grade-score">
-							<span class="font-mono">{item.score}/{item.max}</span>
-							<span>{((item.score / item.max) * 100).toFixed(1)}%</span>
-							<button
-								type="button"
-								class="remove-btn"
-								aria-label="Remove grade"
-								onclick={() => removeGrade(item.id)}
-							>
-								x
-							</button>
-						</div>
-					</div>
-				{/each}
+					{/each}
+				{:else}
+					<p class="empty-gradebook-note">
+						No grade entries yet. Add a score to calculate course performance.
+					</p>
+				{/if}
 			</div>
 		</section>
+		{/if}
 	{/if}
 </div>
 
@@ -1105,7 +1415,9 @@
 		>
 			<div class="history-modal-head">
 				<div>
-					<span class="gpa-kicker font-mono">Finished course gradebook</span>
+					<span class="gpa-kicker font-mono">
+						{selectedHistoryHasDetailedGrades ? 'Finished course gradebook' : 'Finished course record'}
+					</span>
 					<h2 id="history-modal-title">{selectedHistoryCourse.code}</h2>
 					<p>{selectedHistoryCourse.name}</p>
 				</div>
@@ -1125,14 +1437,21 @@
 			</div>
 
 			<div class="history-gradebook modal-gradebook">
-				{#each selectedHistoryCourse.historyGrades ?? [] as grade}
-					<div class="history-grade-item">
-						<span>{grade.label}</span>
-						<span class="font-mono">{grade.category}</span>
-						<strong>{grade.score}/{grade.max}</strong>
-						<span>{((grade.score / grade.max) * 100).toFixed(0)}%</span>
-					</div>
-				{/each}
+				{#if selectedHistoryHasDetailedGrades}
+					{#each selectedHistoryCourse.historyGrades ?? [] as grade}
+						<div class="history-grade-item">
+							<span>{grade.label}</span>
+							<span class="font-mono">{grade.category}</span>
+							<strong>{grade.score}/{grade.max}</strong>
+							<span>{((grade.score / grade.max) * 100).toFixed(0)}%</span>
+						</div>
+					{/each}
+				{:else}
+					<p class="history-empty-note">
+						No detailed gradebook can be shown because this course came from a transcript import.
+						Quiz, assignment, and exam-level records were not included in the transcript.
+					</p>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -1701,6 +2020,60 @@
 		line-height: 1.5;
 	}
 
+	.transcript-upload-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.55rem;
+		align-items: center;
+	}
+
+	.upload-transcript {
+		position: relative;
+		overflow: hidden;
+	}
+
+	.upload-transcript input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+	}
+
+	.source-note {
+		color: var(--ink-faint);
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	.upload-error {
+		margin: 0;
+		color: var(--accent);
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	.digest-source-strip {
+		grid-column: 1 / -1;
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		align-items: center;
+		border: 1px solid var(--rule);
+		background: var(--paper-shelf);
+		padding: 0.75rem 0.85rem;
+	}
+
+	.digest-source-strip strong {
+		display: block;
+		margin-top: 0.25rem;
+		color: var(--ink);
+		font-size: 0.9rem;
+		font-weight: 500;
+	}
+
 	.target-gpa-box {
 		width: min(100%, 18rem);
 		border: 1px solid var(--rule);
@@ -1986,6 +2359,17 @@
 		font-size: 0.74rem;
 	}
 
+	.history-empty-note,
+	.empty-gradebook-note {
+		margin: 0;
+		border: 1px dashed rgba(183, 121, 31, 0.45);
+		background: var(--paper-shelf);
+		color: var(--ink-soft);
+		font-size: 0.86rem;
+		line-height: 1.5;
+		padding: 0.8rem;
+	}
+
 	.gpa-projection-panel {
 		grid-column: 1 / -1;
 		display: grid;
@@ -2013,6 +2397,24 @@
 
 	.course-analytics {
 		margin-bottom: 1.25rem;
+	}
+
+	.empty-course-state {
+		margin-top: 1rem;
+		padding: 1.25rem;
+	}
+
+	.empty-course-state h2 {
+		margin: 0.35rem 0;
+		color: var(--ink);
+		font-family: var(--font-display);
+		font-size: 1.8rem;
+	}
+
+	.empty-course-state p {
+		margin: 0;
+		color: var(--ink-soft);
+		line-height: 1.5;
 	}
 
 	.course-analytics .index-bar {
@@ -2328,6 +2730,11 @@
 
 		.performance-head {
 			display: grid;
+		}
+
+		.digest-source-strip {
+			align-items: flex-start;
+			flex-direction: column;
 		}
 
 		.term-performance-head {

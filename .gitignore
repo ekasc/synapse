@@ -23,6 +23,13 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Local dev logs
+*.log
+*.err.log
+.dev-server*.log
+.vite-*.log
+.vite-*.err.log
+
 # Local data store
 .data
 

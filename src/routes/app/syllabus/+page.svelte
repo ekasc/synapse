@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
@@ -53,6 +52,21 @@
 		updatedAt: string;
 	};
 
+	type SetupCourse = {
+		id: string;
+		semesterId: string;
+		code: string;
+		name: string;
+		instructor?: string;
+	};
+
+	type SetupSemester = {
+		id: string;
+		term: string;
+		year: number;
+		order: number;
+	};
+
 	const extractionItems = [
 		'Professor contact',
 		'Office hours',
@@ -64,10 +78,24 @@
 		'Key knowledge'
 	];
 
+	let { data }: { data: { courses: SetupCourse[]; semesters: SetupSemester[] } } = $props();
+
+	const courseOptions = $derived(
+		data.courses.map((course) => {
+			const semester = data.semesters.find((item) => item.id === course.semesterId);
+			return {
+				...course,
+				term: semester ? `${semester.term} ${semester.year}` : 'Imported term'
+			};
+		})
+	);
+
 	let syllabus = $state<SyllabusImport | null>(null);
-	let selectedSyllabusFileName = $state('CSIS 4495 Syllabus.pdf');
+	let selectedCourseId = $state('');
+	let selectedSyllabusFileName = $state('');
 	let selectedSyllabusFile = $state<File | null>(null);
 	let isExtracting = $state(false);
+	let isResetting = $state(false);
 	let apiError = $state('');
 
 	let extracted = $derived(syllabus?.extractedData ?? null);
@@ -95,20 +123,44 @@
 	let gradingRows = $derived(extracted?.grading ?? []);
 	let knowledgeTopics = $derived(extracted?.keyKnowledge.topics ?? []);
 	let outlineRows = $derived(extracted?.keyKnowledge.outline ?? []);
+	let activeCourse = $derived(
+		courseOptions.find((course) => course.id === selectedCourseId) ?? courseOptions[0] ?? null
+	);
+	let selectedCourseLabel = $derived(
+		activeCourse ? `${activeCourse.code} - ${activeCourse.name}` : 'No course selected'
+	);
 
-	onMount(() => {
-		void loadSyllabus();
+	$effect(() => {
+		if (!selectedCourseId && courseOptions.length > 0) {
+			const courseId = courseOptions[0].id;
+			selectedCourseId = courseId;
+			void loadSyllabus(courseId);
+		}
 	});
 
-	async function loadSyllabus() {
+	async function loadSyllabus(courseId = selectedCourseId) {
+		if (!courseId) {
+			syllabus = null;
+			selectedSyllabusFileName = '';
+			return;
+		}
+
 		try {
-			const response = await fetch('/api/syllabus');
+			const response = await fetch(`/api/syllabus?courseId=${encodeURIComponent(courseId)}`);
 			if (!response.ok) throw new Error('Could not load syllabus extraction');
-			syllabus = (await response.json()) as SyllabusImport;
-			selectedSyllabusFileName = syllabus.fileName;
+			syllabus = ((await response.json()) as SyllabusImport | null) ?? null;
+			selectedSyllabusFileName = syllabus?.fileName ?? '';
 		} catch (error) {
 			apiError = error instanceof Error ? error.message : 'Could not load syllabus extraction';
 		}
+	}
+
+	function changeCourse(event: Event) {
+		const courseId = (event.currentTarget as HTMLSelectElement).value;
+		selectedCourseId = courseId;
+		selectedSyllabusFile = null;
+		apiError = '';
+		void loadSyllabus(courseId);
 	}
 
 	function onSyllabusFileChange(event: Event) {
@@ -119,19 +171,26 @@
 	}
 
 	async function extractSyllabus() {
+		if (!selectedSyllabusFile) {
+			apiError = 'Choose a syllabus PDF first';
+			return;
+		}
+		if (!selectedCourseId) {
+			apiError = 'Choose a course before extracting a syllabus';
+			return;
+		}
+
 		isExtracting = true;
 		apiError = '';
 		try {
-			const body = selectedSyllabusFile
-				? (() => {
-						const form = new FormData();
-						form.append('file', selectedSyllabusFile);
-						return form;
-					})()
-				: JSON.stringify({ fileName: selectedSyllabusFileName });
+			const body = (() => {
+				const form = new FormData();
+				form.append('file', selectedSyllabusFile);
+				form.append('courseId', selectedCourseId);
+				return form;
+			})();
 			const response = await fetch('/api/syllabus/extract', {
 				method: 'POST',
-				headers: selectedSyllabusFile ? undefined : { 'Content-Type': 'application/json' },
 				body
 			});
 			if (!response.ok) throw new Error('Could not extract syllabus');
@@ -153,12 +212,30 @@
 			const response = await fetch('/api/syllabus/textbook', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ fileName: file.name })
+				body: JSON.stringify({ fileName: file.name, courseId: selectedCourseId })
 			});
 			if (!response.ok) throw new Error('Could not save textbook');
 			syllabus = (await response.json()) as SyllabusImport;
 		} catch (error) {
 			apiError = error instanceof Error ? error.message : 'Could not save textbook';
+		}
+	}
+
+	async function resetSyllabusImport() {
+		isResetting = true;
+		apiError = '';
+		try {
+			const response = await fetch(`/api/syllabus?courseId=${encodeURIComponent(selectedCourseId)}`, {
+				method: 'DELETE'
+			});
+			if (!response.ok) throw new Error('Could not reset syllabus import');
+			syllabus = null;
+			selectedSyllabusFile = null;
+			selectedSyllabusFileName = '';
+		} catch (error) {
+			apiError = error instanceof Error ? error.message : 'Could not reset syllabus import';
+		} finally {
+			isResetting = false;
 		}
 	}
 
@@ -170,7 +247,7 @@
 				? 'Sample data'
 				: syllabus?.status === 'error'
 					? 'Error'
-					: 'Loading'
+					: 'Empty'
 	);
 </script>
 
@@ -195,6 +272,54 @@
 		</div>
 	</div>
 
+	<section
+		class="course-selector surface-polaroid"
+		aria-label={`Syllabus course selector for ${selectedCourseLabel}`}
+	>
+		<div class="course-selector-main">
+			<span class="course-selector-label font-mono">Course syllabus selector</span>
+			<h2 class="course-selector-title">
+				{#if activeCourse}
+					<span class="course-code font-mono">{activeCourse.code}</span>
+					{activeCourse.name}
+				{:else}
+					No course selected
+				{/if}
+			</h2>
+			{#if activeCourse}
+				<div class="course-selector-meta">
+					<span>{activeCourse.term}</span>
+					<span>{activeCourse.instructor ?? 'Instructor TBD'}</span>
+					<span>{syllabus ? syllabus.fileName : 'No syllabus saved'}</span>
+				</div>
+			{/if}
+		</div>
+
+		<label class="course-select-box">
+			<span class="field-label font-mono">Switch course</span>
+			<div class="select-shell">
+				<select
+					value={selectedCourseId}
+					disabled={courseOptions.length === 0 || isExtracting || isResetting}
+					onchange={changeCourse}
+				>
+					{#each courseOptions as course}
+						<option value={course.id}>{course.code} - {course.name}</option>
+					{/each}
+				</select>
+				<span class="dropdown-arrow" aria-hidden="true">v</span>
+			</div>
+		</label>
+	</section>
+
+	{#if courseOptions.length === 0}
+		<section class="surface-polaroid empty-course-state" aria-label="No courses available">
+			<span class="course-selector-label font-mono">No courses imported</span>
+			<h2>No course syllabus can be linked yet</h2>
+			<p>Import courses during setup before saving a syllabus to a course.</p>
+		</section>
+	{/if}
+
 	<section class="workspace" aria-label="Syllabus extraction workspace">
 		<aside class="upload-panel surface-polaroid">
 			<SectionHead
@@ -207,18 +332,21 @@
 					type="file"
 					accept="application/pdf"
 					aria-label="Upload syllabus PDF"
+					disabled={!selectedCourseId || isExtracting || isResetting}
 					onchange={onSyllabusFileChange}
 				/>
 				<span class="drop-title font-display">Drop syllabus PDF</span>
 				<span class="drop-subtitle font-mono">or choose a file · PDF only</span>
 			</label>
 
-			<div class="file-row">
-				<div class="file-info">
-					<span class="file-name">{selectedSyllabusFileName}</span>
+			{#if selectedSyllabusFileName}
+				<div class="file-row">
+					<div class="file-info">
+						<span class="file-name">{selectedSyllabusFileName}</span>
+					</div>
+					<span class="file-badge font-mono">PDF</span>
 				</div>
-				<span class="file-badge font-mono">PDF</span>
-			</div>
+			{/if}
 
 			<div class="extract-list">
 				<div class="extract-list-head font-mono">Extracted points</div>
@@ -236,10 +364,18 @@
 				<button
 					type="button"
 					class="btn btn-primary"
-					disabled={isExtracting}
+					disabled={isExtracting || isResetting || !selectedCourseId}
 					onclick={extractSyllabus}
 				>
 					{isExtracting ? 'extracting…' : 'extract syllabus'}
+				</button>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm font-mono"
+					disabled={isExtracting || isResetting || !syllabus}
+					onclick={resetSyllabusImport}
+				>
+					{isResetting ? 'resetting' : 'reset import'}
 				</button>
 				<button type="button" class="btn btn-ghost btn-sm font-mono">replace file</button>
 			</div>
@@ -380,11 +516,12 @@
 					{:else}
 						<label class="btn btn-secondary upload-material">
 							<input
-								type="file"
-								accept="application/pdf"
-								aria-label="Upload textbook PDF"
-								onchange={uploadTextbook}
-							/>
+							type="file"
+							accept="application/pdf"
+							aria-label="Upload textbook PDF"
+							disabled={!selectedCourseId}
+							onchange={uploadTextbook}
+						/>
 							Upload textbook PDF
 						</label>
 					{/if}
@@ -449,6 +586,117 @@
 		align-items: center;
 		gap: 0.75rem;
 		margin-top: 1rem;
+	}
+
+	.course-selector {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.45fr);
+		gap: 1.25rem;
+		align-items: end;
+		padding: 1.25rem 1.5rem;
+		margin-bottom: 1.25rem;
+	}
+
+	.course-selector-label,
+	.field-label {
+		display: block;
+		color: var(--ink-faint);
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+	}
+
+	.course-selector-title {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.7rem;
+		margin: 0.45rem 0 0;
+		color: var(--ink);
+		font-family: var(--font-display);
+		font-size: 1.4rem;
+		line-height: 1.1;
+	}
+
+	.course-code {
+		color: var(--accent);
+		font-size: 0.82rem;
+		letter-spacing: 0.12em;
+	}
+
+	.course-selector-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-top: 0.6rem;
+	}
+
+	.course-selector-meta span {
+		border: 1px solid var(--rule);
+		background: var(--paper);
+		color: var(--ink-soft);
+		font-size: 0.78rem;
+		padding: 0.35rem 0.5rem;
+	}
+
+	.course-select-box {
+		display: grid;
+		gap: 0.45rem;
+	}
+
+	.select-shell {
+		position: relative;
+	}
+
+	.select-shell select {
+		width: 100%;
+		min-height: 2.75rem;
+		border: 1.5px solid var(--ink);
+		background: var(--paper);
+		color: var(--ink);
+		font: inherit;
+		padding: 0.65rem 2.2rem 0.65rem 0.75rem;
+		appearance: none;
+	}
+
+	.select-shell select:disabled {
+		color: var(--ink-faint);
+		border-color: var(--rule);
+		cursor: not-allowed;
+	}
+
+	.dropdown-arrow {
+		position: absolute;
+		right: 0.65rem;
+		top: 50%;
+		display: grid;
+		place-items: center;
+		width: 1.15rem;
+		height: 1.15rem;
+		border: 1px solid var(--ink);
+		background: var(--highlight);
+		color: var(--ink);
+		font-size: 0.75rem;
+		transform: translateY(-50%);
+		pointer-events: none;
+	}
+
+	.empty-course-state {
+		margin-bottom: 1.25rem;
+		padding: 1.25rem 1.5rem;
+	}
+
+	.empty-course-state h2 {
+		margin: 0.4rem 0 0;
+		color: var(--ink);
+		font-family: var(--font-display);
+		font-size: 1.35rem;
+	}
+
+	.empty-course-state p {
+		margin: 0.45rem 0 0;
+		color: var(--ink-soft);
+		font-size: 0.9rem;
 	}
 
 	.workspace {
@@ -882,6 +1130,11 @@
 	}
 
 	@media (max-width: 1024px) {
+		.course-selector {
+			grid-template-columns: 1fr;
+			align-items: start;
+		}
+
 		.workspace {
 			grid-template-columns: 1fr;
 		}

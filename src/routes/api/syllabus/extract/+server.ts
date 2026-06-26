@@ -10,11 +10,18 @@ function getFileName(value: unknown) {
 		: 'CSIS 4495 Syllabus.pdf';
 }
 
+function getCourseId(value: unknown) {
+	if (typeof value !== 'object' || value === null) return undefined;
+	const courseId = (value as { courseId?: unknown }).courseId;
+	return typeof courseId === 'string' && courseId.trim() ? courseId.trim() : undefined;
+}
+
 export async function POST({ request }: RequestEvent) {
 	const contentType = request.headers.get('content-type') ?? '';
 	if (contentType.includes('multipart/form-data')) {
 		const form = await request.formData();
 		const file = form.get('file');
+		const courseId = form.get('courseId');
 		if (!(file instanceof File)) {
 			return json({ ok: false, error: 'Missing syllabus PDF' }, { status: 400 });
 		}
@@ -24,6 +31,7 @@ export async function POST({ request }: RequestEvent) {
 			const extractedData = await extractSyllabusWithAI(rawText);
 			return json(
 				saveSyllabusImport({
+					courseId: typeof courseId === 'string' ? courseId : undefined,
 					fileName: file.name,
 					rawText,
 					extractedData,
@@ -37,5 +45,5 @@ export async function POST({ request }: RequestEvent) {
 	}
 
 	const body: unknown = await request.json().catch(() => ({}));
-	return json(mockExtractSyllabus(getFileName(body)));
+	return json(mockExtractSyllabus(getFileName(body), getCourseId(body)));
 }

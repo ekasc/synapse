@@ -133,6 +133,57 @@ export type SyllabusImport = {
 	updatedAt: string;
 };
 
+export type AcademicDigest = {
+	id: string;
+	source: 'sample' | 'setup-import' | 'transcript-upload';
+	fileName?: string;
+	summary: string;
+	totalGpa: number;
+	projectedGpa: number;
+	currentCourseCount: number;
+	finishedCourseCount: number;
+	currentCredits: number;
+	finishedCredits: number;
+	courses: AcademicTranscriptCourse[];
+	trend: AcademicDigestTrend[];
+	insights: string[];
+	extractionSource: 'openrouter' | 'fallback';
+	updatedAt: string;
+};
+
+export type AcademicTranscriptCourse = {
+	id: string;
+	code: string;
+	name: string;
+	term: string;
+	credits: number;
+	currentPercent: number;
+	projectedPercent: number;
+	status: 'current' | 'finished';
+	letter: string;
+};
+
+export type AcademicDigestTrend = {
+	label: string;
+	term: string;
+	gpa: number;
+	credits: number;
+	note: string;
+};
+
+export type AcademicDigestAnalysis = {
+	totalGpa: number;
+	projectedGpa: number;
+	currentCourseCount: number;
+	finishedCourseCount: number;
+	currentCredits: number;
+	finishedCredits: number;
+	courses: AcademicTranscriptCourse[];
+	trend: AcademicDigestTrend[];
+	insights: string[];
+	extractionSource: AcademicDigest['extractionSource'];
+};
+
 const MOCK_SYLLABUS_DATA: SyllabusExtractedData = {
 	professor: {
 		name: 'Prof. Anika Sharma',
@@ -243,14 +294,97 @@ export function saveGraphState(state: GraphState): void {
 	write('graph', [state]);
 }
 
-// ── Syllabus Intelligence ──
+// -- Academic Progress Digest --
 
-export function getSyllabusImport(): SyllabusImport | null {
-	return read<SyllabusImport>('syllabus-imports').at(-1) ?? null;
+function currentCourseCredits(courses: Course[]): number {
+	return courses.reduce((sum, course) => sum + (course.credits ?? 3), 0);
 }
 
-export function mockExtractSyllabus(fileName = 'CSIS 4495 Syllabus.pdf'): SyllabusImport {
+export function getAcademicDigest(): AcademicDigest | null {
+	return read<AcademicDigest>('academic-digest').at(-1) ?? null;
+}
+
+export function buildAcademicDigest(input?: {
+	fileName?: string;
+	source?: AcademicDigest['source'];
+	analysis?: AcademicDigestAnalysis;
+}): AcademicDigest {
+	const courses = getCourses();
+	const source = input?.source ?? (courses.length > 0 ? 'setup-import' : 'sample');
+	const currentCourseCount = courses.length;
+	const currentCredits = courses.length > 0 ? currentCourseCredits(courses) : 0;
+	const fileName = input?.fileName?.trim();
+	const analyticsLabel = input?.analysis?.extractionSource === 'openrouter' ? 'OpenRouter' : 'backend';
+	const summary = fileName
+		? `${fileName} was uploaded and digested by the academic progress ${analyticsLabel} analytics.`
+		: source === 'setup-import'
+			? `${currentCourseCount} setup course${currentCourseCount === 1 ? '' : 's'} digested into the academic progress dashboard.`
+			: 'No academic history has been imported yet.';
+
+	return {
+		id: 'academic-progress',
+		source,
+		fileName,
+		summary,
+		totalGpa: input?.analysis?.totalGpa ?? 0,
+		projectedGpa: input?.analysis?.projectedGpa ?? 0,
+		currentCourseCount: input?.analysis?.currentCourseCount ?? currentCourseCount,
+		finishedCourseCount: input?.analysis?.finishedCourseCount ?? 0,
+		currentCredits: input?.analysis?.currentCredits ?? currentCredits,
+		finishedCredits: input?.analysis?.finishedCredits ?? 0,
+		courses: input?.analysis?.courses ?? [],
+		trend: input?.analysis?.trend ?? [],
+		insights: input?.analysis?.insights ?? [],
+		extractionSource: input?.analysis?.extractionSource ?? 'fallback',
+		updatedAt: new Date().toISOString()
+	};
+}
+
+export function saveAcademicDigest(input?: {
+	fileName?: string;
+	source?: AcademicDigest['source'];
+	analysis?: AcademicDigestAnalysis;
+}): AcademicDigest {
+	const record = buildAcademicDigest(input);
+	write('academic-digest', [record]);
+	return record;
+}
+
+export function clearAcademicDigest(): AcademicDigest {
+	write('academic-digest', []);
+	return buildAcademicDigest();
+}
+
+// ── Syllabus Intelligence ──
+
+export function getSyllabusImports(): SyllabusImport[] {
+	return read<SyllabusImport>('syllabus-imports');
+}
+
+export function getSyllabusImport(courseId?: string): SyllabusImport | null {
+	const imports = getSyllabusImports();
+	if (courseId) return imports.find((item) => item.courseId === courseId) ?? null;
+	return imports.at(-1) ?? null;
+}
+
+export function clearSyllabusImport(courseId?: string): null {
+	if (courseId) {
+		write(
+			'syllabus-imports',
+			getSyllabusImports().filter((item) => item.courseId !== courseId)
+		);
+		return null;
+	}
+	write('syllabus-imports', []);
+	return null;
+}
+
+export function mockExtractSyllabus(
+	fileName = 'CSIS 4495 Syllabus.pdf',
+	courseId = 'csis-4495'
+): SyllabusImport {
 	return saveSyllabusImport({
+		courseId,
 		fileName,
 		rawText:
 			'Mock raw syllabus text. Replace this with PDF extraction before calling an AI parser.',
@@ -260,16 +394,19 @@ export function mockExtractSyllabus(fileName = 'CSIS 4495 Syllabus.pdf'): Syllab
 }
 
 export function saveSyllabusImport(input: {
+	courseId?: string;
 	fileName: string;
 	rawText: string;
 	extractedData: SyllabusExtractedData;
 	status: SyllabusImport['status'];
 }): SyllabusImport {
-	const existing = getSyllabusImport();
+	const courseId = input.courseId?.trim() || 'csis-4495';
+	const all = getSyllabusImports();
+	const existing = all.find((item) => item.courseId === courseId);
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
 		id: existing?.id ?? crypto.randomUUID(),
-		courseId: existing?.courseId ?? 'csis-4495',
+		courseId,
 		fileName: input.fileName,
 		rawText: input.rawText,
 		extractedData: {
@@ -282,12 +419,13 @@ export function saveSyllabusImport(input: {
 		updatedAt: now
 	};
 
-	write('syllabus-imports', [record]);
+	write('syllabus-imports', [...all.filter((item) => item.courseId !== courseId), record]);
 	return record;
 }
 
-export function updateSyllabusTextbook(fileName: string): SyllabusImport {
-	const existing = getSyllabusImport() ?? mockExtractSyllabus();
+export function updateSyllabusTextbook(fileName: string, courseId?: string): SyllabusImport {
+	const existing = getSyllabusImport(courseId) ?? mockExtractSyllabus(undefined, courseId);
+	const all = getSyllabusImports();
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
 		...existing,
@@ -304,7 +442,7 @@ export function updateSyllabusTextbook(fileName: string): SyllabusImport {
 		updatedAt: now
 	};
 
-	write('syllabus-imports', [record]);
+	write('syllabus-imports', [...all.filter((item) => item.courseId !== record.courseId), record]);
 	void fileName;
 	return record;
 }
