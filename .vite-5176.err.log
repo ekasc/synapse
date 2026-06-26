@@ -1,0 +1,182 @@
+[2m12:25:42 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: Cannot set properties of null (setting 'value')
+[39m > HTMLInputElement.importTranscriptFile src/routes/app/digest/+page.svelte:784:50
+    782 |  		} finally {
+    783 |  			transcriptUploading = false;
+    784 |  			(event.currentTarget as HTMLInputElement).value = '';
+        |                                                    ^
+    785 |  		}
+    786 |  	}
+
+[2m12:27:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: Cannot set properties of null (setting 'value')
+[39m > HTMLInputElement.importTranscriptFile src/routes/app/digest/+page.svelte:784:50
+    782 |  		} finally {
+    783 |  			transcriptUploading = false;
+    784 |  			(event.currentTarget as HTMLInputElement).value = '';
+        |                                                    ^
+    785 |  		}
+    786 |  	}
+
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m12:45:25 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m12:45:25 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m12:45:25 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+[2m12:45:25 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m12:45:25 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+[2m12:45:25 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+[2m1:23:22 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: Cannot set properties of null (setting 'value')
+[39m > HTMLInputElement.importTranscriptFile src/routes/app/digest/+page.svelte:826:50
+    824 |  		} finally {
+    825 |  			transcriptUploading = false;
+    826 |  			(event.currentTarget as HTMLInputElement).value = '';
+        |                                                    ^
+    827 |  		}
+    828 |  	}
+
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m1:26:25 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m1:26:25 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m1:26:25 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+[2m1:36:50 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mTypeError[22m: Cannot set properties of null (setting 'value')
+[39m > HTMLInputElement.importTranscriptFile src/routes/app/digest/+page.svelte:827:50
+    825 |  		} finally {
+    826 |  			transcriptUploading = false;
+    827 |  			(event.currentTarget as HTMLInputElement).value = '';
+        |                                                    ^
+    828 |  		}
+    829 |  	}
+
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m1:37:02 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m1:37:02 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m1:37:02 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m1:43:05 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m1:43:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m1:43:05 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+[2m1:43:05 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m1:54:54 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m1:54:54 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m1:54:54 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m2:00:34 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m2:00:34 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m2:00:34 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m2:00:42 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m2:00:42 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m2:00:42 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m2:00:42 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m2:00:42 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m2:00:42 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+[2m2:00:42 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info
+
+[1;31m[500] GET /app/brief[0m
+Error: Failed query: select "code", "name", "institution", "professor", "rmp_rating", "rmp_count", "workload", "weekly_hours", "prereq_readiness", "grade_structure", "recommendation", "sources", "researched_at" from "briefings"
+params: 
+    at D1PreparedQuery.queryWithCache (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\sqlite-core\session.js:43:15)
+    at process.processTicksAndRejections (node:internal\process\task_queues:104:5)
+    at async D1PreparedQuery.values (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:180:12)
+    at async D1PreparedQuery.all (file:\C:\Users\USUN9AN\Documents\GitHub\synapse\node_modules\.pnpm\drizzle-orm@0.45.2_@cloudfl_edbb4c0783b1a123df706a04bf06bb20\node_modules\drizzle-orm\d1\session.js:132:18)
+    at async Object.getBriefs (src\lib\server\db\d1.ts:57:17)
+    at async load (src\routes\app\brief\+page.server.ts:8:17)
+[2m2:02:46 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mThe next HMR update will cause the page to reload
+[2m2:02:46 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m{"type":"error","error":{"message":"Internal Error"}}
+[2m2:02:46 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mPreloading data for /app/brief failed with the following error: Internal Error
+If this error is transient, you can ignore it. Otherwise, consider disabling preloading for this route. This route was preloaded due to a data-sveltekit-preload-data attribute. See https://svelte.dev/docs/kit/link-options for more info

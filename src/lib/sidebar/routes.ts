@@ -27,11 +27,11 @@ export interface SidebarChildRoute {
 export const routes: SidebarRoute[] = [
 	{ href: '/app', label: 'Dashboard' },
 	{ href: '/app/courses', label: 'Courses' },
+	{ href: '/app/syllabus', label: 'Syllabus' },
 	{ href: '/app/calendar', label: 'Calendar' },
 	{ href: '/app/digest', label: 'Digest' },
 	{ href: '/app/practice', label: 'Practice' },
-	{ href: '/app/brief', label: 'Brief' },
-	{ href: '/app/syllabus', label: 'Syllabus' }
+	{ href: '/app/brief', label: 'Brief' }
 ];
 
 export function isRouteActive(pathname: string, route: SidebarRoute): boolean {

@@ -1,0 +1,491 @@
+
+  [32m[1mVITE[22m v8.0.16[39m  [2mready in [0m[1m4710[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5176[22m/[39m
+Using secrets defined in .env
+[2m12:19:53 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/server/digest-analytics.ts[22m
+12:29:31 PM [vite-plugin-svelte] src/routes/+page.svelte:624:1 Unused CSS selector ".sr-only"
+https://svelte.dev/e/css_unused_selector
+12:29:31 PM [vite-plugin-svelte] src/routes/+page.svelte:702:1 Unused CSS selector ".mini-graph figcaption"
+https://svelte.dev/e/css_unused_selector
+[2m12:36:07 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:36:07 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:36:07 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:36:07 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:36:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:36:26 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:36:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:36:26 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:37:00 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:37:00 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:37:18 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:37:18 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:37:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:37:57 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:39:04 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m12:39:04 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:42:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:42:57 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:48:18 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m12:48:18 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/server/store.ts[22m
+[2m12:51:40 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:51:40 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:55:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m12:55:26 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/api/syllabus/+server.ts[22m
+[2m12:55:37 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m12:55:37 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m12:56:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:56:50 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:57:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m12:57:11 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:57:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m12:57:26 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:57:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m12:57:26 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m12:57:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m12:57:36 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m12:57:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m12:57:50 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m12:58:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m12:58:20 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:01:09 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:01:09 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:07:35 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m1:07:36 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/server/store.ts[22m
+[2m1:08:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m1:08:05 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/server/digest-analytics.ts[22m
+[2m1:08:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m1:08:30 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1459:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1910:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2359:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2397:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2405:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2434:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2458:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2498:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2520:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:08:45 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2533:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1459:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1910:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2359:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2397:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2405:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2434:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2458:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2498:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2520:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2533:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+[2m1:08:46 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/app/digest/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m1:08:46 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m1:08:46 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/app/digest/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m1:08:46 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1459:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1910:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2359:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2397:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2405:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2434:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2458:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2498:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2520:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:08:46 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2533:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1459:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1910:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2359:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2397:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2405:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2434:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2458:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2498:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2520:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:09:13 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2533:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1455:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1906:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2355:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2393:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2401:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2430:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2454:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2455:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2494:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2516:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2517:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2525:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1455:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1906:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2355:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2393:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2401:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2430:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2454:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2455:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2494:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2516:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2517:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2525:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+[2m1:11:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m1:11:05 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1455:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1906:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2355:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2393:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2401:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2430:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2454:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2455:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2494:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2516:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2517:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2525:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:05 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+[2m1:11:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m1:11:05 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1455:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1906:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2355:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2393:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2401:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2430:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2454:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2455:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2494:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2516:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2517:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2525:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:11:06 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2529:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1460:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1911:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2360:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2398:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2406:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2435:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2460:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2499:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2522:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2530:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2534:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1460:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1911:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2360:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2398:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2406:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2435:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2460:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2499:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2522:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2530:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2534:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+[2m1:12:17 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m1:12:17 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1460:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1911:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2360:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2398:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2406:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2435:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2460:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2499:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2522:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2530:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:17 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2534:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+[2m1:12:17 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m1:12:17 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1460:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1911:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2360:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2398:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2406:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2435:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2460:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2499:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2522:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2530:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:18 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2534:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1460:1 Unused CSS selector ".target-control input"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:1911:1 Unused CSS selector ".course-select-box select"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2360:1 Unused CSS selector ".gpa-projection-copy p"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2398:1 Unused CSS selector ".course-analytics-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2406:1 Unused CSS selector ".course-analytics-head p"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2435:1 Unused CSS selector ".import-panel-head h2"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2459:1 Unused CSS selector ".grade-form input"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2460:1 Unused CSS selector ".grade-form select"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2499:1 Unused CSS selector ".projection-note p"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2521:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2522:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2530:1 Unused CSS selector ".scale-line b"
+https://svelte.dev/e/css_unused_selector
+1:12:29 PM [vite-plugin-svelte] src/routes/app/digest/+page.svelte:2534:1 Unused CSS selector ".scale-line i"
+https://svelte.dev/e/css_unused_selector
+[2m1:15:53 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/app/digest/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m1:15:53 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m1:15:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/app/digest/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m1:15:54 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m1:28:27 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m1:28:27 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/server/store.ts[22m
+[2m1:28:38 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m1:28:38 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/api/syllabus/+server.ts[22m
+[2m1:29:04 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:29:04 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:29:04 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:29:04 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:29:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:29:13 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:29:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:29:13 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:29:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:29:48 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:29:58 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:29:58 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:30:21 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m1:30:21 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m1:30:32 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/digest/+page.svelte, /src/routes/layout.css[22m
+[2m1:30:32 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/digest/+page.svelte[22m
+[2m1:40:31 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] bundling dependencies...
+1:40:32 PM [vite-plugin-svelte] src/routes/app/courses/[id]/+page.svelte:457:9 Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus
+[2m1:40:43 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] bundling dependencies...
+[2m1:40:56 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ new dependencies optimized: [33mbits-ui, jszip, mammoth, pdfjs-dist[32m[39m
+[2m1:40:56 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ optimized dependencies changed. reloading[39m
+[2m1:45:18 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m1:45:18 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/lib/server/store.ts[22m
+[2m1:45:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m1:45:30 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/api/syllabus/+server.ts[22m
+[2m1:46:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2m.svelte-kit/generated/client/app.js[22m
+1:46:36 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+[2m1:46:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:46:36 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+1:46:36 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+1:52:22 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+1:52:23 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+1:52:23 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+[2m1:52:23 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:52:23 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:52:23 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:52:23 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+1:52:23 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+1:52:34 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+[2m1:52:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:52:34 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+1:52:34 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+1:52:44 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+[2m1:52:44 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:52:44 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+1:52:44 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+1:53:30 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+[2m1:53:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m1:53:30 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+1:53:49 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+[2m1:53:49 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/app/syllabus/+page.svelte?svelte&type=style&lang.css, /src/routes/layout.css[22m
+[2m1:53:49 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+1:53:49 PM [vite-plugin-svelte] src/routes/app/syllabus/+page.svelte:95:31 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+[2m1:54:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/layout.css[22m
+[2m1:54:25 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/api/syllabus/+server.ts[22m
+[2m1:56:16 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:56:16 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+[2m1:59:02 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/routes/app/syllabus/+page.svelte, /src/routes/layout.css[22m
+[2m1:59:02 PM[22m [36m[1m[vite][22m[39m [34m[2m(ssr)[22m[39m [32mpage reload [39m[2msrc/routes/app/syllabus/+page.svelte[22m
+2:02:44 PM [vite-plugin-svelte] src/routes/app/courses/[id]/+page.svelte:457:9 Avoid using autofocus
+https://svelte.dev/e/a11y_autofocus
