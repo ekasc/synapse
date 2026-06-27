@@ -96,7 +96,9 @@
 		updatedAt: string;
 	};
 
-	let { data }: { data: { courses: SetupCourse[]; digest: AcademicDigest; semesters: SetupSemester[] } } =
+	let {
+		data
+	}: { data: { courses: SetupCourse[]; digest: AcademicDigest; semesters: SetupSemester[] } } =
 		$props();
 
 	const defaultWeights: WeightItem[] = [
@@ -122,115 +124,6 @@
 			projectedPercent: 0
 		}
 	};
-
-	const demoCourses: CourseDigest[] = [
-		{
-			id: 'csis-4495',
-			code: 'CSIS 4495',
-			name: 'Cloud Computing',
-			term: 'Summer 2026',
-			instructor: 'Prof. Anika Sharma',
-			credits: 3,
-			courseHref: '/app/courses',
-			syllabusHref: '/app/syllabus',
-			weights: [
-				{ category: 'Quizzes', weight: 15, source: 'syllabus extraction' },
-				{ category: 'Assignments', weight: 30, source: 'syllabus extraction' },
-				{ category: 'Project', weight: 20, source: 'syllabus extraction' },
-				{ category: 'Final', weight: 35, source: 'syllabus extraction' }
-			],
-			initialGrades: [
-				{
-					id: 'quiz-1',
-					category: 'Quizzes',
-					label: 'Quiz 1',
-					score: 8.5,
-					max: 10,
-					source: 'manual'
-				},
-				{
-					id: 'assignment-1',
-					category: 'Assignments',
-					label: 'Cloud foundations lab',
-					score: 27,
-					max: 30,
-					source: 'manual'
-				}
-			],
-			transcript: {
-				currentPercent: 87,
-				projectedPercent: 89
-			}
-		},
-		{
-			id: 'math-2320',
-			code: 'MATH 2320',
-			name: 'Discrete Mathematics',
-			term: 'Summer 2026',
-			instructor: 'Dr. Victor Chen',
-			credits: 3,
-			courseHref: '/app/courses',
-			syllabusHref: '/app/syllabus',
-			weights: [
-				{ category: 'Homework', weight: 25, source: 'syllabus extraction' },
-				{ category: 'Quizzes', weight: 15, source: 'syllabus extraction' },
-				{ category: 'Midterm', weight: 25, source: 'syllabus extraction' },
-				{ category: 'Final', weight: 35, source: 'syllabus extraction' }
-			],
-			initialGrades: [
-				{
-					id: 'math-homework-1',
-					category: 'Homework',
-					label: 'Set theory problem set',
-					score: 92,
-					max: 100,
-					source: 'manual'
-				},
-				{
-					id: 'math-quiz-1',
-					category: 'Quizzes',
-					label: 'Logic quiz',
-					score: 18,
-					max: 20,
-					source: 'manual'
-				}
-			],
-			transcript: {
-				currentPercent: 91,
-				projectedPercent: 92
-			}
-		},
-		{
-			id: 'engl-1102',
-			code: 'ENGL 1102',
-			name: 'Academic Writing',
-			term: 'Summer 2026',
-			instructor: 'Prof. Leah Morris',
-			credits: 3,
-			courseHref: '/app/courses',
-			syllabusHref: '/app/syllabus',
-			weights: [
-				{ category: 'Essays', weight: 45, source: 'syllabus extraction' },
-				{ category: 'Reading responses', weight: 20, source: 'syllabus extraction' },
-				{ category: 'Participation', weight: 10, source: 'syllabus extraction' },
-				{ category: 'Portfolio', weight: 25, source: 'syllabus extraction' }
-			],
-			initialGrades: [
-				{
-					id: 'essay-1',
-					category: 'Essays',
-					label: 'Rhetorical analysis',
-					score: 84,
-					max: 100,
-					source: 'manual'
-				}
-			],
-			transcript: {
-				currentPercent: 84,
-				projectedPercent: 86
-			}
-		}
-	];
 
 	const finishedCourses: TranscriptCourse[] = [
 		{
@@ -395,72 +288,6 @@
 		}
 	];
 
-	const performanceTrend = [
-		{
-			label: 'F23',
-			term: 'Fall 2023',
-			gpa: 3.05,
-			credits: 12,
-			note: 'First term baseline'
-		},
-		{
-			label: 'S24',
-			term: 'Spring 2024',
-			gpa: 3.22,
-			credits: 24,
-			note: 'Foundation improvement'
-		},
-		{
-			label: 'SU24',
-			term: 'Summer 2024',
-			gpa: 3.28,
-			credits: 30,
-			note: 'Light summer load'
-		},
-		{
-			label: 'F24',
-			term: 'Fall 2024',
-			gpa: 3.31,
-			credits: 42,
-			note: 'Core sequence starts'
-		},
-		{
-			label: 'S25',
-			term: 'Spring 2025',
-			gpa: 3.37,
-			credits: 54,
-			note: 'Major pace stabilizes'
-		},
-		{
-			label: 'SU25',
-			term: 'Summer 2025',
-			gpa: 3.41,
-			credits: 60,
-			note: 'Short-term lift'
-		},
-		{
-			label: 'F25',
-			term: 'Fall 2025',
-			gpa: 3.47,
-			credits: 69,
-			note: 'Upper-level courses'
-		},
-		{
-			label: 'S26',
-			term: 'Spring 2026',
-			gpa: 3.5,
-			credits: 72,
-			note: 'Completed history high'
-		},
-		{
-			label: 'SU26',
-			term: 'Summer 2026',
-			gpa: 3.45,
-			credits: 81,
-			note: 'Current projection'
-		}
-	];
-
 	let selectedCourseId = $state('');
 	let selectedCategory = $state('');
 	let gradeItemsByCourse = $state<Record<string, GradeItem[]>>({});
@@ -507,7 +334,8 @@
 	const hasSetupCourseImport = $derived(importedCourseDigests.length > 0);
 	const activeBackendDigest = $derived(backendDigest ?? data.digest);
 	const digestInsight = $derived(
-		activeBackendDigest.insights?.[0] && activeBackendDigest.insights[0] !== activeBackendDigest.summary
+		activeBackendDigest.insights?.[0] &&
+			activeBackendDigest.insights[0] !== activeBackendDigest.summary
 			? activeBackendDigest.insights[0]
 			: ''
 	);
@@ -656,10 +484,6 @@
 		projectedGpaDelta > 0 ? 'up' : projectedGpaDelta < 0 ? 'down' : 'same'
 	);
 	const targetGpaDelta = $derived(targetGpa - projectedGpa);
-	const selectedTranscriptCourse = $derived(
-		dashboardTranscriptCourses.find((course) => course.id === selectedCourseId) ??
-			dashboardTranscriptCourses[0]
-	);
 	const selectedHistoryCourse = $derived(
 		dashboardFinishedCourses.find((course) => course.id === selectedHistoryCourseId) ?? null
 	);
@@ -808,7 +632,11 @@
 				method: 'POST',
 				body: form
 			});
-			const result = (await response.json()) as { ok?: boolean; digest?: AcademicDigest; error?: string };
+			const result = (await response.json()) as {
+				ok?: boolean;
+				digest?: AcademicDigest;
+				error?: string;
+			};
 			if (!response.ok || !result.ok || !result.digest) {
 				throw new Error(result.error ?? 'Could not digest transcript');
 			}
@@ -833,7 +661,11 @@
 		transcriptUploadError = '';
 		try {
 			const response = await fetch('/api/digest', { method: 'DELETE' });
-			const result = (await response.json()) as { ok?: boolean; digest?: AcademicDigest; error?: string };
+			const result = (await response.json()) as {
+				ok?: boolean;
+				digest?: AcademicDigest;
+				error?: string;
+			};
 			if (!response.ok || !result.ok || !result.digest) {
 				throw new Error(result.error ?? 'Could not reset academic progress import');
 			}
@@ -947,7 +779,9 @@
 				<div class="gpa-card total-card">
 					<span class="index-label">Total GPA</span>
 					<strong>{hasAcademicProgressData ? dashboardTotalGpa.toFixed(2) : '--'}</strong>
-					<span class="index-sub">{activeBackendDigest.currentCredits + activeBackendDigest.finishedCredits} credits tracked</span>
+					<span class="index-sub"
+						>{activeBackendDigest.currentCredits + activeBackendDigest.finishedCredits} credits tracked</span
+					>
 				</div>
 				<div class="gpa-card selected">
 					<span class="index-label">Current courses</span>
@@ -980,7 +814,7 @@
 					</div>
 					<div class="transcript-list">
 						{#if dashboardCurrentTranscriptCourses.length > 0}
-							{#each dashboardCurrentTranscriptCourses as course}
+							{#each dashboardCurrentTranscriptCourses as course (course.id)}
 								<div class:active={course.id === selectedCourseId} class="gpa-course-row current">
 									<span class="font-mono">{course.code}</span>
 									<span>{course.term}</span>
@@ -999,7 +833,7 @@
 					</div>
 					<div class="transcript-list">
 						{#if dashboardFinishedCourses.length > 0}
-							{#each dashboardFinishedCourses as course}
+							{#each dashboardFinishedCourses as course (course.id)}
 								<button
 									type="button"
 									class="gpa-course-row finished history-trigger"
@@ -1023,93 +857,93 @@
 		</section>
 
 		{#if hasAcademicProgressData}
-		<section class="surface performance-panel" aria-label="Performance over time">
-			<div class="performance-head">
-				<div>
-					<span class="gpa-kicker font-mono">Academic performance analytics</span>
-					<h2>GPA Trend by Academic Term</h2>
-				</div>
-				<div class="performance-delta">
-					<span class="index-label">GPA movement</span>
-					<strong class={performanceDelta >= 0 ? 'ok' : 'warn'}>
-						{performanceDelta >= 0 ? '+' : ''}{performanceDelta.toFixed(2)}
-					</strong>
-				</div>
-			</div>
-
-			<div class="performance-body">
-				<div class="performance-chart" aria-label="GPA trend bar chart">
-					{#each performanceTrendWithDelta as item}
-						<div class="term-bar">
-							<div class="term-bar-track">
-								<span class={item.direction} style="height: {(item.gpa / 4) * 100}%"></span>
-							</div>
-							<strong class={`trend-value ${item.direction}`}>
-								{item.gpa.toFixed(2)}
-							</strong>
-							<span class={`trend-icon ${item.direction}`} aria-label={`GPA ${item.direction}`}
-							></span>
-							<small class="font-mono">{item.label}</small>
-						</div>
-					{/each}
-				</div>
-
-				<div class="performance-list">
-					{#each performanceTrendWithDelta as item}
-						<div class="performance-row">
-							<span class="font-mono">{item.label}</span>
-							<span>{item.term}</span>
-							<strong class={`trend-value ${item.direction}`}>
-								{item.gpa.toFixed(2)}
-								<span class="trend-change" aria-label={`GPA ${item.direction}`}>
-									<span class={`trend-icon ${item.direction}`}></span>
-									{item.signedDelta}
-								</span>
-							</strong>
-							<span>{item.note}</span>
-						</div>
-					{/each}
-				</div>
-			</div>
-
-			<div class="term-performance-panel">
-				<div class="term-performance-head">
+			<section class="surface performance-panel" aria-label="Performance over time">
+				<div class="performance-head">
 					<div>
-						<span class="gpa-kicker font-mono">Course performance by term</span>
-						<h3>{selectedPerformanceTerm} Course Results</h3>
+						<span class="gpa-kicker font-mono">Academic performance analytics</span>
+						<h2>GPA Trend by Academic Term</h2>
 					</div>
-					<label class="term-select-box">
-						<span class="field-label font-mono">Choose term</span>
-						<div class="select-shell">
-							<select value={selectedPerformanceTerm} onchange={changePerformanceTerm}>
-								{#each performanceTermOptions as term}
-									<option value={term}>{term}</option>
-								{/each}
-							</select>
-							<span class="dropdown-arrow" aria-hidden="true">v</span>
-						</div>
-					</label>
+					<div class="performance-delta">
+						<span class="index-label">GPA movement</span>
+						<strong class={performanceDelta >= 0 ? 'ok' : 'warn'}>
+							{performanceDelta >= 0 ? '+' : ''}{performanceDelta.toFixed(2)}
+						</strong>
+					</div>
 				</div>
 
-				<div
-					class="term-course-chart"
-					aria-label={`Course performance for ${selectedPerformanceTerm}`}
-				>
-					{#each selectedTermCourses as course}
-						<div class="term-course-bar">
-							<div>
-								<span class="font-mono">{course.code}</span>
-								<strong>{course.status === 'finished' ? course.letter : 'In progress'}</strong>
+				<div class="performance-body">
+					<div class="performance-chart" aria-label="GPA trend bar chart">
+						{#each performanceTrendWithDelta as item (item.term)}
+							<div class="term-bar">
+								<div class="term-bar-track">
+									<span class={item.direction} style="height: {(item.gpa / 4) * 100}%"></span>
+								</div>
+								<strong class={`trend-value ${item.direction}`}>
+									{item.gpa.toFixed(2)}
+								</strong>
+								<span class={`trend-icon ${item.direction}`} aria-label={`GPA ${item.direction}`}
+								></span>
+								<small class="font-mono">{item.label}</small>
 							</div>
-							<div class="course-bar-track">
-								<span style="width: {Math.min(100, course.currentPercent)}%"></span>
+						{/each}
+					</div>
+
+					<div class="performance-list">
+						{#each performanceTrendWithDelta as item (item.term)}
+							<div class="performance-row">
+								<span class="font-mono">{item.label}</span>
+								<span>{item.term}</span>
+								<strong class={`trend-value ${item.direction}`}>
+									{item.gpa.toFixed(2)}
+									<span class="trend-change" aria-label={`GPA ${item.direction}`}>
+										<span class={`trend-icon ${item.direction}`}></span>
+										{item.signedDelta}
+									</span>
+								</strong>
+								<span>{item.note}</span>
 							</div>
-							<small>{course.currentPercent.toFixed(0)}%</small>
-						</div>
-					{/each}
+						{/each}
+					</div>
 				</div>
-			</div>
-		</section>
+
+				<div class="term-performance-panel">
+					<div class="term-performance-head">
+						<div>
+							<span class="gpa-kicker font-mono">Course performance by term</span>
+							<h3>{selectedPerformanceTerm} Course Results</h3>
+						</div>
+						<label class="term-select-box">
+							<span class="field-label font-mono">Choose term</span>
+							<div class="select-shell">
+								<select value={selectedPerformanceTerm} onchange={changePerformanceTerm}>
+									{#each performanceTermOptions as term (term)}
+										<option value={term}>{term}</option>
+									{/each}
+								</select>
+								<span class="dropdown-arrow" aria-hidden="true">v</span>
+							</div>
+						</label>
+					</div>
+
+					<div
+						class="term-course-chart"
+						aria-label={`Course performance for ${selectedPerformanceTerm}`}
+					>
+						{#each selectedTermCourses as course (course.id)}
+							<div class="term-course-bar">
+								<div>
+									<span class="font-mono">{course.code}</span>
+									<strong>{course.status === 'finished' ? course.letter : 'In progress'}</strong>
+								</div>
+								<div class="course-bar-track">
+									<span style="width: {Math.min(100, course.currentPercent)}%"></span>
+								</div>
+								<small>{course.currentPercent.toFixed(0)}%</small>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</section>
 		{:else}
 			<section class="surface performance-panel" aria-label="Performance over time">
 				<div class="performance-head">
@@ -1140,264 +974,271 @@
 				</p>
 			</section>
 		{:else}
-		<section class="surface course-link" aria-label="Course dashboard selector">
-			<div class="course-link-main">
-				<div>
-					<span class="course-link-label font-mono">Course dashboard selector</span>
-					<h2 class="course-link-title">
-						<span class="course-code font-mono">{activeCourse.code}</span>
-						{activeCourse.name}
-					</h2>
-				</div>
-				<div class="course-link-meta">
-					<span>{activeCourse.term}</span>
-					<span>{activeCourse.instructor}</span>
-					<span>Syllabus Intelligence - grading scheme</span>
-				</div>
-			</div>
-
-			<div class="course-select-box">
-				<label class="field-label font-mono" for="course-select">Switch course</label>
-				<div class="select-shell">
-					<select id="course-select" value={selectedCourseId} onchange={changeCourse}>
-						{#each courses as course}
-							<option value={course.id}>{course.code} - {course.name}</option>
-						{/each}
-					</select>
-					<span class="dropdown-arrow" aria-hidden="true">v</span>
-				</div>
-				<div class="course-link-actions">
-					<a class="btn btn-primary" href={activeCourse.courseHref}>open course</a>
-					<a class="btn btn-secondary" href={activeCourse.syllabusHref}>view syllabus</a>
-				</div>
-			</div>
-		</section>
-
-		<section class="course-analytics" aria-label="Selected course grade analytics">
-			<div class="course-analytics-head">
-				<span class="gpa-kicker font-mono">Specific course analytics + projection</span>
-				<h2>{activeCourse.code} Dashboard</h2>
-				<p>The cards below only use grades and syllabus weights from the selected course.</p>
-			</div>
-
-			<section class="index-bar" aria-label="Grade analytics overview">
-				<div class="index-cell">
-					<span class="index-label">Current standing</span>
-					<span class="index-num">{hasGradeEntries ? `${currentAverage.toFixed(1)}%` : '--'}</span>
-					<span class="index-sub">
-						{hasGradeEntries ? `${completedWeight}% of ${activeCourse.code} graded` : 'no grade entries yet'}
-					</span>
-				</div>
-				<div class="index-cell">
-					<span class="index-label">Projected result</span>
-					<span class={`index-num trend-value ${courseProjectionDirection}`}>
-						{#if hasGradeEntries}
-							{projectedFinal.toFixed(1)}%
-							<span
-								class="trend-change"
-								aria-label={`Course projection ${courseProjectionDirection}`}
-							>
-								<span class={`trend-icon ${courseProjectionDirection}`}></span>
-								{courseProjectionDelta > 0 ? '+' : ''}{courseProjectionDelta.toFixed(1)}%
-							</span>
-						{:else}
-							--
-						{/if}
-					</span>
-					<span class="index-sub">
-						{hasGradeEntries ? 'if ungraded work hits target' : 'waiting for course grades'}
-					</span>
-				</div>
-				<div class="index-cell">
-					<span class="index-label">Projected GPA</span>
-					<span class={`index-num trend-value ${projectedGpaDirection}`}>
-						{#if hasGradeEntries}
-							{projectedGpa.toFixed(2)}
-							<span class="trend-change" aria-label={`GPA projection ${projectedGpaDirection}`}>
-								<span class={`trend-icon ${projectedGpaDirection}`}></span>
-								{projectedGpaDelta > 0 ? '+' : ''}{projectedGpaDelta.toFixed(2)}
-							</span>
-						{:else}
-							--
-						{/if}
-					</span>
-					<span class="index-sub">
-						{hasGradeEntries ? 'after selected course projection' : 'waiting for course grades'}
-					</span>
-				</div>
-				<div class="index-cell">
-					<span class="index-label">Needed on final</span>
-					<span class="index-num {finalNeeded > 85 ? 'crit' : finalNeeded > 70 ? 'warn' : 'ok'}">
-						{hasGradeEntries ? `${finalNeeded.toFixed(0)}%` : '--'}
-					</span>
-					<span class="index-sub">{finalCategory?.weight ?? 0}% final weight</span>
-				</div>
-				<div class="index-cell">
-					<span class="index-label">Imported weights</span>
-					<span class="index-num">{syllabusWeights.length}</span>
-					<span class="index-sub">{activeCourse.code} categories</span>
-				</div>
-			</section>
-		</section>
-
-		<section class="gpa-projection-panel term-gpa-projection" aria-label="GPA target projection">
-			<div class="target-gpa-box">
-				<label class="target-label font-mono" for="target-gpa">Target GPA</label>
-				<div class="target-control">
-					<input id="target-gpa" type="range" min="2" max="4" step="0.1" bind:value={targetGpa} />
-					<span class="target-value font-display">{targetGpa.toFixed(1)}</span>
-				</div>
-			</div>
-			<div class="gpa-projection-copy">
-				<span class="index-label">GPA target projection</span>
-				<p>
-					{targetGpaDelta <= 0
-						? 'Your projected GPA is already meeting the target.'
-						: `You are ${targetGpaDelta.toFixed(2)} GPA points away from the target.`}
-				</p>
-				<div class="projection-scale compact" aria-label="GPA projection scale">
-					<div class="scale-line">
-						<span style="left: {Math.min(100, (dashboardTotalGpa / 4) * 100)}%"></span>
-						<b style="left: {Math.min(100, (dashboardProjectedGpa / 4) * 100)}%"></b>
-						<i style="left: {Math.min(100, (targetGpa / 4) * 100)}%"></i>
-					</div>
-					<div class="scale-labels font-mono">
-						<span>total {dashboardTotalGpa.toFixed(2)}</span>
-						<span>projected {dashboardProjectedGpa.toFixed(2)}</span>
-						<span>target {targetGpa.toFixed(1)}</span>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<div class="digest-grid">
-			<section class="surface import-panel" aria-label="Import grades">
-				<div class="import-panel-head">
+			<section class="surface course-link" aria-label="Course dashboard selector">
+				<div class="course-link-main">
 					<div>
-						<span class="gpa-kicker font-mono">Grade import</span>
-						<h2>Update {activeCourse.code}</h2>
+						<span class="course-link-label font-mono">Course dashboard selector</span>
+						<h2 class="course-link-title">
+							<span class="course-code font-mono">{activeCourse.code}</span>
+							{activeCourse.name}
+						</h2>
 					</div>
-					<span class="import-badge font-mono">{gradeItems.length} entries</span>
+					<div class="course-link-meta">
+						<span>{activeCourse.term}</span>
+						<span>{activeCourse.instructor}</span>
+						<span>Syllabus Intelligence - grading scheme</span>
+					</div>
 				</div>
-				<p class="panel-copy">
-					Add a score here and the course projection plus GPA projection update immediately.
-				</p>
 
-				<div class="grade-form">
-					<label>
-						<span class="field-label font-mono">Category</span>
-						<select bind:value={selectedCategory}>
-							{#each syllabusWeights as item}
-								<option value={item.category}>{item.category} - {item.weight}%</option>
+				<div class="course-select-box">
+					<label class="field-label font-mono" for="course-select">Switch course</label>
+					<div class="select-shell">
+						<select id="course-select" value={selectedCourseId} onchange={changeCourse}>
+							{#each courses as course (course.id)}
+								<option value={course.id}>{course.code} - {course.name}</option>
 							{/each}
 						</select>
-					</label>
-					<label>
-						<span class="field-label font-mono">Grade name</span>
-						<input bind:value={gradeLabel} placeholder="e.g. Quiz 2" />
-					</label>
-					<div class="score-row">
-						<label>
-							<span class="field-label font-mono">Score</span>
-							<input bind:value={gradeScore} inputmode="decimal" placeholder="18" />
-						</label>
-						<label>
-							<span class="field-label font-mono">Out of</span>
-							<input bind:value={gradeMax} inputmode="decimal" />
-						</label>
+						<span class="dropdown-arrow" aria-hidden="true">v</span>
 					</div>
-					<div class="form-actions">
-						<button type="button" class="btn btn-primary" onclick={addGrade}>add grade</button>
-						<button type="button" class="btn btn-secondary" onclick={importSampleGrades}>
-							import sample
-						</button>
+					<div class="course-link-actions">
+						<!-- eslint-disable svelte/no-navigation-without-resolve -- Course hrefs are assembled from imported route data. -->
+						<a class="btn btn-primary" href={activeCourse.courseHref}>open course</a>
+						<a class="btn btn-secondary" href={activeCourse.syllabusHref}>view syllabus</a>
 					</div>
 				</div>
 			</section>
 
-			<section class="surface projection-panel">
-				<SectionHead title="Grade Projection" meta="what-if" />
-				<div class="target-box course-target-box">
-					<label class="target-label font-mono" for="target-grade">Target grade</label>
+			<section class="course-analytics" aria-label="Selected course grade analytics">
+				<div class="course-analytics-head">
+					<span class="gpa-kicker font-mono">Specific course analytics + projection</span>
+					<h2>{activeCourse.code} Dashboard</h2>
+					<p>The cards below only use grades and syllabus weights from the selected course.</p>
+				</div>
+
+				<section class="index-bar" aria-label="Grade analytics overview">
+					<div class="index-cell">
+						<span class="index-label">Current standing</span>
+						<span class="index-num">{hasGradeEntries ? `${currentAverage.toFixed(1)}%` : '--'}</span
+						>
+						<span class="index-sub">
+							{hasGradeEntries
+								? `${completedWeight}% of ${activeCourse.code} graded`
+								: 'no grade entries yet'}
+						</span>
+					</div>
+					<div class="index-cell">
+						<span class="index-label">Projected result</span>
+						<span class={`index-num trend-value ${courseProjectionDirection}`}>
+							{#if hasGradeEntries}
+								{projectedFinal.toFixed(1)}%
+								<span
+									class="trend-change"
+									aria-label={`Course projection ${courseProjectionDirection}`}
+								>
+									<span class={`trend-icon ${courseProjectionDirection}`}></span>
+									{courseProjectionDelta > 0 ? '+' : ''}{courseProjectionDelta.toFixed(1)}%
+								</span>
+							{:else}
+								--
+							{/if}
+						</span>
+						<span class="index-sub">
+							{hasGradeEntries ? 'if ungraded work hits target' : 'waiting for course grades'}
+						</span>
+					</div>
+					<div class="index-cell">
+						<span class="index-label">Projected GPA</span>
+						<span class={`index-num trend-value ${projectedGpaDirection}`}>
+							{#if hasGradeEntries}
+								{projectedGpa.toFixed(2)}
+								<span class="trend-change" aria-label={`GPA projection ${projectedGpaDirection}`}>
+									<span class={`trend-icon ${projectedGpaDirection}`}></span>
+									{projectedGpaDelta > 0 ? '+' : ''}{projectedGpaDelta.toFixed(2)}
+								</span>
+							{:else}
+								--
+							{/if}
+						</span>
+						<span class="index-sub">
+							{hasGradeEntries ? 'after selected course projection' : 'waiting for course grades'}
+						</span>
+					</div>
+					<div class="index-cell">
+						<span class="index-label">Needed on final</span>
+						<span class="index-num {finalNeeded > 85 ? 'crit' : finalNeeded > 70 ? 'warn' : 'ok'}">
+							{hasGradeEntries ? `${finalNeeded.toFixed(0)}%` : '--'}
+						</span>
+						<span class="index-sub">{finalCategory?.weight ?? 0}% final weight</span>
+					</div>
+					<div class="index-cell">
+						<span class="index-label">Imported weights</span>
+						<span class="index-num">{syllabusWeights.length}</span>
+						<span class="index-sub">{activeCourse.code} categories</span>
+					</div>
+				</section>
+			</section>
+
+			<section class="gpa-projection-panel term-gpa-projection" aria-label="GPA target projection">
+				<div class="target-gpa-box">
+					<label class="target-label font-mono" for="target-gpa">Target GPA</label>
 					<div class="target-control">
-						<input id="target-grade" type="range" min="50" max="100" bind:value={targetGrade} />
-						<span class="target-value font-display">{targetGrade}%</span>
+						<input id="target-gpa" type="range" min="2" max="4" step="0.1" bind:value={targetGpa} />
+						<span class="target-value font-display">{targetGpa.toFixed(1)}</span>
 					</div>
 				</div>
-				<div class="projection-note">
-					{#if hasGradeEntries}
-						<p>
-							To finish at <strong>{targetGrade}%</strong>, your current entries suggest you need
-							<strong>{finalNeeded.toFixed(1)}%</strong> on the final.
-						</p>
+				<div class="gpa-projection-copy">
+					<span class="index-label">GPA target projection</span>
+					<p>
+						{targetGpaDelta <= 0
+							? 'Your projected GPA is already meeting the target.'
+							: `You are ${targetGpaDelta.toFixed(2)} GPA points away from the target.`}
+					</p>
+					<div class="projection-scale compact" aria-label="GPA projection scale">
+						<div class="scale-line">
+							<span style="left: {Math.min(100, (dashboardTotalGpa / 4) * 100)}%"></span>
+							<b style="left: {Math.min(100, (dashboardProjectedGpa / 4) * 100)}%"></b>
+							<i style="left: {Math.min(100, (targetGpa / 4) * 100)}%"></i>
+						</div>
+						<div class="scale-labels font-mono">
+							<span>total {dashboardTotalGpa.toFixed(2)}</span>
+							<span>projected {dashboardProjectedGpa.toFixed(2)}</span>
+							<span>target {targetGpa.toFixed(1)}</span>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<div class="digest-grid">
+				<section class="surface import-panel" aria-label="Import grades">
+					<div class="import-panel-head">
+						<div>
+							<span class="gpa-kicker font-mono">Grade import</span>
+							<h2>Update {activeCourse.code}</h2>
+						</div>
+						<span class="import-badge font-mono">{gradeItems.length} entries</span>
+					</div>
+					<p class="panel-copy">
+						Add a score here and the course projection plus GPA projection update immediately.
+					</p>
+
+					<div class="grade-form">
+						<label>
+							<span class="field-label font-mono">Category</span>
+							<select bind:value={selectedCategory}>
+								{#each syllabusWeights as item (item.category)}
+									<option value={item.category}>{item.category} - {item.weight}%</option>
+								{/each}
+							</select>
+						</label>
+						<label>
+							<span class="field-label font-mono">Grade name</span>
+							<input bind:value={gradeLabel} placeholder="e.g. Quiz 2" />
+						</label>
+						<div class="score-row">
+							<label>
+								<span class="field-label font-mono">Score</span>
+								<input bind:value={gradeScore} inputmode="decimal" placeholder="18" />
+							</label>
+							<label>
+								<span class="field-label font-mono">Out of</span>
+								<input bind:value={gradeMax} inputmode="decimal" />
+							</label>
+						</div>
+						<div class="form-actions">
+							<button type="button" class="btn btn-primary" onclick={addGrade}>add grade</button>
+							<button type="button" class="btn btn-secondary" onclick={importSampleGrades}>
+								import sample
+							</button>
+						</div>
+					</div>
+				</section>
+
+				<section class="surface projection-panel">
+					<SectionHead title="Grade Projection" meta="what-if" />
+					<div class="target-box course-target-box">
+						<label class="target-label font-mono" for="target-grade">Target grade</label>
+						<div class="target-control">
+							<input id="target-grade" type="range" min="50" max="100" bind:value={targetGrade} />
+							<span class="target-value font-display">{targetGrade}%</span>
+						</div>
+					</div>
+					<div class="projection-note">
+						{#if hasGradeEntries}
+							<p>
+								To finish at <strong>{targetGrade}%</strong>, your current entries suggest you need
+								<strong>{finalNeeded.toFixed(1)}%</strong> on the final.
+							</p>
+						{:else}
+							<p>No course grades have been entered yet.</p>
+						{/if}
+					</div>
+
+					<div class="projection-scale" aria-label="Projection scale">
+						<div class="scale-line">
+							{#if hasGradeEntries}
+								<span style="left: {Math.min(100, currentAverage)}%"></span>
+							{/if}
+							<i style="left: {Math.min(100, targetGrade)}%"></i>
+						</div>
+						<div class="scale-labels font-mono">
+							<span>current {hasGradeEntries ? `${currentAverage.toFixed(0)}%` : '--'}</span>
+							<span>target {targetGrade}%</span>
+						</div>
+					</div>
+
+					<div class="weight-list">
+						{#each categoryAnalytics as item (item.category)}
+							<div class="weight-row">
+								<div>
+									<span class="weight-name">{item.category}</span>
+									<span class="weight-source font-mono">{item.source}</span>
+								</div>
+								<div class="weight-right">
+									<span class="weight-num font-mono">{item.weight}%</span>
+									<span class="status-chip {item.status}">
+										{item.average === null ? 'missing' : item.average.toFixed(0) + '%'}
+									</span>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</section>
+			</div>
+
+			<section class="surface-polaroid gradebook">
+				<SectionHead
+					title="Gradebook"
+					meta={`${activeCourse.code} - ${gradeItems.length} entries`}
+				/>
+				<div class="gradebook-list">
+					{#if gradeItems.length > 0}
+						{#each gradeItems as item (item.id)}
+							<div class="grade-row">
+								<div class="grade-main">
+									<span class="grade-category font-mono">{item.category}</span>
+									<span class="grade-name">{item.label}</span>
+								</div>
+								<div class="grade-score">
+									<span class="font-mono">{item.score}/{item.max}</span>
+									<span>{((item.score / item.max) * 100).toFixed(1)}%</span>
+									<button
+										type="button"
+										class="remove-btn"
+										aria-label="Remove grade"
+										onclick={() => removeGrade(item.id)}
+									>
+										x
+									</button>
+								</div>
+							</div>
+						{/each}
 					{:else}
-						<p>No course grades have been entered yet.</p>
+						<p class="empty-gradebook-note">
+							No grade entries yet. Add a score to calculate course performance.
+						</p>
 					{/if}
 				</div>
-
-				<div class="projection-scale" aria-label="Projection scale">
-					<div class="scale-line">
-						{#if hasGradeEntries}
-							<span style="left: {Math.min(100, currentAverage)}%"></span>
-						{/if}
-						<i style="left: {Math.min(100, targetGrade)}%"></i>
-					</div>
-					<div class="scale-labels font-mono">
-						<span>current {hasGradeEntries ? `${currentAverage.toFixed(0)}%` : '--'}</span>
-						<span>target {targetGrade}%</span>
-					</div>
-				</div>
-
-				<div class="weight-list">
-					{#each categoryAnalytics as item}
-						<div class="weight-row">
-							<div>
-								<span class="weight-name">{item.category}</span>
-								<span class="weight-source font-mono">{item.source}</span>
-							</div>
-							<div class="weight-right">
-								<span class="weight-num font-mono">{item.weight}%</span>
-								<span class="status-chip {item.status}">
-									{item.average === null ? 'missing' : item.average.toFixed(0) + '%'}
-								</span>
-							</div>
-						</div>
-					{/each}
-				</div>
 			</section>
-		</div>
-
-		<section class="surface-polaroid gradebook">
-			<SectionHead title="Gradebook" meta={`${activeCourse.code} - ${gradeItems.length} entries`} />
-			<div class="gradebook-list">
-				{#if gradeItems.length > 0}
-					{#each gradeItems as item}
-						<div class="grade-row">
-							<div class="grade-main">
-								<span class="grade-category font-mono">{item.category}</span>
-								<span class="grade-name">{item.label}</span>
-							</div>
-							<div class="grade-score">
-								<span class="font-mono">{item.score}/{item.max}</span>
-								<span>{((item.score / item.max) * 100).toFixed(1)}%</span>
-								<button
-									type="button"
-									class="remove-btn"
-									aria-label="Remove grade"
-									onclick={() => removeGrade(item.id)}
-								>
-									x
-								</button>
-							</div>
-						</div>
-					{/each}
-				{:else}
-					<p class="empty-gradebook-note">
-						No grade entries yet. Add a score to calculate course performance.
-					</p>
-				{/if}
-			</div>
-		</section>
 		{/if}
 	{/if}
 </div>
@@ -1416,7 +1257,9 @@
 			<div class="history-modal-head">
 				<div>
 					<span class="gpa-kicker font-mono">
-						{selectedHistoryHasDetailedGrades ? 'Finished course gradebook' : 'Finished course record'}
+						{selectedHistoryHasDetailedGrades
+							? 'Finished course gradebook'
+							: 'Finished course record'}
 					</span>
 					<h2 id="history-modal-title">{selectedHistoryCourse.code}</h2>
 					<p>{selectedHistoryCourse.name}</p>
@@ -1438,7 +1281,7 @@
 
 			<div class="history-gradebook modal-gradebook">
 				{#if selectedHistoryHasDetailedGrades}
-					{#each selectedHistoryCourse.historyGrades ?? [] as grade}
+					{#each selectedHistoryCourse.historyGrades ?? [] as grade (grade.label)}
 						<div class="history-grade-item">
 							<span>{grade.label}</span>
 							<span class="font-mono">{grade.category}</span>
@@ -2118,15 +1961,13 @@
 	}
 
 	.gpa-card.selected {
-		border-color: #0f766e;
-		background: #d9f5ee;
-		box-shadow: inset 5px 0 0 #0f766e;
+		border-color: var(--ok);
+		background: color-mix(in srgb, var(--ok) 10%, var(--paper));
 	}
 
 	.gpa-card.movement {
-		border-color: #b7791f;
-		background: #fff1c2;
-		box-shadow: inset 5px 0 0 #b7791f;
+		border-color: var(--warn);
+		background: color-mix(in srgb, var(--warn) 14%, var(--paper));
 	}
 
 	.gpa-card strong {
@@ -2209,15 +2050,14 @@
 	}
 
 	.gpa-course-row.current {
-		border-color: #0f766e;
-		background: #e2f7f2;
-		color: #123f3a;
-		box-shadow: inset 5px 0 0 #0f766e;
+		border-color: var(--ok);
+		background: color-mix(in srgb, var(--ok) 8%, var(--paper));
+		color: var(--ink);
 	}
 
 	.gpa-course-row.finished {
 		border-color: #b7791f;
-		background: #fff5d6;
+		background: var(--highlight-soft);
 		color: #5f4212;
 		box-shadow: inset 5px 0 0 #b7791f;
 	}
@@ -2307,7 +2147,7 @@
 
 	.history-modal-meta strong {
 		border: 1px solid #b7791f;
-		background: #ffffff;
+		background: var(--paper);
 		color: var(--ink);
 		font-family: var(--font-display);
 		font-size: 1.2rem;
@@ -2317,7 +2157,7 @@
 
 	.modal-close {
 		border: 1px solid var(--ink);
-		background: #ffffff;
+		background: var(--paper);
 		color: var(--ink);
 		width: 1.8rem;
 		height: 1.8rem;
@@ -2347,7 +2187,7 @@
 		gap: 0.65rem;
 		align-items: center;
 		border: 1px solid rgba(183, 121, 31, 0.24);
-		background: #ffffff;
+		background: var(--paper);
 		color: var(--ink-soft);
 		font-size: 0.78rem;
 		padding: 0.5rem 0.6rem;
@@ -2517,7 +2357,7 @@
 	.projection-note {
 		margin: 1rem 0 1.25rem;
 		padding: 0.95rem 1rem;
-		border-left: 3px solid var(--accent);
+		border: 1px solid var(--accent);
 		background: var(--paper-shelf);
 		color: var(--ink);
 	}

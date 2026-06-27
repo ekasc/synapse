@@ -1,5 +1,4 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { sql } from 'drizzle-orm';
 import * as schema from '../db/d1-schema';
 
 // ── Types ──

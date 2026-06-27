@@ -225,9 +225,12 @@
 		isResetting = true;
 		apiError = '';
 		try {
-			const response = await fetch(`/api/syllabus?courseId=${encodeURIComponent(selectedCourseId)}`, {
-				method: 'DELETE'
-			});
+			const response = await fetch(
+				`/api/syllabus?courseId=${encodeURIComponent(selectedCourseId)}`,
+				{
+					method: 'DELETE'
+				}
+			);
 			if (!response.ok) throw new Error('Could not reset syllabus import');
 			syllabus = null;
 			selectedSyllabusFile = null;
@@ -303,7 +306,7 @@
 					disabled={courseOptions.length === 0 || isExtracting || isResetting}
 					onchange={changeCourse}
 				>
-					{#each courseOptions as course}
+					{#each courseOptions as course (course.id)}
 						<option value={course.id}>{course.code} - {course.name}</option>
 					{/each}
 				</select>
@@ -516,12 +519,12 @@
 					{:else}
 						<label class="btn btn-secondary upload-material">
 							<input
-							type="file"
-							accept="application/pdf"
-							aria-label="Upload textbook PDF"
-							disabled={!selectedCourseId}
-							onchange={uploadTextbook}
-						/>
+								type="file"
+								accept="application/pdf"
+								aria-label="Upload textbook PDF"
+								disabled={!selectedCourseId}
+								onchange={uploadTextbook}
+							/>
 							Upload textbook PDF
 						</label>
 					{/if}

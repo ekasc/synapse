@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolveRoute } from '$app/paths';
 	type Week = {
 		stamp: string;
 		entry: string;
@@ -37,8 +38,6 @@
 			data: "fall '25 closed · spring '26 starts"
 		}
 	];
-
-	let whatIf = $state(false);
 
 	type Query = {
 		q: string;
@@ -105,7 +104,7 @@
 					<p class="cover-sub">
 						A notebook for your degree — every course, grade, and deadline, on one connected page.
 					</p>
-					<a href="/app" class="cover-cta">
+					<a href={resolveRoute('/app')} class="cover-cta">
 						<span class="cta-label">open your notebook</span>
 						<svg class="cta-arrow" viewBox="0 0 40 20" aria-hidden="true">
 							<path
@@ -597,7 +596,7 @@
 		<h2 id="cta-heading" class="cta-title font-hand">
 			your degree is <span class="highlighter">one graph</span>, not four semesters
 		</h2>
-		<a href="/app" class="cta-button"> open your notebook → </a>
+		<a href={resolveRoute('/app')} class="cta-button"> open your notebook → </a>
 	</section>
 
 	<div class="rough-divider" aria-hidden="true"></div>
@@ -620,8 +619,6 @@
 	:global(body) {
 		background: var(--paper);
 	}
-
-	
 
 	/* ============================================================
 	   SECTION SCAFFOLD

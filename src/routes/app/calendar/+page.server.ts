@@ -21,7 +21,7 @@ export async function load(event: RequestEvent) {
 	const courseColors: CourseColor[] = courses.map((c) => ({
 		code: c.code,
 		color: c.color ?? '#1a1814',
-		name: c.name,
+		name: c.name
 	}));
 
 	return { events: manualEvents, courseColors };

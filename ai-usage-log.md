@@ -452,12 +452,14 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **What came back across ~15 turns:**
 
 **D1 Infrastructure:**
+
 - New D1 schema (`briefings`, `briefing_jobs`, `prompt_cache`, `insights` tables)
 - D1 client helper with full CRUD (`getBriefs`, `saveBrief`, `deleteBrief` — also cleans jobs + cache)
 - Drizzle config for D1 migrations
 - Migration files for all tables, applied to both local and remote D1
 
 **Async Job Queue:**
+
 - `createBriefingRunner()` in `src/lib/server/briefing/runner.ts` with `claimNextJob`, `createJob`, `completeJob`, `failJob`, `getJobs`, `getJob`, `getAllJobs`, `cancelJob` + prompt cache (7-day TTL)
 - `POST /api/briefing/jobs` — creates a job, fires background processing via `platform.ctx.waitUntil`
 - `GET /api/briefing/jobs?courseCode=X` — list jobs for a course
@@ -465,17 +467,20 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Output validation module (`src/lib/server/briefing/validation.ts`)
 
 **Frontend:**
+
 - Full async UI: create job → poll every 2s → 3-step visual progress tracker (Queued → Researching → Complete) with animated pulse dot
 - Delete button with confirmation two-step flow
 - Retry button on failure
 
 **LLM Integration:**
+
 - Switched from `process.env` → `$env/dynamic/private`
 - Fixed `response_format` incompatibility with DeepSeek models
 - Added `plugins: [{ id: "web" }]` for actual web search
 - Fixed response parsing: `content` fallback → `reasoning`, JSON extraction by brace matching (handles thinking tokens)
 
 **What I changed:**
+
 - Fixed `platform.ctx.waitUntil` being a no-op in dev mode (fired promise directly)
 - Removed `lastSuccess` shortcut that bypassed job creation
 - Fixed cache key to use stable context hash (excluded timestamp)
@@ -498,11 +503,13 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **What came back:** All 10 components updated to use the Field Notebook design system tokens (`var(--paper)`, `var(--ink)`, `var(--highlight)`, `var(--ink-soft)`), flat corners (`border-radius: 0`), consistent focus styles (highlight for inputs, ink for buttons), and proper transitions with `var(--ease-out-quart)`.
 
 **What I changed:**
+
 - ToggleGroup selected state: solid ink bg → highlighter yellow per DESIGN.md
 - Button primary hover: hardcoded `#2a2a27` → `var(--ink)` with opacity
 - Input disabled bg: hand-mixed rgba → `var(--paper-edge)`
 
 **Follow-up: Delight skill (June 25):**
+
 - Checkbox: stamp-pop scale animation on check
 - Dialog/AlertDialog: gentle fade-in entrance animation
 - DropdownMenu: scale + translate entrance
@@ -524,6 +531,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **Context:** The DESIGN.md was written when most app pages were placeholders. It still described the Syllabus Intelligence feature as a future direction, listed Calendar/Digest/Practice as placeholder pages, and didn't document the actual interactive controls, theme tokens, or sidebar behavior.
 
 **What came back:** Complete DESIGN.md rewrite:
+
 - Colors section: added `--paper-shelf`, `--rule` variants, `--subject-*` fills, `--ease-out-quart`, `--sidebar-width`
 - Typography: added `--font-display` (Source Serif 4) and `--font-mono` (JetBrains Mono) usage rules
 - New sections: "Animations and Motion" (every component's transition documented), "Interactive Controls" (bits-ui primitive specs)
@@ -547,6 +555,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **What came back across 3 rounds:**
 
 **Round 1 — CSS consolidation:**
+
 - Replaced `#fbf8f0` → `var(--surface-paper)`, `#2e2e28` → `var(--ink)` with opacity
 - Added CSS variables: `--surface-paper`, `--border-faint`, `--border-soft`, `--border-input`, `--backdrop-overlay`, `--backdrop-faint`
 - Semantic z-index scale through `--z-*` variables in layout.css
@@ -555,12 +564,14 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Kalam 400 font import removed (only 700 used)
 
 **Round 2 — Breakpoints + structure:**
+
 - Standardized from 13 disjoint breakpoints to 3: 640px / 768px / 1024px
 - Fixed sidebar/FAB overlap at 768px (sidebar hides at 767px)
 - Unified max-widths: 1100px (list pages), 900px (detail pages), 500px (flashcard)
 - Fixed unused imports, removed dead CSS classes, collapsed malformed button HTML
 
 **Round 3 — Overflow:**
+
 - Syllabus grid column `minmax(480px, 1.4fr)` → `1fr` (was overflowing 1100px container)
 - Added `overflow: hidden` + `text-overflow: ellipsis` to sidebar labels, code cells, material actions
 - Added `overflow-wrap: break-word` to brief field values, practice questions, calendar items
@@ -581,6 +592,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **What came back:**
 
 **Google removal:**
+
 - Deleted all Google API routes (authorize, callback, disconnect, status, sync)
 - Deleted `src/lib/server/google/calendar.ts`
 - Removed GoogleTokenStore, GoogleSyncedEvent, all Google functions from store.ts
@@ -588,18 +600,21 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Cleaned env vars from `.env`, `.env.example`, `env.d.ts`, `wrangler.jsonc`
 
 **Enhanced calendar_events schema:**
+
 - Added `grade_weight` (integer, percentage of final grade)
 - Added `status` (pending / completed / at_risk)
 - Added `notes` (free text)
 - D1 migration applied to both local and remote
 
 **Calendar intelligence module (`src/lib/server/calendar/intelligence.ts`):**
+
 - Crunch detection: clusters events within 4 days, calculates density score + total grade weight at stake
 - Grade stakes: per-event weight, impact per point, links to course grades
 - Study gaps: long gaps between events for same course → review suggestions
 - Full context string: human-readable summary for AI features (digest, practice, brief)
 
 **Mindblowing calendar UI:**
+
 - Grade weight bars in month grid cells
 - Crunch zone cards in sidebar (red-bordered, events listed, weight at stake)
 - Weight visualization bar charts
@@ -610,6 +625,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Removed cluttered course legend (sidebar filter chips suffice)
 
 **What I changed:**
+
 - Fixed multiple `{@const}` scoping issues in Svelte 5 template
 - Fixed orphaned `{/if}` from removed empty state
 - Removed outer `events.length > 0` guard hiding the entire sidebar
@@ -632,12 +648,14 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **What came back:**
 
 **Infrastructure:**
+
 - `getAllJobs()` in runner — returns last 100 jobs across all courses
 - `cancelJob()` — cancels queued/running jobs
 - `GET /api/briefing/activity` — list all jobs
 - `POST /api/briefing/activity` with `{ action: 'cancel', jobId }` — cancel endpoint
 
 **Activity page (`/app/activity`):**
+
 - Full job list with status indicators (queued/running/succeeded/failed/canceled)
 - Timestamps with relative time ("3m ago", "2h ago")
 - Error messages displayed inline
@@ -646,6 +664,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Marks jobs as read on visit via localStorage
 
 **Sidebar badge system (`+layout.svelte`):**
+
 - Polls activity API every 10s
 - **Job running**: pulsing amber dot next to "Activity"
 - **Completed + unread**: red badge with count
@@ -653,6 +672,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Works on both desktop sidebar and mobile FAB nav
 
 **Code quality fixes (round 2 — "make sure its not hacky"):**
+
 - Activity page: removed dead `statusVariant()` function, fixed loading flicker on polling refetches
 - Activity API: added JSON parse error handling, jobId type/empty validation
 - Layout: added error logging to catch block, fixed interval leak (cleanup uses local id ref), fixed fragile localStorage fallback
@@ -687,6 +707,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **Context:** The Course Briefing agent was too willing to stop after the first official catalog result. In the CSIS 3560 / Gabriel Vitus / Douglas College test case, it leaned on an old 2021 outline, failed to work hard enough on professor/RMP evidence, and treated OpenRouter-injected search snippets as if they were user-provided context. The app was also still using the older OpenRouter plugin-style web search format.
 
 **What changed:**
+
 - Moved the briefing instructions into `src/lib/server/briefing/prompt.ts` as a shared prompt module used by both briefing endpoints.
 - Reworked the system prompt for DeepSeek v4 Flash: JSON-only output, no markdown, no extra keys, compact fields, no invented facts, and explicit null/empty-array behavior.
 - Added mandatory search coverage: course + institution, course outline/syllabus, timetable/section instructor, professor + institution, professor + course, professor + RateMyProfessor.
@@ -699,6 +720,7 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Configured the web tool to use Exa, request more total search results, medium search context, and exclude `cliffsnotes.com`.
 
 **What I changed during review:**
+
 - Removed the old `COURSE_BRIEFING_WEB_PLUGIN` path entirely from briefing endpoints.
 - Updated both `POST /api/briefing/jobs` and `POST /api/brief` to use the shared `COURSE_BRIEFING_WEB_TOOL`.
 - Kept validation as the final safety net: `extractBriefingJson()` and `validateBriefingPayload()` still reject malformed JSON, missing found sources, fake found URLs, and unsupported output shapes before storage.
@@ -709,17 +731,17 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 
 ## Summary of AI Usage Pattern (Updated June 26)
 
-| Phase | Tool | Prompt Count | AI Output | Human Review |
-|-------|------|--------------|-----------|-------------|
-| ... | ... | ... | (entries 1–15 unchanged) | ... |
-| Course Brief → D1 + async jobs | Codex | ~15 | D1 schema, job queue runner, full-stack async UI, LLM integration | Web search format fix, reasoning response parsing, cache key stability, interval lifecycle |
-| Bits-ui theme alignment | Codex | 2 | 10 components rewired to design tokens | ToggleGroup selected state, Button primary hover, Input disabled bg |
-| DESIGN.md rewrite | Codex | 1 | Full 13-section design document | Every section updated to match actual codebase |
-| UI audit + repair | Codex | ~6 | CSS consolidation, breakpoints, overflow, unused code removal | Reverted one wrong grid cell fix, kept Google blue as intentional brand color |
-| Calendar intelligence | Codex | ~8 | Google removal, D1 CRUD, crunch/gap/stakes engine, enhanced UI | Multiple template scoping fixes, sidebar visibility bug, popover accessibility |
-| Activity page + sidebar badge | Codex | ~3 | Runner functions, API endpoint, activity page, sidebar polling/badge system | Fixed infinite $effect loop, added input validation, fixed interval leak |
-| AI usage log | Codex | 1 | This entry | All session entries verified against what shipped |
-| Course briefing prompt hardening | Codex | ~6 | Shared prompt module, strict research protocol, OpenRouter server-tool web search | Adjusted for DeepSeek Flash, stale-source handling, professor/RMP search coverage, validation-backed output |
+| Phase                            | Tool  | Prompt Count | AI Output                                                                         | Human Review                                                                                                |
+| -------------------------------- | ----- | ------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ...                              | ...   | ...          | (entries 1–15 unchanged)                                                          | ...                                                                                                         |
+| Course Brief → D1 + async jobs   | Codex | ~15          | D1 schema, job queue runner, full-stack async UI, LLM integration                 | Web search format fix, reasoning response parsing, cache key stability, interval lifecycle                  |
+| Bits-ui theme alignment          | Codex | 2            | 10 components rewired to design tokens                                            | ToggleGroup selected state, Button primary hover, Input disabled bg                                         |
+| DESIGN.md rewrite                | Codex | 1            | Full 13-section design document                                                   | Every section updated to match actual codebase                                                              |
+| UI audit + repair                | Codex | ~6           | CSS consolidation, breakpoints, overflow, unused code removal                     | Reverted one wrong grid cell fix, kept Google blue as intentional brand color                               |
+| Calendar intelligence            | Codex | ~8           | Google removal, D1 CRUD, crunch/gap/stakes engine, enhanced UI                    | Multiple template scoping fixes, sidebar visibility bug, popover accessibility                              |
+| Activity page + sidebar badge    | Codex | ~3           | Runner functions, API endpoint, activity page, sidebar polling/badge system       | Fixed infinite $effect loop, added input validation, fixed interval leak                                    |
+| AI usage log                     | Codex | 1            | This entry                                                                        | All session entries verified against what shipped                                                           |
+| Course briefing prompt hardening | Codex | ~6           | Shared prompt module, strict research protocol, OpenRouter server-tool web search | Adjusted for DeepSeek Flash, stale-source handling, professor/RMP search coverage, validation-backed output |
 
 **Key principle (this session):** The most valuable pattern was the D1-backed async job queue — it made the entire app's AI features (briefing, future digest, practice) follow the same reliable pattern: create job → poll → display result. Everything after that was scaffolding on the same foundation.
 

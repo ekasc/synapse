@@ -19,7 +19,9 @@
 		border: 1px solid rgba(26, 26, 23, 0.28);
 		border-radius: 0;
 		background: var(--paper);
-		transition: border-color 0.15s var(--ease-out-quart), box-shadow 0.15s var(--ease-out-quart);
+		transition:
+			border-color 0.15s var(--ease-out-quart),
+			box-shadow 0.15s var(--ease-out-quart);
 		color: var(--ink);
 		font: inherit;
 	}

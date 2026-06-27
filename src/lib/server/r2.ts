@@ -107,10 +107,7 @@ export async function updateMaterialRecord(
 	return all[idx];
 }
 
-export async function deleteMaterialRecord(
-	bucket: R2Bucket,
-	id: string
-): Promise<boolean> {
+export async function deleteMaterialRecord(bucket: R2Bucket, id: string): Promise<boolean> {
 	const all = await readIndex(bucket);
 	const target = all.find((m) => m.id === id);
 	if (!target) return false;
@@ -125,7 +122,7 @@ export async function deleteMaterialRecord(
 export async function getMaterialStream(
 	bucket: R2Bucket,
 	material: MaterialRecord
-): Promise<ReadableStream<any> | null> {
+): Promise<ReadableStream<Uint8Array> | null> {
 	const obj = await bucket.get(materialKey(material));
 	return obj?.body ?? null;
 }
@@ -222,9 +219,7 @@ export function deleteMaterialRecordFallback(id: string): boolean {
 	return true;
 }
 
-export function getMaterialStreamFallback(
-	material: MaterialRecord
-): Buffer {
+export function getMaterialStreamFallback(material: MaterialRecord): Buffer {
 	const filePath = path.join(FALLBACK_DIR, `${material.id}-${material.fileName}`);
 	return fs.readFileSync(filePath);
 }

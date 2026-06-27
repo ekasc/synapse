@@ -175,15 +175,15 @@ Output schema:
 
 ## Synapse Adaptation
 
-| Ackd (reference) | Synapse |
-|---|---|
-| Application entity | Course entity |
-| Company + role context | Syllabus data + grades + deadlines |
-| Talking points about company | Study recommendations for the week |
-| Red flags about company | At-risk courses (low grade, heavy workload) |
-| Questions to ask at interview | Questions to ask professor / study tips |
-| Job search analytics | Grade trend + deadline density analytics |
-| Stage events (applied→interview→offer) | Grade events (midterm→assignment→final) |
+| Ackd (reference)                       | Synapse                                     |
+| -------------------------------------- | ------------------------------------------- |
+| Application entity                     | Course entity                               |
+| Company + role context                 | Syllabus data + grades + deadlines          |
+| Talking points about company           | Study recommendations for the week          |
+| Red flags about company                | At-risk courses (low grade, heavy workload) |
+| Questions to ask at interview          | Questions to ask professor / study tips     |
+| Job search analytics                   | Grade trend + deadline density analytics    |
+| Stage events (applied→interview→offer) | Grade events (midterm→assignment→final)     |
 
 ### What Changes Per Entity
 
@@ -245,12 +245,12 @@ CREATE TABLE agent_insights (
 
 ```typescript
 interface BriefingState {
-  data: BriefingOutput | null
-  loading: boolean
-  error: string | null
-  errorCode: string | null
-  job: BriefingJob | null
-  updatedAt: string | null
+	data: BriefingOutput | null;
+	loading: boolean;
+	error: string | null;
+	errorCode: string | null;
+	job: BriefingJob | null;
+	updatedAt: string | null;
 }
 
 // On mount:
@@ -272,6 +272,7 @@ interface BriefingState {
 ## Implementation Status (2026-06-25)
 
 ### Implemented
+
 - **Async job queue** with `briefing_jobs` D1 table, `createJob`/`claimNextJob`/`completeJob`/`failJob`
 - **Caching** with `prompt_cache` D1 table, 7-day TTL, SHA-256 context hash cache keys
 - **Output validation** (`src/lib/server/briefing/validation.ts`) — source kind normalization, URL validation, minimum content checks
@@ -279,20 +280,22 @@ interface BriefingState {
 - **Database migrations** — applied to both local and remote D1
 
 ### Deferred (architecture doc references)
-| Feature | Reason |
-|---|---|
-| Billing/quota integration | No billing system yet |
-| Insights table population | Dashboard integration pending |
-| Generic entity system | Currently hardcoded to course briefings |
+
+| Feature                             | Reason                                                               |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| Billing/quota integration           | No billing system yet                                                |
+| Insights table population           | Dashboard integration pending                                        |
+| Generic entity system               | Currently hardcoded to course briefings                              |
 | `SELECT ... FOR UPDATE SKIP LOCKED` | SQLite/D1 limitation — uses `UPDATE ... LIMIT 1 RETURNING *` instead |
 
 ### Key Files
-| File | Purpose |
-|---|---|
-| `src/lib/server/db/d1-schema.ts` | All D1 table definitions |
-| `src/lib/server/briefing/runner.ts` | Job queue + cache operations |
-| `src/lib/server/briefing/validation.ts` | Output validation |
-| `src/routes/api/briefing/jobs/+server.ts` | Job CRUD + background processing |
-| `src/routes/api/briefing/jobs/[id]/+server.ts` | Single job polling endpoint |
-| `migrations/0000_create_briefings.sql` | Initial briefings table |
-| `migrations/0001_briefing_jobs_cache_insights.sql` | Job queue + cache + insights |
+
+| File                                               | Purpose                          |
+| -------------------------------------------------- | -------------------------------- |
+| `src/lib/server/db/d1-schema.ts`                   | All D1 table definitions         |
+| `src/lib/server/briefing/runner.ts`                | Job queue + cache operations     |
+| `src/lib/server/briefing/validation.ts`            | Output validation                |
+| `src/routes/api/briefing/jobs/+server.ts`          | Job CRUD + background processing |
+| `src/routes/api/briefing/jobs/[id]/+server.ts`     | Single job polling endpoint      |
+| `migrations/0000_create_briefings.sql`             | Initial briefings table          |
+| `migrations/0001_briefing_jobs_cache_insights.sql` | Job queue + cache + insights     |

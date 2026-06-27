@@ -125,8 +125,8 @@
 	let dragOver = $state(false);
 	let deletingId = $state<string | null>(null);
 	let selectedMaterial = $state<Material | null>(null);
-let renamingId = $state<string | null>(null);
-let renameValue = $state('');
+	let renamingId = $state<string | null>(null);
+	let renameValue = $state('');
 
 	const totalSize = $derived(materials.reduce((sum, m) => sum + m.size, 0));
 
@@ -193,7 +193,7 @@ let renameValue = $state('');
 				body: JSON.stringify({ id, fileName: renameValue.trim() })
 			});
 			if (!res.ok) {
-				const body = await res.json().catch(() => null) as { error?: string } | null;
+				const body = (await res.json().catch(() => null)) as { error?: string } | null;
 				uploadError = body?.error ?? 'Rename failed';
 				return;
 			}
@@ -447,12 +447,15 @@ let renameValue = $state('');
 						<div class="material-kind font-mono">{fileKind(material.mimeType)}</div>
 						<div class="material-info">
 							<!-- eslint-disable svelte/no-navigation-without-resolve -- href is an API download endpoint, not an app route -->
-								{#if renamingId === material.id}
+							{#if renamingId === material.id}
 								<input
 									type="text"
 									class="rename-input font-mono"
 									bind:value={renameValue}
-									onkeydown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') cancelRename(); }}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') commitRename();
+										if (e.key === 'Escape') cancelRename();
+									}}
 									onblur={commitRename}
 									autofocus
 									aria-label="Rename file"
@@ -676,12 +679,6 @@ let renameValue = $state('');
 	.state-empty {
 		color: var(--ink-faint);
 	}
-
-	
-
-	
-
-	
 
 	.state-next {
 		font-size: 0.95rem;

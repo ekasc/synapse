@@ -34,12 +34,20 @@ export type CalendarEventRow = {
 	updatedAt: string;
 };
 
-function rowToBriefing(row: { [key: string]: unknown }): Briefing {
-	let gradeStructure: { item: string; weight: string }[] = [];
-	let sources: { description: string; url?: string; found: boolean }[] = [];
+function parseJsonField<T>(value: unknown, fallback: T): T {
+	try {
+		return JSON.parse(String(value)) as T;
+	} catch {
+		return fallback;
+	}
+}
 
-	try { gradeStructure = JSON.parse(row.gradeStructure as string); } catch {}
-	try { sources = JSON.parse(row.sources as string); } catch {}
+function rowToBriefing(row: { [key: string]: unknown }): Briefing {
+	const gradeStructure = parseJsonField<{ item: string; weight: string }[]>(row.gradeStructure, []);
+	const sources = parseJsonField<{ description: string; url?: string; found: boolean }[]>(
+		row.sources,
+		[]
+	);
 
 	return {
 		code: String(row.code),
@@ -69,39 +77,60 @@ export function createDb(binding: D1Database) {
 		},
 
 		getBrief: async (code: string): Promise<Briefing | undefined> => {
-			const row = await db.select().from(schema.briefings)
+			const row = await db
+				.select()
+				.from(schema.briefings)
 				.where(sql`upper(${schema.briefings.code}) = upper(${code})`)
 				.get();
 			return row ? rowToBriefing(row) : undefined;
 		},
 
 		saveBrief: async (brief: Briefing): Promise<void> => {
-			await db.insert(schema.briefings).values({
-				code: brief.code, name: brief.name, institution: brief.institution,
-				professor: brief.professor, rmpRating: brief.rmpRating,
-				rmpCount: brief.rmpCount ?? null, workload: brief.workload,
-				weeklyHours: brief.weeklyHours ?? null, prereqReadiness: brief.prereqReadiness,
-				gradeStructure: JSON.stringify(brief.gradeStructure),
-				recommendation: brief.recommendation, sources: JSON.stringify(brief.sources),
-				researchedAt: brief.researchedAt
-			}).onConflictDoUpdate({
-				target: schema.briefings.code,
-				set: {
-					name: brief.name, institution: brief.institution, professor: brief.professor,
-					rmpRating: brief.rmpRating, rmpCount: brief.rmpCount ?? null,
-					workload: brief.workload, weeklyHours: brief.weeklyHours ?? null,
+			await db
+				.insert(schema.briefings)
+				.values({
+					code: brief.code,
+					name: brief.name,
+					institution: brief.institution,
+					professor: brief.professor,
+					rmpRating: brief.rmpRating,
+					rmpCount: brief.rmpCount ?? null,
+					workload: brief.workload,
+					weeklyHours: brief.weeklyHours ?? null,
 					prereqReadiness: brief.prereqReadiness,
 					gradeStructure: JSON.stringify(brief.gradeStructure),
-					recommendation: brief.recommendation, sources: JSON.stringify(brief.sources),
+					recommendation: brief.recommendation,
+					sources: JSON.stringify(brief.sources),
 					researchedAt: brief.researchedAt
-				}
-			});
+				})
+				.onConflictDoUpdate({
+					target: schema.briefings.code,
+					set: {
+						name: brief.name,
+						institution: brief.institution,
+						professor: brief.professor,
+						rmpRating: brief.rmpRating,
+						rmpCount: brief.rmpCount ?? null,
+						workload: brief.workload,
+						weeklyHours: brief.weeklyHours ?? null,
+						prereqReadiness: brief.prereqReadiness,
+						gradeStructure: JSON.stringify(brief.gradeStructure),
+						recommendation: brief.recommendation,
+						sources: JSON.stringify(brief.sources),
+						researchedAt: brief.researchedAt
+					}
+				});
 		},
 
 		deleteBrief: async (code: string): Promise<void> => {
-			await db.delete(schema.briefings).where(sql`upper(${schema.briefings.code}) = upper(${code})`);
-			const jobs = await binding.prepare('SELECT cache_key FROM briefing_jobs WHERE course_code = ?').bind(code).all<{ cache_key: string }>();
-			const cacheKeys = jobs.results?.map(r => r.cache_key) ?? [];
+			await db
+				.delete(schema.briefings)
+				.where(sql`upper(${schema.briefings.code}) = upper(${code})`);
+			const jobs = await binding
+				.prepare('SELECT cache_key FROM briefing_jobs WHERE course_code = ?')
+				.bind(code)
+				.all<{ cache_key: string }>();
+			const cacheKeys = jobs.results?.map((r) => r.cache_key) ?? [];
 			await binding.prepare('DELETE FROM briefing_jobs WHERE course_code = ?').bind(code).run();
 			for (const key of cacheKeys) {
 				await binding.prepare('DELETE FROM prompt_cache WHERE cache_key = ?').bind(key).run();
@@ -125,30 +154,59 @@ export function createDb(binding: D1Database) {
 				status: r.status ? String(r.status) : null,
 				notes: r.notes ? String(r.notes) : null,
 				createdAt: String(r.createdAt),
-				updatedAt: String(r.updatedAt),
+				updatedAt: String(r.updatedAt)
 			}));
 		},
 
-		createCalendarEvent: async (ev: Omit<CalendarEventRow, 'createdAt' | 'updatedAt'>): Promise<void> => {
+		createCalendarEvent: async (
+			ev: Omit<CalendarEventRow, 'createdAt' | 'updatedAt'>
+		): Promise<void> => {
 			const now = new Date().toISOString();
 			await db.insert(ce).values({
-				id: ev.id, courseCode: ev.courseCode, title: ev.title,
-				type: ev.type, date: ev.date, month: ev.month, year: ev.year,
-				time: ev.time ?? null, gradeWeight: ev.gradeWeight ?? null,
-				status: ev.status ?? null, notes: ev.notes ?? null,
-				createdAt: now, updatedAt: now,
+				id: ev.id,
+				courseCode: ev.courseCode,
+				title: ev.title,
+				type: ev.type,
+				date: ev.date,
+				month: ev.month,
+				year: ev.year,
+				time: ev.time ?? null,
+				gradeWeight: ev.gradeWeight ?? null,
+				status: ev.status ?? null,
+				notes: ev.notes ?? null,
+				createdAt: now,
+				updatedAt: now
 			});
 		},
 
-		updateCalendarEvent: async (id: string, ev: Partial<Omit<CalendarEventRow, 'id' | 'createdAt' | 'updatedAt'>>): Promise<void> => {
+		updateCalendarEvent: async (
+			id: string,
+			ev: Partial<Omit<CalendarEventRow, 'id' | 'createdAt' | 'updatedAt'>>
+		): Promise<void> => {
 			const now = new Date().toISOString();
-			await binding.prepare(
-				'UPDATE calendar_events SET title = ?, type = ?, date = ?, month = ?, year = ?, time = ?, course_code = ?, grade_weight = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?'
-			).bind(ev.title ?? '', ev.type ?? 'assignment', ev.date ?? 1, ev.month ?? 0, ev.year ?? 2026, ev.time ?? null, ev.courseCode ?? '', ev.gradeWeight ?? null, ev.status ?? null, ev.notes ?? null, now, id).run();
+			await binding
+				.prepare(
+					'UPDATE calendar_events SET title = ?, type = ?, date = ?, month = ?, year = ?, time = ?, course_code = ?, grade_weight = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?'
+				)
+				.bind(
+					ev.title ?? '',
+					ev.type ?? 'assignment',
+					ev.date ?? 1,
+					ev.month ?? 0,
+					ev.year ?? 2026,
+					ev.time ?? null,
+					ev.courseCode ?? '',
+					ev.gradeWeight ?? null,
+					ev.status ?? null,
+					ev.notes ?? null,
+					now,
+					id
+				)
+				.run();
 		},
 
 		deleteCalendarEvent: async (id: string): Promise<void> => {
 			await db.delete(ce).where(sql`${ce.id} = ${id}`);
-		},
+		}
 	};
 }

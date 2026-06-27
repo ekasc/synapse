@@ -57,9 +57,15 @@
 	}
 
 	@keyframes ui-check-pop {
-		0% { transform: scale(0.85); }
-		50% { transform: scale(1.12); }
-		100% { transform: scale(1); }
+		0% {
+			transform: scale(0.85);
+		}
+		50% {
+			transform: scale(1.12);
+		}
+		100% {
+			transform: scale(1);
+		}
 	}
 
 	:global(.ui-checkbox:active) {

@@ -199,7 +199,9 @@
 			.sort((a, b) => slideNumber(a) - slideNumber(b));
 
 		const parsedSlides = await Promise.all(
-			slideFiles.map(async (name) => parseSlide(await zip.files[name].async('string'), slideNumber(name)))
+			slideFiles.map(async (name) =>
+				parseSlide(await zip.files[name].async('string'), slideNumber(name))
+			)
 		);
 		if (loadId !== activeLoadId) return;
 
@@ -283,11 +285,7 @@
 		const name = target.fileName.toLowerCase();
 		const mime = target.mimeType.toLowerCase();
 		if (mime === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
-		if (
-			mime.includes('wordprocessingml') ||
-			mime.includes('msword') ||
-			name.endsWith('.docx')
-		) {
+		if (mime.includes('wordprocessingml') || mime.includes('msword') || name.endsWith('.docx')) {
 			return 'docx';
 		}
 		if (mime.includes('presentationml') || mime.includes('powerpoint') || name.endsWith('.pptx')) {
@@ -325,8 +323,14 @@
 					<h2 class="viewer-title">{fileName}</h2>
 				</div>
 				<div class="viewer-actions">
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- downloadUrl points to a generated file/API URL. -->
 					<a class="viewer-download font-mono" href={downloadUrl} download={fileName}>download</a>
-					<button type="button" class="viewer-close" onclick={onClose} aria-label="Close document viewer">
+					<button
+						type="button"
+						class="viewer-close"
+						onclick={onClose}
+						aria-label="Close document viewer"
+					>
 						×
 					</button>
 				</div>
@@ -345,7 +349,8 @@
 						<canvas bind:this={canvasRef} class="pdf-canvas"></canvas>
 					</div>
 				{:else if fileType === 'docx' && docxSrcdoc}
-					<iframe title={`${fileName} preview`} srcdoc={docxSrcdoc} sandbox="" class="docx-frame"></iframe>
+					<iframe title={`${fileName} preview`} srcdoc={docxSrcdoc} sandbox="" class="docx-frame"
+					></iframe>
 				{:else if fileType === 'pptx'}
 					<div class="slide-list">
 						{#each slides as slide (slide.number)}
@@ -371,9 +376,16 @@
 
 			{#if fileType === 'pdf' && totalPages > 1}
 				<footer class="viewer-footer">
-					<Button variant="secondary" size="sm" disabled={pageNum <= 1} onclick={goToPrevPage}>Previous</Button>
+					<Button variant="secondary" size="sm" disabled={pageNum <= 1} onclick={goToPrevPage}
+						>Previous</Button
+					>
 					<span class="page-count font-mono">{pageNum} / {totalPages}</span>
-					<Button variant="secondary" size="sm" disabled={pageNum >= totalPages} onclick={goToNextPage}>Next</Button>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={pageNum >= totalPages}
+						onclick={goToNextPage}>Next</Button
+					>
 				</footer>
 			{/if}
 		</div>

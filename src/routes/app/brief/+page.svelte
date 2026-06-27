@@ -170,9 +170,11 @@
 
 			if (job.status === 'succeeded' && job.output) {
 				try {
-					const parsed = JSON.parse(job.output);
-					selectedCode = parsed.code;
-				} catch {}
+					const parsed = JSON.parse(job.output) as { code?: string };
+					if (parsed.code) selectedCode = parsed.code;
+				} catch {
+					selectedCode = null;
+				}
 				await invalidateAll();
 				researching = false;
 				return;
@@ -498,6 +500,7 @@
 					<div class="source-list">
 						{#each selected.sources as source, i (i)}
 							{#if source.url}
+								<!-- eslint-disable svelte/no-navigation-without-resolve -- Source URLs are external research links. -->
 								<a
 									class="source-item"
 									class:source-found={source.found}
@@ -509,6 +512,7 @@
 									{source.found ? '✓' : '✗'}
 									{source.description}
 								</a>
+								<!-- eslint-enable svelte/no-navigation-without-resolve -->
 							{:else}
 								<span
 									class="source-item"

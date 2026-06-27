@@ -16,7 +16,13 @@ export async function POST({ request, platform }: RequestEvent) {
 		gradeWeight?: number;
 	};
 
-	if (!body.title || !body.courseCode || body.date == null || body.month == null || body.year == null) {
+	if (
+		!body.title ||
+		!body.courseCode ||
+		body.date == null ||
+		body.month == null ||
+		body.year == null
+	) {
 		return json({ error: 'title, courseCode, date, month, year required' }, { status: 400 });
 	}
 
@@ -32,7 +38,7 @@ export async function POST({ request, platform }: RequestEvent) {
 		time: body.time ?? null,
 		gradeWeight: body.gradeWeight ?? null,
 		status: null,
-		notes: null,
+		notes: null
 	});
 
 	return json({ ok: true });

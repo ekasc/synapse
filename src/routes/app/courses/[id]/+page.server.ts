@@ -1,9 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { getCourses, getGraphState, getSemesters } from '$lib/server/store';
-import {
-	listMaterials,
-	listMaterialsFallback
-} from '$lib/server/r2';
+import { listMaterials, listMaterialsFallback } from '$lib/server/r2';
 
 export async function load({ params, platform }) {
 	const courses = getCourses();

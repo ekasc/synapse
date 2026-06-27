@@ -136,17 +136,17 @@ All interactive components use **flat corners** (`border-radius: 0`). No rounded
 
 All transitions use `var(--ease-out-quart)` for a natural, slightly decelerating feel.
 
-| Component | Animation |
-|---|---|
-| Buttons | Hover: lift `translateY(-1px)`. Active: press `translateY(2px)`. 0.12s transition on background, border-color, color, transform. |
-| Checkbox | On check: stamp-pop scale keyframe (0.85→1.12→1) over 0.2s. Active: scale(0.92). |
-| Dialogs | Entrance: fade in + scale(0.97→1) + translateY over 0.18s. |
-| DropdownMenu | Content entrance: scale(0.96) + translateY(-4px) over 0.12s, transform-origin top-right. |
-| Inputs | Border-color and box-shadow transition on focus, 0.15s. |
-| Select | Trigger border on focus, items background on highlight. |
-| ToggleGroup | Active: press-down translateY(1px). Background/border/color transition on state change. |
-| Toolbar | Child items fade to 0.7 opacity on hover. |
-| Sidebar nav | Hover: ink-left-border transition, background. Active: accent-left-border + bold weight. |
+| Component    | Animation                                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Buttons      | Hover: lift `translateY(-1px)`. Active: press `translateY(2px)`. 0.12s transition on background, border-color, color, transform. |
+| Checkbox     | On check: stamp-pop scale keyframe (0.85→1.12→1) over 0.2s. Active: scale(0.92).                                                 |
+| Dialogs      | Entrance: fade in + scale(0.97→1) + translateY over 0.18s.                                                                       |
+| DropdownMenu | Content entrance: scale(0.96) + translateY(-4px) over 0.12s, transform-origin top-right.                                         |
+| Inputs       | Border-color and box-shadow transition on focus, 0.15s.                                                                          |
+| Select       | Trigger border on focus, items background on highlight.                                                                          |
+| ToggleGroup  | Active: press-down translateY(1px). Background/border/color transition on state change.                                          |
+| Toolbar      | Child items fade to 0.7 opacity on hover.                                                                                        |
+| Sidebar nav  | Hover: ink-left-border transition, background. Active: accent-left-border + bold weight.                                         |
 
 `prefers-reduced-motion: reduce` is respected — all transitions are disabled when the user requests reduced motion.
 
@@ -264,6 +264,7 @@ The landing page is more expressive than the app; its job is to communicate the 
 ### Dashboard / Onboarding (`/app`)
 
 Three states:
+
 - Empty state: semester picker with dashed selectable term chips.
 - Course entry/import flow.
 - Dashboard grouped by semester with paper panels.
@@ -285,6 +286,7 @@ Individual course page showing materials, files, and course-specific data.
 ### Syllabus Intelligence (`/app/syllabus`)
 
 Full AI syllabus extraction feature:
+
 - Upload PDF → AI extracts professor info, deadlines, grading schemes, topics.
 - Two-column layout (upload + extraction result).
 - Mock extraction when no API key is set.
@@ -305,6 +307,7 @@ Multiple choice questions and flashcards for exam prep. Features course filter, 
 ### Course Brief (`/app/brief`)
 
 Full async job-queue based LLM briefing system:
+
 - Enter course code + optional professor/institution.
 - Creates a D1-backed background job → polls every 2s → displays result.
 - Caches briefings in D1 `prompt_cache` (7-day TTL) and `briefings` table.

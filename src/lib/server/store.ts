@@ -314,7 +314,8 @@ export function buildAcademicDigest(input?: {
 	const currentCourseCount = courses.length;
 	const currentCredits = courses.length > 0 ? currentCourseCredits(courses) : 0;
 	const fileName = input?.fileName?.trim();
-	const analyticsLabel = input?.analysis?.extractionSource === 'openrouter' ? 'OpenRouter' : 'backend';
+	const analyticsLabel =
+		input?.analysis?.extractionSource === 'openrouter' ? 'OpenRouter' : 'backend';
 	const summary = fileName
 		? `${fileName} was uploaded and digested by the academic progress ${analyticsLabel} analytics.`
 		: source === 'setup-import'
@@ -446,4 +447,3 @@ export function updateSyllabusTextbook(fileName: string, courseId?: string): Syl
 	void fileName;
 	return record;
 }
-

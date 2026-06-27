@@ -1,5 +1,10 @@
 import { analyzeSetupCourses } from '$lib/server/digest-analytics';
-import { buildAcademicDigest, getAcademicDigest, getCourses, getSemesters } from '$lib/server/store';
+import {
+	buildAcademicDigest,
+	getAcademicDigest,
+	getCourses,
+	getSemesters
+} from '$lib/server/store';
 
 export function load() {
 	const courses = getCourses();

@@ -28,11 +28,7 @@
 	aria-label={ariaLabel}
 >
 	{#each items as item (item.value)}
-		<ToggleGroup.Item
-			value={item.value}
-			disabled={item.disabled}
-			class="ui-toggle-group-item"
-		>
+		<ToggleGroup.Item value={item.value} disabled={item.disabled} class="ui-toggle-group-item">
 			{item.label}
 		</ToggleGroup.Item>
 	{/each}
@@ -49,8 +45,7 @@
 		min-height: 2.25rem;
 		padding: 0.45rem 0.75rem;
 		border: 1px solid var(--rule);
-		transition:
-			transform 0.1s var(--ease-out-quart);
+		transition: transform 0.1s var(--ease-out-quart);
 		background: var(--paper);
 		color: var(--ink-soft);
 		font-size: 0.75rem;

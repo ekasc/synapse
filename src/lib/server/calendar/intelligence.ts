@@ -69,13 +69,15 @@ export function analyzeCalendar(
 	const thisYear = now.getFullYear();
 
 	// ── Upcoming events (today and forward) ──
-	const upcoming = events.filter((e) => {
-		if (e.year > thisYear) return true;
-		if (e.year < thisYear) return false;
-		if (e.month > thisMonth) return true;
-		if (e.month < thisMonth) return false;
-		return e.date >= today;
-	}).sort((a, b) => (a.year - b.year) || (a.month - b.month) || (a.date - b.date));
+	const upcoming = events
+		.filter((e) => {
+			if (e.year > thisYear) return true;
+			if (e.year < thisYear) return false;
+			if (e.month > thisMonth) return true;
+			if (e.month < thisMonth) return false;
+			return e.date >= today;
+		})
+		.sort((a, b) => a.year - b.year || a.month - b.month || a.date - b.date);
 
 	// ── Crunch detection ──
 	const crunchPeriods: CrunchPeriod[] = [];
@@ -94,7 +96,20 @@ export function analyzeCalendar(
 			});
 
 			const fmtDate = (d: number, m: number) => {
-				const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+				const months = [
+					'Jan',
+					'Feb',
+					'Mar',
+					'Apr',
+					'May',
+					'Jun',
+					'Jul',
+					'Aug',
+					'Sep',
+					'Oct',
+					'Nov',
+					'Dec'
+				];
 				return `${months[m]} ${d}`;
 			};
 
@@ -103,7 +118,7 @@ export function analyzeCalendar(
 				existingCrunch.endDate = fmtDate(next.date, next.month);
 				existingCrunch.events.push(next);
 				// deduplicate
-				existingCrunch.events = [...new Map(existingCrunch.events.map(e => [e.id, e])).values()];
+				existingCrunch.events = [...new Map(existingCrunch.events.map((e) => [e.id, e])).values()];
 			} else {
 				crunchPeriods.push({
 					startDate: fmtDate(current.date, current.month),
@@ -111,7 +126,7 @@ export function analyzeCalendar(
 					events: [current, next],
 					densityScore: Math.min(1, 3 / (daysDiff + 1)),
 					affectedCourses: [...new Set([current.courseCode, next.courseCode])],
-					totalWeight: (current.gradeWeight ?? 0) + (next.gradeWeight ?? 0),
+					totalWeight: (current.gradeWeight ?? 0) + (next.gradeWeight ?? 0)
 				});
 			}
 		}
@@ -132,7 +147,7 @@ export function analyzeCalendar(
 			courseCode: e.courseCode,
 			weight: e.gradeWeight!,
 			currentGrade: currentGrades[e.courseCode] ?? null,
-			impactPerPoint: e.gradeWeight! / 100,
+			impactPerPoint: e.gradeWeight! / 100
 		}));
 
 	// ── Study gaps ──
@@ -144,25 +159,43 @@ export function analyzeCalendar(
 	}
 
 	for (const [code, courseEvents] of courseMap) {
-		const course = courses.find((c) => c.code === code);
 		for (let i = 0; i < courseEvents.length; i++) {
 			const current = courseEvents[i];
 			const prev = i > 0 ? courseEvents[i - 1] : null;
 			const gapDays = prev
-				? Math.round((new Date(current.year, current.month, current.date).getTime() -
-					new Date(prev.year, prev.month, prev.date).getTime()) / 86400000)
-				: Math.round((new Date(current.year, current.month, current.date).getTime() - Date.now()) / 86400000);
+				? Math.round(
+						(new Date(current.year, current.month, current.date).getTime() -
+							new Date(prev.year, prev.month, prev.date).getTime()) /
+							86400000
+					)
+				: Math.round(
+						(new Date(current.year, current.month, current.date).getTime() - Date.now()) / 86400000
+					);
 
 			if (gapDays > 7) {
-				const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+				const months = [
+					'Jan',
+					'Feb',
+					'Mar',
+					'Apr',
+					'May',
+					'Jun',
+					'Jul',
+					'Aug',
+					'Sep',
+					'Oct',
+					'Nov',
+					'Dec'
+				];
 				studyGaps.push({
 					courseCode: code,
 					lastEventDate: prev ? `${months[prev.month]} ${prev.date}` : '—',
 					nextEventDate: `${months[current.month]} ${current.date}`,
 					gapDays,
-					suggestion: gapDays > 14
-						? `Long gap before ${current.title}. Consider light review sessions.`
-						: `${gapDays} days before ${current.title}. Plan study blocks.`,
+					suggestion:
+						gapDays > 14
+							? `Long gap before ${current.title}. Consider light review sessions.`
+							: `${gapDays} days before ${current.title}. Plan study blocks.`
 				});
 			}
 		}
@@ -176,7 +209,20 @@ export function analyzeCalendar(
 
 	// ── Full context string (for AI prompts) ──
 	const fmt = (d: number, m: number) => {
-		const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+		const months = [
+			'Jan',
+			'Feb',
+			'Mar',
+			'Apr',
+			'May',
+			'Jun',
+			'Jul',
+			'Aug',
+			'Sep',
+			'Oct',
+			'Nov',
+			'Dec'
+		];
 		return `${months[m]} ${d}`;
 	};
 
@@ -197,9 +243,7 @@ export function analyzeCalendar(
 	if (gradeStakes.length > 0) {
 		context += `### Grade Stakes\n`;
 		for (const gs of gradeStakes.slice(0, 5)) {
-			const gradeInfo = gs.currentGrade !== null
-				? ` | Current: ${gs.currentGrade}%`
-				: '';
+			const gradeInfo = gs.currentGrade !== null ? ` | Current: ${gs.currentGrade}%` : '';
 			context += `- **${gs.title}** (${gs.courseCode}): ${gs.weight}%${gradeInfo}\n`;
 		}
 		context += '\n';
@@ -225,6 +269,6 @@ export function analyzeCalendar(
 		studyGaps,
 		totalUpcomingWeight,
 		atRiskCount,
-		fullContext: context,
+		fullContext: context
 	};
 }

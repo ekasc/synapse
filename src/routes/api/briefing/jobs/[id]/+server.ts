@@ -13,7 +13,9 @@ export async function GET({ params, platform }: RequestEvent) {
 	if (job.status === 'succeeded' && job.output) {
 		try {
 			output = JSON.parse(job.output);
-		} catch {}
+		} catch {
+			output = null;
+		}
 	}
 
 	return json({ job, output });

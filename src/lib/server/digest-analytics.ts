@@ -51,7 +51,10 @@ function clampPercent(value: number | undefined, fallback: number): number {
 	return Math.max(0, Math.min(100, Number(value)));
 }
 
-function weightedGpa(courses: AcademicTranscriptCourse[], field: 'currentPercent' | 'projectedPercent') {
+function weightedGpa(
+	courses: AcademicTranscriptCourse[],
+	field: 'currentPercent' | 'projectedPercent'
+) {
 	const totals = courses.reduce(
 		(acc, course) => {
 			const credits = course.credits || 3;
@@ -94,7 +97,9 @@ function normalizeCourse(value: Partial<AcademicTranscriptCourse>, index: number
 			? 88
 			: clampPercent(projectedRaw, 88)
 		: clampPercent(currentRaw, 88);
-	const projectedPercent = missingProjected ? currentPercent : clampPercent(projectedRaw, currentPercent);
+	const projectedPercent = missingProjected
+		? currentPercent
+		: clampPercent(projectedRaw, currentPercent);
 
 	return {
 		id: value.id?.trim() || `${status}-${code.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
@@ -113,7 +118,10 @@ function coursesFromSetup(courses: Course[], semesters: Semester[]) {
 	return courses.map((course, index) => {
 		const semester = semesters.find((item) => item.id === course.semesterId);
 		const currentPercent = clampPercent(course.signals?.currentGrade, 86 + (index % 5));
-		const projectedPercent = clampPercent(course.signals?.projectedGrade, Math.min(96, currentPercent + 1));
+		const projectedPercent = clampPercent(
+			course.signals?.projectedGrade,
+			Math.min(96, currentPercent + 1)
+		);
 
 		return normalizeCourse(
 			{
@@ -172,7 +180,11 @@ function buildAnalysis(
 	};
 }
 
-function fallbackAnalysis(courses: Course[], semesters: Semester[], reason?: string): TranscriptAnalysis {
+function fallbackAnalysis(
+	courses: Course[],
+	semesters: Semester[],
+	reason?: string
+): TranscriptAnalysis {
 	const transcriptCourses = courses.length > 0 ? coursesFromSetup(courses, semesters) : [];
 	const fallbackReason =
 		reason === 'OPENROUTER_API_KEY is not set'
