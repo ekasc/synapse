@@ -1,7 +1,10 @@
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
-import { PDFParse } from 'pdf-parse';
 import type { SyllabusExtractedData } from './store';
+
+// Disable the worker — legacy build uses main thread for text extraction
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
 const FALLBACK_EXTRACTION: SyllabusExtractedData = {
 	professor: {
@@ -115,15 +118,17 @@ const syllabusSchema = {
 	}
 } as const;
 
-export async function extractTextFromPdf(file: File) {
+export async function extractTextFromPdf(file: File): Promise<string> {
 	const buffer = Buffer.from(await file.arrayBuffer());
-	const parser = new PDFParse({ data: buffer });
-	try {
-		const parsed = await parser.getText();
-		return parsed.text.trim();
-	} finally {
-		await parser.destroy();
+	const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+	let text = '';
+	for (let i = 1; i <= doc.numPages; i++) {
+		const page = await doc.getPage(i);
+		const content = await page.getTextContent();
+		const items = content.items.filter((item): item is { str: string } => 'str' in item);
+		text += items.map((item) => item.str).join(' ') + '\n';
 	}
+	return text.trim();
 }
 
 export async function extractSyllabusWithAI(rawText: string): Promise<SyllabusExtractedData> {
