@@ -98,7 +98,7 @@ export async function POST({ request }: RequestEvent) {
 		return json({ ok: false, error: 'Invalid graph import payload' }, { status: 400 });
 	}
 
-	const semesters = getSemesters().sort((a, b) => b.order - a.order);
+	const semesters = (await getSemesters()).sort((a, b) => b.order - a.order);
 	const fallbackSemester = semesters[0];
 	if (!fallbackSemester && body.nodes?.some((node) => !node.semesterId)) {
 		return json(
@@ -107,9 +107,9 @@ export async function POST({ request }: RequestEvent) {
 		);
 	}
 
-	const courses = getCourses();
+	const courses = await getCourses();
 	const coursesByCode = new Map(courses.map((course) => [normalizeCode(course.code), course]));
-	const graph = getGraphState();
+	const graph = await getGraphState();
 	const created: Course[] = [];
 	const updated: Course[] = [];
 
@@ -122,7 +122,7 @@ export async function POST({ request }: RequestEvent) {
 				semesterId: node.semesterId ?? existing.semesterId,
 				tag: node.tag ?? existing.tag
 			};
-			updateCourse(existing.id, updates);
+			await updateCourse(existing.id, updates);
 			const next = { ...existing, ...updates };
 			coursesByCode.set(code, next);
 			updated.push(next);
@@ -136,7 +136,7 @@ export async function POST({ request }: RequestEvent) {
 			name: node.name.trim(),
 			tag: node.tag ?? 'core'
 		};
-		addCourse(course);
+		await addCourse(course);
 		coursesByCode.set(code, course);
 		graph.positions[course.id] = nextPosition(created.length, graph.positions);
 		created.push(course);
@@ -174,7 +174,7 @@ export async function POST({ request }: RequestEvent) {
 		edgesAdded += 1;
 	}
 
-	saveGraphState(graph);
+	await saveGraphState(graph);
 	return json({
 		ok: true,
 		created: created.map((course) => course.code),

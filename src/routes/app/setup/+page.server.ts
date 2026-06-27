@@ -1,6 +1,6 @@
 import { getSemesters } from '$lib/server/store';
 
-export function load() {
-	const semesters = getSemesters();
+export async function load() {
+	const semesters = await getSemesters();
 	return { semesters };
 }

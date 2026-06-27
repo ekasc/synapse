@@ -3,16 +3,15 @@ import { getCourses, getGraphState, getSemesters } from '$lib/server/store';
 import { listMaterials, listMaterialsFallback } from '$lib/server/r2';
 
 export async function load({ params, platform }) {
-	const courses = getCourses();
+	const courses = await getCourses();
 	const course = courses.find((c) => c.id === params.id);
 	if (!course) {
 		error(404, 'Course not found');
 	}
 
-	const semesters = getSemesters();
+	const [semesters, graph] = await Promise.all([getSemesters(), getGraphState()]);
 	const semester = semesters.find((s) => s.id === course.semesterId) ?? null;
 
-	const graph = getGraphState();
 	const edges = graph.edges.filter((e) => e.source === course.id || e.target === course.id);
 
 	const incoming = edges.filter((e) => e.target === course.id);

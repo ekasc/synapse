@@ -35,7 +35,7 @@ export async function POST({ request }: RequestEvent) {
 	const fileName = fallbackFileName(transcript);
 	const analysis =
 		transcript instanceof File
-			? await analyzeTranscriptFile(transcript, getCourses(), getSemesters())
+			? await analyzeTranscriptFile(transcript, await getCourses(), await getSemesters())
 			: undefined;
 	const digest = saveAcademicDigest({
 		fileName,

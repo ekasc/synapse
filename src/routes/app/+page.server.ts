@@ -1,8 +1,10 @@
 import { getSemesters, getCourses, getGraphState } from '$lib/server/store';
 
-export function load() {
-	const semesters = getSemesters().sort((a, b) => b.order - a.order);
-	const courses = getCourses();
-	const graph = getGraphState();
+export async function load() {
+	const [semesters, courses, graph] = await Promise.all([
+		getSemesters().then((s) => s.sort((a, b) => b.order - a.order)),
+		getCourses(),
+		getGraphState()
+	]);
 	return { semesters, courses, graph };
 }

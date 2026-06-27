@@ -1,34 +1,41 @@
 {
-	"version": "7",
-	"dialect": "sqlite",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "6",
-			"when": 1782431135272,
-			"tag": "0000_glossy_millenium_guard",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "6",
-			"when": 1782432721326,
-			"tag": "0001_amazing_meteorite",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "6",
-			"when": 1782459101508,
-			"tag": "0002_glamorous_tony_stark",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "6",
-			"when": 1782460282779,
-			"tag": "0003_nifty_thunderbolt_ross",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1782431135272,
+      "tag": "0000_glossy_millenium_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1782432721326,
+      "tag": "0001_amazing_meteorite",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1782459101508,
+      "tag": "0002_glamorous_tony_stark",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1782460282779,
+      "tag": "0003_nifty_thunderbolt_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1782590309008,
+      "tag": "0004_strange_wiccan",
+      "breakpoints": true
+    }
+  ]
 }

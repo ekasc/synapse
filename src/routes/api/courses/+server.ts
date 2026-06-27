@@ -21,16 +21,16 @@ function isCoursePatch(value: unknown): value is Partial<Course> & { id: string 
 	);
 }
 
-export function GET({ url }: RequestEvent) {
+export async function GET({ url }: RequestEvent) {
 	const semesterId = url.searchParams.get('semesterId') ?? undefined;
-	const courses = getCourses(semesterId);
+	const courses = await getCourses(semesterId);
 	return json(courses);
 }
 
 export async function POST({ request }: RequestEvent) {
 	const body: unknown = await request.json();
 	if (!isCourse(body)) return json({ ok: false, error: 'Invalid course' }, { status: 400 });
-	addCourse(body);
+	await addCourse(body);
 	return json({ ok: true });
 }
 
@@ -39,7 +39,7 @@ export async function PATCH({ request }: RequestEvent) {
 	if (!isCoursePatch(body))
 		return json({ ok: false, error: 'Invalid course update' }, { status: 400 });
 	const { id, ...updates } = body;
-	updateCourse(id, updates);
+	await updateCourse(id, updates);
 	return json({ ok: true });
 }
 
@@ -47,6 +47,6 @@ export async function DELETE({ request }: RequestEvent) {
 	const body: unknown = await request.json();
 	if (!isCoursePatch(body))
 		return json({ ok: false, error: 'Invalid course delete' }, { status: 400 });
-	deleteCourse(body.id);
+	await deleteCourse(body.id);
 	return json({ ok: true });
 }

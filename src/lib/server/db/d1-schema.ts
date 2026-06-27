@@ -61,6 +61,71 @@ export const insights = sqliteTable('insights', {
 	createdAt: text('created_at').notNull()
 });
 
+// ── Semesters ──
+
+export const semesters = sqliteTable('semesters', {
+	id: text('id').primaryKey(),
+	term: text('term').notNull(),
+	year: integer('year').notNull(),
+	order: integer('order').notNull()
+});
+
+// ── Courses (signals stored as JSON string) ──
+
+export const courses = sqliteTable('courses', {
+	id: text('id').primaryKey(),
+	semesterId: text('semester_id').notNull(),
+	code: text('code').notNull(),
+	name: text('name').notNull(),
+	instructor: text('instructor'),
+	credits: integer('credits'),
+	tag: text('tag'),
+	color: text('color'),
+	signals: text('signals')
+});
+
+// ── Graph state (single row, JSON fields) ──
+
+export const graphState = sqliteTable('graph_state', {
+	id: text('id').primaryKey(),
+	positions: text('positions').notNull(),
+	viewport: text('viewport'),
+	edges: text('edges').notNull()
+});
+
+// ── Syllabus imports (extracted_data as JSON) ──
+
+export const syllabusImports = sqliteTable('syllabus_imports', {
+	id: text('id').primaryKey(),
+	courseId: text('course_id').notNull(),
+	fileName: text('file_name').notNull(),
+	rawText: text('raw_text').notNull(),
+	extractedData: text('extracted_data').notNull(),
+	status: text('status').notNull().default('mocked'),
+	createdAt: text('created_at').notNull(),
+	updatedAt: text('updated_at').notNull()
+});
+
+// ── Academic digest (single row, JSON fields) ──
+
+export const academicDigest = sqliteTable('academic_digest', {
+	id: text('id').primaryKey(),
+	source: text('source').notNull(),
+	fileName: text('file_name'),
+	summary: text('summary').notNull(),
+	totalGpa: text('total_gpa').notNull(),
+	projectedGpa: text('projected_gpa').notNull(),
+	currentCourseCount: integer('current_course_count').notNull(),
+	finishedCourseCount: integer('finished_course_count').notNull(),
+	currentCredits: integer('current_credits').notNull(),
+	finishedCredits: integer('finished_credits').notNull(),
+	courses: text('courses').notNull(),
+	trend: text('trend').notNull(),
+	insights: text('insights').notNull(),
+	extractionSource: text('extraction_source').notNull(),
+	updatedAt: text('updated_at').notNull()
+});
+
 export const calendarEvents = sqliteTable('calendar_events', {
 	id: text('id').primaryKey(),
 	courseCode: text('course_code').notNull(),

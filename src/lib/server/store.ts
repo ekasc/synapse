@@ -1,6 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+// ── D1 binding set by hooks on every request ──
+
+let _d1: D1Database | null = null;
+
+export function setStoreDb(d1: D1Database): void {
+	_d1 = d1;
+}
+
+// ── Local filesystem fallback (dev) ──
+
 const DATA_DIR = path.resolve('.data');
 
 function ensureDir() {
@@ -18,6 +28,32 @@ function write<T>(name: string, data: T[]): void {
 	ensureDir();
 	fs.writeFileSync(path.join(DATA_DIR, `${name}.json`), JSON.stringify(data, null, '\t'));
 }
+
+// ── D1 helpers ──
+
+function ok(v: unknown): string {
+	if (v === null || v === undefined) return '';
+	return String(v);
+}
+
+async function d1All<T>(sql: string, ...bind: unknown[]): Promise<T[]> {
+	if (!_d1) return [];
+	const { results } = await _d1.prepare(sql).bind(...bind).all<T>();
+	return results ?? [];
+}
+
+async function d1First<T>(sql: string, ...bind: unknown[]): Promise<T | null> {
+	if (!_d1) return null;
+	const row = await _d1.prepare(sql).bind(...bind).first<T>();
+	return row ?? null;
+}
+
+async function d1Run(sql: string, ...bind: unknown[]): Promise<void> {
+	if (!_d1) return;
+	await _d1.prepare(sql).bind(...bind).run();
+}
+
+// ── Types ──
 
 export type Semester = {
 	id: string;
@@ -233,18 +269,41 @@ const MOCK_SYLLABUS_DATA: SyllabusExtractedData = {
 	}
 };
 
-export function getSemesters(): Semester[] {
+// ── Semesters ──
+
+export async function getSemesters(): Promise<Semester[]> {
+	if (_d1) {
+		return d1All<Semester>('SELECT id, term, year, "order" FROM semesters ORDER BY "order"');
+	}
 	return read<Semester>('semesters');
 }
 
-export function addSemester(s: Semester): void {
-	const all = getSemesters();
+export async function addSemester(s: Semester): Promise<void> {
+	if (_d1) {
+		await d1Run(
+			'INSERT INTO semesters (id, term, year, "order") VALUES (?, ?, ?, ?)',
+			s.id, s.term, s.year, s.order
+		);
+		return;
+	}
+	const all = read<Semester>('semesters');
 	all.push(s);
 	write('semesters', all);
 }
 
-export function updateSemester(id: string, updates: Partial<Omit<Semester, 'id'>>): void {
-	const all = getSemesters();
+export async function updateSemester(id: string, updates: Partial<Omit<Semester, 'id'>>): Promise<void> {
+	if (_d1) {
+		const sets: string[] = [];
+		const bind: unknown[] = [];
+		if (updates.term !== undefined) { sets.push('term = ?'); bind.push(updates.term); }
+		if (updates.year !== undefined) { sets.push('year = ?'); bind.push(updates.year); }
+		if (updates.order !== undefined) { sets.push('"order" = ?'); bind.push(updates.order); }
+		if (sets.length === 0) return;
+		bind.push(id);
+		await d1Run(`UPDATE semesters SET ${sets.join(', ')} WHERE id = ?`, ...bind);
+		return;
+	}
+	const all = read<Semester>('semesters');
 	const idx = all.findIndex((s) => s.id === id);
 	if (idx !== -1) {
 		all[idx] = { ...all[idx], ...updates };
@@ -252,15 +311,33 @@ export function updateSemester(id: string, updates: Partial<Omit<Semester, 'id'>
 	}
 }
 
-export function deleteSemester(id: string): void {
-	const all = getSemesters().filter((s) => s.id !== id);
+export async function deleteSemester(id: string): Promise<void> {
+	if (_d1) {
+		await d1Run('DELETE FROM courses WHERE semester_id = ?', id);
+		await d1Run('DELETE FROM semesters WHERE id = ?', id);
+		return;
+	}
+	const all = read<Semester>('semesters').filter((s) => s.id !== id);
 	write('semesters', all);
 	// cascade: delete courses for this semester
-	const courses = getCourses().filter((c) => c.semesterId !== id);
+	const courses = getCoursesFsSync().filter((c) => c.semesterId !== id);
 	write('courses', courses);
 }
 
-export function getCourses(semesterId?: string): Course[] {
+// ── Courses ──
+
+export async function getCourses(semesterId?: string): Promise<Course[]> {
+	if (_d1) {
+		if (semesterId) {
+			return d1All<Course>(
+				'SELECT id, semester_id AS semesterId, code, name, instructor, credits, tag, color, signals FROM courses WHERE semester_id = ?',
+				semesterId
+			);
+		}
+		return d1All<Course>(
+			'SELECT id, semester_id AS semesterId, code, name, instructor, credits, tag, color, signals FROM courses'
+		);
+	}
 	const all = read<Course>('courses');
 	return semesterId ? all.filter((c) => c.semesterId === semesterId) : all;
 }
@@ -282,54 +359,134 @@ function sanitizeCourse(c: Course): Course {
 	return color ? { ...c, color } : { ...c, color: undefined };
 }
 
-export function addCourse(c: Course): void {
-	const all = getCourses();
-	all.push(sanitizeCourse(c));
+function serializeSignals(c: Course): string | null {
+	return c.signals ? JSON.stringify(c.signals) : null;
+}
+
+function parseSignals(raw: string | unknown): CourseSignal | undefined {
+	if (!raw || typeof raw !== 'string') return undefined;
+	try { return JSON.parse(raw) as CourseSignal; } catch { return undefined; }
+}
+
+// Sync variant for local fs (used by deleteSemester cascade internally)
+function getCoursesFsSync(semesterId?: string): Course[] {
+	const all = read<Course>('courses');
+	return semesterId ? all.filter((c) => c.semesterId === semesterId) : all;
+}
+
+export async function addCourse(c: Course): Promise<void> {
+	const sanitized = sanitizeCourse(c);
+	if (_d1) {
+		await d1Run(
+			'INSERT INTO courses (id, semester_id, code, name, instructor, credits, tag, color, signals) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+			sanitized.id,
+			sanitized.semesterId,
+			sanitized.code,
+			sanitized.name,
+			ok(sanitized.instructor),
+			sanitized.credits ?? null,
+			ok(sanitized.tag),
+			ok(sanitized.color),
+			serializeSignals(sanitized)
+		);
+		return;
+	}
+	const all = read<Course>('courses');
+	all.push(sanitized);
 	write('courses', all);
 }
 
-export function updateCourse(id: string, updates: Partial<Course>): void {
-	const all = getCourses();
+export async function updateCourse(id: string, updates: Partial<Course>): Promise<void> {
+	if (_d1) {
+		const sets: string[] = [];
+		const bind: unknown[] = [];
+		if (updates.semesterId !== undefined) { sets.push('semester_id = ?'); bind.push(updates.semesterId); }
+		if (updates.code !== undefined) { sets.push('code = ?'); bind.push(updates.code); }
+		if (updates.name !== undefined) { sets.push('name = ?'); bind.push(updates.name); }
+		if (updates.instructor !== undefined) { sets.push('instructor = ?'); bind.push(updates.instructor); }
+		if (updates.credits !== undefined) { sets.push('credits = ?'); bind.push(updates.credits); }
+		if (updates.tag !== undefined) { sets.push('tag = ?'); bind.push(updates.tag); }
+		if ('color' in updates && updates.color !== undefined) {
+			const c = sanitizeCourseColor(updates.color);
+			sets.push('color = ?'); bind.push(c ?? null);
+		}
+		if (updates.signals !== undefined) { sets.push('signals = ?'); bind.push(JSON.stringify(updates.signals)); }
+		if (sets.length === 0) return;
+		bind.push(id);
+		await d1Run(`UPDATE courses SET ${sets.join(', ')} WHERE id = ?`, ...bind);
+		return;
+	}
+	const all = read<Course>('courses');
 	const idx = all.findIndex((c) => c.id === id);
 	if (idx !== -1) {
 		const next: Partial<Course> = { ...updates };
 		if ('color' in updates) {
 			const color = sanitizeCourseColor(updates.color);
 			if (color) next.color = color;
-			// Drop the key entirely on invalid input; we set it on the resulting
-			// record below to `undefined` to clear the stored value.
 			else next.color = undefined;
 		}
 		const merged: Course = { ...all[idx], ...next };
-		// Explicitly clear a sanitized-to-undefined color so a previously stored
-		// hex cannot be silently retained.
 		if ('color' in updates && !next.color) delete merged.color;
 		all[idx] = merged;
 		write('courses', all);
 	}
 }
 
-export function deleteCourse(id: string): void {
-	const all = getCourses().filter((c) => c.id !== id);
+export async function deleteCourse(id: string): Promise<void> {
+	if (_d1) {
+		await d1Run('DELETE FROM courses WHERE id = ?', id);
+		return;
+	}
+	const all = read<Course>('courses').filter((c) => c.id !== id);
 	write('courses', all);
 }
 
-export function getGraphState(): GraphState {
+// ── Graph State ──
+
+export async function getGraphState(): Promise<GraphState> {
+	if (_d1) {
+		const row = await d1First<{ positions: string; viewport: string | null; edges: string }>(
+			'SELECT positions, viewport, edges FROM graph_state LIMIT 1'
+		);
+		if (!row) return { positions: {}, edges: [] };
+		return {
+			positions: JSON.parse(row.positions),
+			viewport: row.viewport ? JSON.parse(row.viewport) : undefined,
+			edges: JSON.parse(row.edges)
+		};
+	}
 	const [state] = read<GraphState>('graph');
 	return state ?? { positions: {}, edges: [] };
 }
 
-export function saveGraphState(state: GraphState): void {
+export async function saveGraphState(state: GraphState): Promise<void> {
+	if (_d1) {
+		await d1Run(
+			'INSERT OR REPLACE INTO graph_state (id, positions, viewport, edges) VALUES (?, ?, ?, ?)',
+			'graph-root',
+			JSON.stringify(state.positions),
+			state.viewport ? JSON.stringify(state.viewport) : null,
+			JSON.stringify(state.edges)
+		);
+		return;
+	}
 	write('graph', [state]);
 }
 
-// -- Academic Progress Digest --
+// ── Academic Progress Digest ──
 
-function currentCourseCredits(courses: Course[]): number {
-	return courses.reduce((sum, course) => sum + (course.credits ?? 3), 0);
+function currentCourseCredits(crs: Course[]): number {
+	return crs.reduce((sum, cr) => sum + (cr.credits ?? 3), 0);
 }
 
-export function getAcademicDigest(): AcademicDigest | null {
+export async function getAcademicDigest(): Promise<AcademicDigest | null> {
+	if (_d1) {
+		const row = await d1First<Record<string, unknown>>(
+			'SELECT * FROM academic_digest LIMIT 1'
+		);
+		if (!row) return null;
+		return rowToDigest(row);
+	}
 	return read<AcademicDigest>('academic-digest').at(-1) ?? null;
 }
 
@@ -338,10 +495,13 @@ export function buildAcademicDigest(input?: {
 	source?: AcademicDigest['source'];
 	analysis?: AcademicDigestAnalysis;
 }): AcademicDigest {
-	const courses = getCourses();
-	const source = input?.source ?? (courses.length > 0 ? 'setup-import' : 'sample');
-	const currentCourseCount = courses.length;
-	const currentCredits = courses.length > 0 ? currentCourseCredits(courses) : 0;
+	// This is synchronous because it only constructs an object — no I/O needed
+	// when called from saveAcademicDigest which handles both paths.
+	// We use a sync read for the courses param for the local path.
+	const crs = !_d1 ? read<Course>('courses') : [];
+	const source = input?.source ?? (crs.length > 0 ? 'setup-import' : 'sample');
+	const currentCourseCount = input?.analysis?.currentCourseCount ?? crs.length;
+	const currentCredits = input?.analysis?.currentCredits ?? (crs.length > 0 ? currentCourseCredits(crs) : 0);
 	const fileName = input?.fileName?.trim();
 	const analyticsLabel =
 		input?.analysis?.extractionSource === 'openrouter' ? 'OpenRouter' : 'backend';
@@ -358,9 +518,9 @@ export function buildAcademicDigest(input?: {
 		summary,
 		totalGpa: input?.analysis?.totalGpa ?? 0,
 		projectedGpa: input?.analysis?.projectedGpa ?? 0,
-		currentCourseCount: input?.analysis?.currentCourseCount ?? currentCourseCount,
+		currentCourseCount,
 		finishedCourseCount: input?.analysis?.finishedCourseCount ?? 0,
-		currentCredits: input?.analysis?.currentCredits ?? currentCredits,
+		currentCredits,
 		finishedCredits: input?.analysis?.finishedCredits ?? 0,
 		courses: input?.analysis?.courses ?? [],
 		trend: input?.analysis?.trend ?? [],
@@ -370,38 +530,136 @@ export function buildAcademicDigest(input?: {
 	};
 }
 
-export function saveAcademicDigest(input?: {
+export async function saveAcademicDigest(input?: {
 	fileName?: string;
 	source?: AcademicDigest['source'];
 	analysis?: AcademicDigestAnalysis;
-}): AcademicDigest {
+}): Promise<AcademicDigest> {
 	const record = buildAcademicDigest(input);
+	if (_d1) {
+		await d1Run(
+			`INSERT OR REPLACE INTO academic_digest
+			 (id, source, file_name, summary, total_gpa, projected_gpa, current_course_count, finished_course_count, current_credits, finished_credits, courses, trend, insights, extraction_source, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			record.id,
+			record.source,
+			ok(record.fileName),
+			record.summary,
+			String(record.totalGpa),
+			String(record.projectedGpa),
+			record.currentCourseCount,
+			record.finishedCourseCount,
+			record.currentCredits,
+			record.finishedCredits,
+			JSON.stringify(record.courses),
+			JSON.stringify(record.trend),
+			JSON.stringify(record.insights),
+			record.extractionSource,
+			record.updatedAt
+		);
+		return record;
+	}
 	write('academic-digest', [record]);
 	return record;
 }
 
-export function clearAcademicDigest(): AcademicDigest {
+export async function clearAcademicDigest(): Promise<AcademicDigest> {
+	if (_d1) {
+		await d1Run('DELETE FROM academic_digest');
+		const fresh = buildAcademicDigest();
+		await d1Run(
+			`INSERT INTO academic_digest
+			 (id, source, file_name, summary, total_gpa, projected_gpa, current_course_count, finished_course_count, current_credits, finished_credits, courses, trend, insights, extraction_source, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			fresh.id,
+			fresh.source,
+			ok(fresh.fileName),
+			fresh.summary,
+			String(fresh.totalGpa),
+			String(fresh.projectedGpa),
+			fresh.currentCourseCount,
+			fresh.finishedCourseCount,
+			fresh.currentCredits,
+			fresh.finishedCredits,
+			JSON.stringify(fresh.courses),
+			JSON.stringify(fresh.trend),
+			JSON.stringify(fresh.insights),
+			fresh.extractionSource,
+			fresh.updatedAt
+		);
+		return fresh;
+	}
 	write('academic-digest', []);
 	return buildAcademicDigest();
 }
 
+function rowToDigest(row: Record<string, unknown>): AcademicDigest {
+	return {
+		id: String(row.id),
+		source: String(row.source) as AcademicDigest['source'],
+		fileName: row.file_name ? String(row.file_name) : undefined,
+		summary: String(row.summary),
+		totalGpa: parseFloat(String(row.total_gpa)),
+		projectedGpa: parseFloat(String(row.projected_gpa)),
+		currentCourseCount: Number(row.current_course_count),
+		finishedCourseCount: Number(row.finished_course_count),
+		currentCredits: Number(row.current_credits),
+		finishedCredits: Number(row.finished_credits),
+		courses: parseJsonArr(row.courses),
+		trend: parseJsonArr(row.trend),
+		insights: JSON.parse(String(row.insights ?? '[]')),
+		extractionSource: String(row.extraction_source) as AcademicDigest['extractionSource'],
+		updatedAt: String(row.updated_at)
+	};
+}
+
+function parseJsonArr<T>(v: unknown): T[] {
+	try { return JSON.parse(String(v ?? '[]')) as T[]; } catch { return []; }
+}
+
 // ── Syllabus Intelligence ──
 
-export function getSyllabusImports(): SyllabusImport[] {
+export async function getSyllabusImports(): Promise<SyllabusImport[]> {
+	if (_d1) {
+		const rows = await d1All<Record<string, unknown>>(
+			'SELECT * FROM syllabus_imports ORDER BY created_at'
+		);
+		return rows.map(rowToSyllabusImport);
+	}
 	return read<SyllabusImport>('syllabus-imports');
 }
 
-export function getSyllabusImport(courseId?: string): SyllabusImport | null {
-	const imports = getSyllabusImports();
-	if (courseId) return imports.find((item) => item.courseId === courseId) ?? null;
-	return imports.at(-1) ?? null;
+export async function getSyllabusImport(courseId?: string): Promise<SyllabusImport | null> {
+	if (_d1) {
+		if (courseId) {
+			const row = await d1First<Record<string, unknown>>(
+				'SELECT * FROM syllabus_imports WHERE course_id = ?', courseId
+			);
+			return row ? rowToSyllabusImport(row) : null;
+		}
+		const row = await d1First<Record<string, unknown>>(
+			'SELECT * FROM syllabus_imports ORDER BY created_at DESC'
+		);
+		return row ? rowToSyllabusImport(row) : null;
+	}
+	const all = read<SyllabusImport>('syllabus-imports');
+	if (courseId) return all.find((item) => item.courseId === courseId) ?? null;
+	return all.at(-1) ?? null;
 }
 
-export function clearSyllabusImport(courseId?: string): null {
+export async function clearSyllabusImport(courseId?: string): Promise<null> {
+	if (_d1) {
+		if (courseId) {
+			await d1Run('DELETE FROM syllabus_imports WHERE course_id = ?', courseId);
+		} else {
+			await d1Run('DELETE FROM syllabus_imports');
+		}
+		return null;
+	}
 	if (courseId) {
 		write(
 			'syllabus-imports',
-			getSyllabusImports().filter((item) => item.courseId !== courseId)
+			read<SyllabusImport>('syllabus-imports').filter((item) => item.courseId !== courseId)
 		);
 		return null;
 	}
@@ -409,10 +667,10 @@ export function clearSyllabusImport(courseId?: string): null {
 	return null;
 }
 
-export function mockExtractSyllabus(
+export async function mockExtractSyllabus(
 	fileName = 'CSIS 4495 Syllabus.pdf',
 	courseId = 'csis-4495'
-): SyllabusImport {
+): Promise<SyllabusImport> {
 	return saveSyllabusImport({
 		courseId,
 		fileName,
@@ -423,39 +681,109 @@ export function mockExtractSyllabus(
 	});
 }
 
-export function saveSyllabusImport(input: {
+export async function saveSyllabusImport(input: {
 	courseId?: string;
 	fileName: string;
 	rawText: string;
 	extractedData: SyllabusExtractedData;
 	status: SyllabusImport['status'];
-}): SyllabusImport {
+}): Promise<SyllabusImport> {
 	const courseId = input.courseId?.trim() || 'csis-4495';
-	const all = getSyllabusImports();
-	const existing = all.find((item) => item.courseId === courseId);
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
-		id: existing?.id ?? crypto.randomUUID(),
+		id: crypto.randomUUID(),
 		courseId,
 		fileName: input.fileName,
 		rawText: input.rawText,
-		extractedData: {
-			...input.extractedData,
-			requiredMaterials:
-				existing?.extractedData.requiredMaterials ?? input.extractedData.requiredMaterials
-		},
+		extractedData: input.extractedData,
 		status: input.status,
-		createdAt: existing?.createdAt ?? now,
+		createdAt: now,
 		updatedAt: now
 	};
 
+	if (_d1) {
+		// upsert: delete existing for this course then insert
+		await d1Run('DELETE FROM syllabus_imports WHERE course_id = ?', courseId);
+		await d1Run(
+			'INSERT INTO syllabus_imports (id, course_id, file_name, raw_text, extracted_data, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+			record.id,
+			record.courseId,
+			record.fileName,
+			record.rawText,
+			JSON.stringify(record.extractedData),
+			record.status,
+			record.createdAt,
+			record.updatedAt
+		);
+		return record;
+	}
+
+	const all = read<SyllabusImport>('syllabus-imports');
+	const existing = all.find((item) => item.courseId === courseId);
+	if (existing) {
+		record.id = existing.id;
+		record.createdAt = existing.createdAt;
+		record.extractedData = {
+			...input.extractedData,
+			requiredMaterials:
+				existing.extractedData.requiredMaterials ?? input.extractedData.requiredMaterials
+		};
+	}
 	write('syllabus-imports', [...all.filter((item) => item.courseId !== courseId), record]);
 	return record;
 }
 
-export function updateSyllabusTextbook(fileName: string, courseId?: string): SyllabusImport {
-	const existing = getSyllabusImport(courseId) ?? mockExtractSyllabus(undefined, courseId);
-	const all = getSyllabusImports();
+export async function updateSyllabusTextbook(fileName: string, courseId?: string): Promise<SyllabusImport> {
+	if (_d1) {
+		const existing = await getSyllabusImport(courseId);
+		const now = new Date().toISOString();
+		const record: SyllabusImport = {
+			...existing ?? {
+				id: crypto.randomUUID(),
+				courseId: courseId ?? 'csis-4495',
+				fileName: 'CSIS 4495 Syllabus.pdf',
+				rawText: '',
+				extractedData: {
+					professor: { name: '', email: '', office: '', officeHours: '' },
+					logistics: { classTime: '', room: '', attendance: '' },
+					dates: [],
+					grading: [],
+					requiredMaterials: { textbookPdfUploaded: false },
+					keyKnowledge: { source: '', topics: [], highlightedTopic: '', outline: [] }
+				},
+				status: 'mocked' as const,
+				createdAt: now,
+				updatedAt: now
+			},
+			extractedData: {
+				...(existing?.extractedData ?? {} as SyllabusExtractedData),
+				requiredMaterials: {
+					textbookTitle: 'Database Systems, 7th ed.',
+					textbookPdfUploaded: true,
+					textbookPdfUrl: '/textbook.pdf'
+				}
+			},
+			status: 'mocked' as const,
+			updatedAt: now
+		};
+
+		await d1Run(
+			'INSERT OR REPLACE INTO syllabus_imports (id, course_id, file_name, raw_text, extracted_data, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+			record.id,
+			record.courseId,
+			record.fileName,
+			record.rawText,
+			JSON.stringify(record.extractedData),
+			record.status,
+			record.createdAt,
+			record.updatedAt
+		);
+		void fileName;
+		return record;
+	}
+
+	const existing = await getSyllabusImport(courseId) ?? await mockExtractSyllabus(undefined, courseId);
+	const all = _d1 ? [] : read<SyllabusImport>('syllabus-imports');
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
 		...existing,
@@ -472,7 +800,24 @@ export function updateSyllabusTextbook(fileName: string, courseId?: string): Syl
 		updatedAt: now
 	};
 
-	write('syllabus-imports', [...all.filter((item) => item.courseId !== record.courseId), record]);
+	if (!_d1) {
+		write('syllabus-imports', [...all.filter((item) => item.courseId !== record.courseId), record]);
+	}
 	void fileName;
 	return record;
+}
+
+// ── Row helpers ──
+
+function rowToSyllabusImport(row: Record<string, unknown>): SyllabusImport {
+	return {
+		id: String(row.id),
+		courseId: String(row.course_id),
+		fileName: String(row.file_name),
+		rawText: String(row.raw_text),
+		extractedData: JSON.parse(String(row.extracted_data)),
+		status: String(row.status) as SyllabusImport['status'],
+		createdAt: String(row.created_at),
+		updatedAt: String(row.updated_at)
+	};
 }

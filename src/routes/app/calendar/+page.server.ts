@@ -6,7 +6,7 @@ import type { RequestEvent } from './$types';
 type CourseColor = { code: string; color: string; name: string };
 
 export async function load(event: RequestEvent) {
-	const courses = getCourses();
+	const courses = await getCourses();
 
 	let manualEvents: CalendarEventRow[] = [];
 	if (event.platform) {

@@ -1,7 +1,9 @@
 import { getSemesters, getCourses } from '$lib/server/store';
 
-export function load() {
-	const semesters = getSemesters().sort((a, b) => b.order - a.order);
-	const courses = getCourses();
+export async function load() {
+	const [semesters, courses] = await Promise.all([
+		getSemesters().then((s) => s.sort((a, b) => b.order - a.order)),
+		getCourses()
+	]);
 	return { semesters, courses };
 }

@@ -10,7 +10,7 @@ import {
 import { contentDispositionFor } from '$lib/server/content-disposition';
 
 export const GET: RequestHandler = async ({ params, platform }) => {
-	if (!getCourses().some((c) => c.id === params.id)) error(404, 'Course not found');
+	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const bucket = platform?.env?.MATERIALS;
 

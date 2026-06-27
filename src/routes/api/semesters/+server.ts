@@ -27,29 +27,29 @@ function hasId(value: unknown): value is { id: string } {
 	);
 }
 
-export function GET() {
-	const semesters = getSemesters().sort((a, b) => b.order - a.order);
+export async function GET() {
+	const semesters = (await getSemesters()).sort((a, b) => b.order - a.order);
 	return json(semesters);
 }
 
 export async function POST({ request }: RequestEvent) {
 	const body: unknown = await request.json();
 	if (!isSemester(body)) return json({ ok: false, error: 'Invalid semester' }, { status: 400 });
-	addSemester(body);
+	await addSemester(body);
 	return json({ ok: true });
 }
 
 export async function DELETE({ request }: RequestEvent) {
 	const body: unknown = await request.json();
 	if (!hasId(body)) return json({ ok: false, error: 'Invalid semester delete' }, { status: 400 });
-	deleteSemester(body.id);
+	await deleteSemester(body.id);
 	return json({ ok: true });
 }
 
 export async function PUT({ request }: RequestEvent) {
 	const body: unknown = await request.json();
 	if (!hasId(body)) return json({ ok: false, error: 'Missing semester id' }, { status: 400 });
-	const { id, ...updates } = body;
-	updateSemester(id, updates);
+	const { id, ...updates } = body as { id: string };
+	await updateSemester(id, updates);
 	return json({ ok: true });
 }

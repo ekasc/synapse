@@ -6,13 +6,12 @@ import {
 	getSemesters
 } from '$lib/server/store';
 
-export function load() {
-	const courses = getCourses();
-	const semesters = getSemesters();
+export async function load() {
+	const [courses, semesters] = await Promise.all([getCourses(), getSemesters()]);
 	return {
 		courses,
 		digest:
-			getAcademicDigest() ??
+			(await getAcademicDigest()) ??
 			buildAcademicDigest({
 				analysis: analyzeSetupCourses(courses, semesters)
 			}),

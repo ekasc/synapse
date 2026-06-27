@@ -66,8 +66,8 @@ function isGraphState(value: unknown): value is GraphState {
 	return validPositions && validEdges && validViewport;
 }
 
-export function GET() {
-	return json(getGraphState());
+export async function GET() {
+	return json(await getGraphState());
 }
 
 export async function PUT({ request }: RequestEvent) {
@@ -76,6 +76,6 @@ export async function PUT({ request }: RequestEvent) {
 		return json({ ok: false, error: 'Invalid graph state' }, { status: 400 });
 	}
 
-	saveGraphState(body);
+	await saveGraphState(body);
 	return json({ ok: true });
 }

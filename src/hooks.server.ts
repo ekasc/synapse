@@ -1,4 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
+import { setStoreDb } from '$lib/server/store';
 
 // Security response headers. Set as the first setHeaders() call so it applies
 // to every response produced by the Worker, including API errors and 404s.
@@ -11,6 +12,11 @@ const SECURITY_HEADERS: Record<string, string> = {
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// In production (Cloudflare Workers), make D1 available to the store.
+	// In dev (no platform binding), falls back to local JSON files.
+	if (event.platform?.env?.BRIEF_DB) {
+		setStoreDb(event.platform.env.BRIEF_DB as D1Database);
+	}
 	const response = await resolve(event);
 	for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
 		// Don't overwrite headers a route explicitly set.

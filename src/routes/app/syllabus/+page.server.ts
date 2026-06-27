@@ -1,8 +1,9 @@
 import { getCourses, getSemesters } from '$lib/server/store';
 
-export function load() {
+export async function load() {
+	const [courses, semesters] = await Promise.all([getCourses(), getSemesters()]);
 	return {
-		courses: getCourses(),
-		semesters: getSemesters()
+		courses,
+		semesters
 	};
 }

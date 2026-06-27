@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import type { RequestEvent } from './$types';
 import { getCourses } from '$lib/server/store';
 import {
 	listMaterials,
@@ -38,13 +38,14 @@ function getBackend(event: { platform?: Readonly<App.Platform> | undefined }) {
 
 const MAX_MATERIAL_BYTES = 50 * 1024 * 1024; // 50 MB
 
-export const GET: RequestHandler = ({ params, platform }) => {
-	if (!getCourses().some((c) => c.id === params.id)) error(404, 'Course not found');
-	return json(getBackend({ platform }).list(params.id));
-};
+export async function GET({ params, platform }: RequestEvent) {
+	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
+	const items = await getBackend({ platform }).list(params.id);
+	return json(items);
+}
 
-export const POST: RequestHandler = async ({ params, request, platform }) => {
-	if (!getCourses().some((c) => c.id === params.id)) error(404, 'Course not found');
+export async function POST({ params, request, platform }: RequestEvent) {
+	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const contentLength = Number(request.headers.get('content-length') ?? 0);
 	if (Number.isFinite(contentLength) && contentLength > MAX_MATERIAL_BYTES) {
@@ -72,10 +73,10 @@ export const POST: RequestHandler = async ({ params, request, platform }) => {
 
 	const material = await getBackend({ platform }).upload(params.id, file);
 	return json({ ok: true, material });
-};
+}
 
-export const PATCH: RequestHandler = async ({ params, request, platform }) => {
-	if (!getCourses().some((c) => c.id === params.id)) error(404, 'Course not found');
+export async function PATCH({ params, request, platform }: RequestEvent) {
+	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const body: unknown = await request.json().catch(() => null);
 	if (!body || typeof body !== 'object') {
@@ -99,10 +100,10 @@ export const PATCH: RequestHandler = async ({ params, request, platform }) => {
 
 	const updated = await backend.update(id, { fileName: fileName.trim() });
 	return json({ ok: true, material: updated });
-};
+}
 
-export const DELETE: RequestHandler = async ({ params, request, platform }) => {
-	if (!getCourses().some((c) => c.id === params.id)) error(404, 'Course not found');
+export async function DELETE({ params, request, platform }: RequestEvent) {
+	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const body: unknown = await request.json().catch(() => null);
 	const id =
@@ -124,4 +125,4 @@ export const DELETE: RequestHandler = async ({ params, request, platform }) => {
 
 	await backend.delete(id);
 	return json({ ok: true });
-};
+}
