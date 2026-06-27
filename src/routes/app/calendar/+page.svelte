@@ -1,4 +1,6 @@
 <script lang="ts">
+import { page } from '$app/stores';
+import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
@@ -29,6 +31,19 @@
 	let selectedDay = $state<number | null>(null);
 	let focusedDay = $state<number | null>(now.getDate());
 	let showYearPicker = $state(false);
+
+	onMount(() => {
+		const m = $page.url.searchParams.get("month");
+		const y = $page.url.searchParams.get("year");
+		if (m !== null) {
+			const parsed = parseInt(m, 10);
+			if (parsed >= 0 && parsed <= 11) viewMonth = parsed;
+		}
+		if (y !== null) {
+			const parsed = parseInt(y, 10);
+			if (parsed >= 1970 && parsed <= 2100) viewYear = parsed;
+		}
+	});
 	let showCourseFilter = $state(false);
 	let filterCourses = $state<string[]>([]);
 	let transitioning = $state(false);

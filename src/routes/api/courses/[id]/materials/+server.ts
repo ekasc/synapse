@@ -36,6 +36,8 @@ function getBackend(event: { platform?: Readonly<App.Platform> | undefined }) {
 	};
 }
 
+const MAX_MATERIAL_BYTES = 50 * 1024 * 1024; // 50 MB
+
 export const GET: RequestHandler = ({ params, platform }) => {
 	if (!getCourses().some((c) => c.id === params.id)) error(404, 'Course not found');
 	return json(getBackend({ platform }).list(params.id));
@@ -43,6 +45,14 @@ export const GET: RequestHandler = ({ params, platform }) => {
 
 export const POST: RequestHandler = async ({ params, request, platform }) => {
 	if (!getCourses().some((c) => c.id === params.id)) error(404, 'Course not found');
+
+	const contentLength = Number(request.headers.get('content-length') ?? 0);
+	if (Number.isFinite(contentLength) && contentLength > MAX_MATERIAL_BYTES) {
+		return json(
+			{ ok: false, error: `File too large. Limit is ${MAX_MATERIAL_BYTES / (1024 * 1024)} MB.` },
+			{ status: 413 }
+		);
+	}
 
 	const formData = await request.formData().catch(() => null);
 	if (!formData) {
@@ -52,6 +62,12 @@ export const POST: RequestHandler = async ({ params, request, platform }) => {
 	const file = formData.get('file');
 	if (!(file instanceof File) || file.size === 0) {
 		return json({ ok: false, error: 'No file provided' }, { status: 400 });
+	}
+	if (file.size > MAX_MATERIAL_BYTES) {
+		return json(
+			{ ok: false, error: `File too large. Limit is ${MAX_MATERIAL_BYTES / (1024 * 1024)} MB.` },
+			{ status: 413 }
+		);
 	}
 
 	const material = await getBackend({ platform }).upload(params.id, file);

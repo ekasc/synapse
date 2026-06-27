@@ -265,9 +265,26 @@ export function getCourses(semesterId?: string): Course[] {
 	return semesterId ? all.filter((c) => c.semesterId === semesterId) : all;
 }
 
+// CSS color allowlist. Hex-only keeps `;`, `(`, `)`, and other CSS-meaningful
+// characters out of values that get injected into a `style="..."` attribute,
+// so user-supplied colors cannot append extra CSS rules.
+const HEX_COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+export function sanitizeCourseColor(value: unknown): string | undefined {
+	if (typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	return HEX_COLOR.test(trimmed) ? trimmed : undefined;
+}
+
+function sanitizeCourse(c: Course): Course {
+	if (c.color === undefined) return c;
+	const color = sanitizeCourseColor(c.color);
+	return color ? { ...c, color } : { ...c, color: undefined };
+}
+
 export function addCourse(c: Course): void {
 	const all = getCourses();
-	all.push(c);
+	all.push(sanitizeCourse(c));
 	write('courses', all);
 }
 
@@ -275,7 +292,19 @@ export function updateCourse(id: string, updates: Partial<Course>): void {
 	const all = getCourses();
 	const idx = all.findIndex((c) => c.id === id);
 	if (idx !== -1) {
-		all[idx] = { ...all[idx], ...updates };
+		const next: Partial<Course> = { ...updates };
+		if ('color' in updates) {
+			const color = sanitizeCourseColor(updates.color);
+			if (color) next.color = color;
+			// Drop the key entirely on invalid input; we set it on the resulting
+			// record below to `undefined` to clear the stored value.
+			else next.color = undefined;
+		}
+		const merged: Course = { ...all[idx], ...next };
+		// Explicitly clear a sanitized-to-undefined color so a previously stored
+		// hex cannot be silently retained.
+		if ('color' in updates && !next.color) delete merged.color;
+		all[idx] = merged;
 		write('courses', all);
 	}
 }

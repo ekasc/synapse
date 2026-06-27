@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 
-	type Job = {
+	type BriefingJob = {
 		id: string;
 		courseCode: string;
 		status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled' | 'expired';
@@ -14,25 +14,59 @@
 		completedAt: string | null;
 	};
 
-	type ActivityResponse = { jobs?: Job[]; error?: string };
+	type SyllabusExtraction = {
+		id: string;
+		courseCode: string;
+		status: 'processing' | 'completed' | 'failed';
+		fileName: string;
+		createdAt: string;
+		completedAt: string | null;
+	};
 
-	let jobs = $state<Job[]>([]);
+	type ActivityResponse = { jobs?: BriefingJob[]; error?: string };
+	type SyllabusActivityResponse = { extractions?: SyllabusExtraction[]; error?: string };
+
+	let briefingJobs = $state<BriefingJob[]>([]);
+	let syllabusExtractions = $state<SyllabusExtraction[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let syllabusError = $state(false);
 
 	async function loadJobs() {
-		const firstLoad = jobs.length === 0;
+		const firstLoad = briefingJobs.length === 0 && syllabusExtractions.length === 0;
 		if (firstLoad) loading = true;
 		error = null;
+
 		try {
 			const res = await fetch('/api/briefing/activity');
 			const data = (await res.json()) as ActivityResponse;
-			jobs = data.jobs ?? [];
+			briefingJobs = data.jobs ?? [];
 			localStorage.setItem('activity_last_read', Date.now().toString());
 		} catch {
 			error = 'Failed to load activity';
 		} finally {
 			if (firstLoad) loading = false;
+		}
+	}
+
+	async function loadSyllabusActivity() {
+		// Gracefully handle if the endpoint doesn't exist yet (Demi's scope)
+		try {
+			const res = await fetch('/api/syllabus/activity');
+			if (!res.ok) {
+				if (res.status === 404) {
+					syllabusError = false;
+					syllabusExtractions = [];
+					return;
+				}
+				throw new Error('Not OK');
+			}
+			const data = (await res.json()) as SyllabusActivityResponse;
+			syllabusExtractions = data.extractions ?? [];
+			syllabusError = false;
+		} catch {
+			syllabusError = true;
+			syllabusExtractions = [];
 		}
 	}
 
@@ -53,7 +87,11 @@
 	import { onMount } from 'svelte';
 	onMount(() => {
 		loadJobs();
-		const id = setInterval(loadJobs, 5000);
+		loadSyllabusActivity();
+		const id = setInterval(() => {
+			loadJobs();
+			loadSyllabusActivity();
+		}, 5000);
 		return () => {
 			clearInterval(id);
 		};
@@ -80,12 +118,24 @@
 			<div>
 				<h1 class="page-title font-hand">Activity</h1>
 				<p class="page-tagline">
-					{jobs.length > 0
-						? `${jobs.filter((j) => j.status === 'running').length} running · ${jobs.filter((j) => j.status === 'queued').length} queued · ${jobs.filter((j) => j.status === 'succeeded').length} succeeded`
-						: 'All AI tasks across the app'}
+					{(() => {
+						const briefRunning = briefingJobs.filter((j) => j.status === 'running').length;
+						const briefQueued = briefingJobs.filter((j) => j.status === 'queued').length;
+						const briefDone = briefingJobs.filter((j) => j.status === 'succeeded').length;
+						const syllabusRunning = syllabusExtractions.filter((e) => e.status === 'processing').length;
+						const syllabusDone = syllabusExtractions.filter((e) => e.status === 'completed').length;
+						const parts: string[] = [];
+						if (briefRunning || syllabusRunning) {
+							const total = briefRunning + syllabusRunning;
+							parts.push(`${total} running`);
+						}
+						if (briefQueued) parts.push(`${briefQueued} queued`);
+						if (briefDone || syllabusDone) parts.push(`${briefDone + syllabusDone} succeeded`);
+						return parts.length > 0 ? parts.join(' · ') : 'All AI tasks across the app';
+					})()}
 				</p>
 			</div>
-			<button class="btn btn-sm btn-ghost font-mono" onclick={loadJobs} disabled={loading}>
+			<button class="btn btn-sm btn-ghost font-mono" onclick={() => { loadJobs(); loadSyllabusActivity(); }} disabled={loading}>
 				{loading ? 'refreshing...' : 'refresh'}
 			</button>
 		</div>
@@ -95,59 +145,108 @@
 		<div class="error-banner font-mono" role="alert">{error}</div>
 	{/if}
 
-	{#if loading && jobs.length === 0}
+	{#if loading && briefingJobs.length === 0 && syllabusExtractions.length === 0}
 		<div class="loading-state font-mono" role="status" aria-live="polite">Loading activity...</div>
-	{:else if jobs.length === 0}
+	{:else if briefingJobs.length === 0 && syllabusExtractions.length === 0 && syllabusError}
 		<div class="empty-state surface-polaroid">
 			<h2 class="empty-head font-hand">No activity yet</h2>
 			<p class="empty-text">AI tasks like course briefings and digests will appear here.</p>
 		</div>
 	{:else}
-		<div class="activity-list">
-			{#each jobs as job (job.id)}
-				<div class="activity-item">
-					<div class="activity-left">
-						<span class="activity-status-dot" aria-hidden="true">
-							{#if job.status === 'queued'}
-								<span class="status-dot-queued">&#9678;</span>
-							{:else if job.status === 'running'}
-								<span class="status-dot-running animate-pulse">&#9679;</span>
-							{:else if job.status === 'succeeded'}
-								<span>&#10003;</span>
-							{:else if job.status === 'failed' || job.status === 'expired'}
-								<span class="status-dot-crit">&#10007;</span>
-							{:else}
-								<span class="status-dot-idle">&#8212;</span>
-							{/if}
-						</span>
-						<div class="activity-body">
-							<div class="activity-head">
-								<span class="activity-course font-mono">{job.courseCode}</span>
-								<span class="activity-status font-mono">{job.status}</span>
+		<div class="activity-sections">
+			{#if briefingJobs.length > 0}
+				<div class="activity-section">
+					<div class="activity-section-head font-mono">Course Briefing Jobs</div>
+					<div class="activity-list">
+						{#each briefingJobs as job (job.id)}
+							<div class="activity-item">
+								<div class="activity-left">
+									<span class="activity-status-dot" aria-hidden="true">
+										{#if job.status === 'queued'}
+											<span class="status-dot-queued">&#9678;</span>
+										{:else if job.status === 'running'}
+											<span class="status-dot-running animate-pulse">&#9679;</span>
+										{:else if job.status === 'succeeded'}
+											<span>&#10003;</span>
+										{:else if job.status === 'failed' || job.status === 'expired'}
+											<span class="status-dot-crit">&#10007;</span>
+										{:else}
+											<span class="status-dot-idle">&#8212;</span>
+										{/if}
+									</span>
+									<div class="activity-body">
+										<div class="activity-head">
+											<span class="activity-course font-mono">{job.courseCode}</span>
+											<span class="activity-status font-mono">{job.status}</span>
+										</div>
+										<div class="activity-meta">
+											<span class="activity-time font-mono">{timeSince(job.createdAt)}</span>
+											{#if job.startedAt}
+												<span class="activity-time font-mono">started {timeSince(job.startedAt)}</span>
+											{/if}
+											{#if job.completedAt}
+												<span class="activity-time font-mono">done {timeSince(job.completedAt)}</span>
+											{/if}
+										</div>
+										{#if job.errorMessage}
+											<div class="activity-error font-mono">{job.errorMessage}</div>
+										{/if}
+									</div>
+								</div>
+								<div class="activity-right">
+									{#if job.status === 'queued' || job.status === 'running'}
+										<button class="btn btn-sm btn-danger font-mono" onclick={() => cancelJob(job.id)}
+											>cancel</button
+										>
+									{/if}
+								</div>
 							</div>
-							<div class="activity-meta">
-								<span class="activity-time font-mono">{timeSince(job.createdAt)}</span>
-								{#if job.startedAt}
-									<span class="activity-time font-mono">started {timeSince(job.startedAt)}</span>
-								{/if}
-								{#if job.completedAt}
-									<span class="activity-time font-mono">done {timeSince(job.completedAt)}</span>
-								{/if}
-							</div>
-							{#if job.errorMessage}
-								<div class="activity-error font-mono">{job.errorMessage}</div>
-							{/if}
-						</div>
-					</div>
-					<div class="activity-right">
-						{#if job.status === 'queued' || job.status === 'running'}
-							<button class="btn btn-sm btn-danger font-mono" onclick={() => cancelJob(job.id)}
-								>cancel</button
-							>
-						{/if}
+						{/each}
 					</div>
 				</div>
-			{/each}
+			{/if}
+
+			{#if syllabusExtractions.length > 0}
+				<div class="activity-section">
+					<div class="activity-section-head font-mono">Syllabus Extractions</div>
+					<div class="activity-list">
+						{#each syllabusExtractions as ext (ext.id)}
+							<div class="activity-item">
+								<div class="activity-left">
+									<span class="activity-status-dot" aria-hidden="true">
+										{#if ext.status === 'processing'}
+											<span class="status-dot-running animate-pulse">&#9679;</span>
+										{:else if ext.status === 'completed'}
+											<span>&#10003;</span>
+										{:else}
+											<span class="status-dot-crit">&#10007;</span>
+										{/if}
+									</span>
+									<div class="activity-body">
+										<div class="activity-head">
+											<span class="activity-course font-mono">{ext.courseCode}</span>
+											<span class="activity-status font-mono">{ext.status}</span>
+										</div>
+										<div class="activity-meta">
+											<span class="activity-time font-mono">{timeSince(ext.createdAt)}</span>
+											{#if ext.completedAt}
+												<span class="activity-time font-mono">done {timeSince(ext.completedAt)}</span>
+											{/if}
+										</div>
+										{#if ext.status === 'completed'}
+											<div class="activity-link">
+												<a href={`/app/syllabus/result/${encodeURIComponent(ext.courseCode)}`} class="activity-result-link font-mono">
+													view results
+												</a>
+											</div>
+										{/if}
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -168,6 +267,12 @@
 		color: var(--ink-soft);
 		font-size: 0.92rem;
 		margin: 0.5rem 0 0;
+	}
+	.page-cover-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1rem;
 	}
 	.error-banner {
 		padding: 0.5rem 0.75rem;
@@ -197,6 +302,18 @@
 		font-size: 0.9rem;
 		color: var(--ink-soft);
 		margin: 0;
+	}
+	.activity-sections {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+	.activity-section-head {
+		font-size: 0.72rem;
+		color: var(--ink-faint);
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		margin-bottom: 0.5rem;
 	}
 	.activity-list {
 		display: flex;
@@ -290,6 +407,15 @@
 		font-size: 0.72rem;
 		color: var(--accent);
 		margin-top: 0.25rem;
+	}
+	.activity-link {
+		margin-top: 0.25rem;
+	}
+	.activity-result-link {
+		font-size: 0.72rem;
+		color: var(--accent);
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 	.activity-right {
 		flex-shrink: 0;

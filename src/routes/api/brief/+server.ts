@@ -48,8 +48,10 @@ async function researchViaLLM(
 		});
 
 		if (!response.ok) {
-			const text = await response.text();
-			console.error(`OpenRouter API error (${response.status}):`, text);
+			// Log only the status to avoid leaking provider error payloads (which can
+			// include echoed request details) into application/transport logs.
+			console.error(`OpenRouter API error: status ${response.status}`);
+			await response.text().catch(() => undefined);
 			return null;
 		}
 
@@ -60,7 +62,7 @@ async function researchViaLLM(
 		if (!text) return null;
 		return validateBriefing(JSON.parse(extractBriefingJson(text)));
 	} catch (err) {
-		console.error('LLM research failed:', err);
+		console.error('LLM research failed:', err instanceof Error ? err.message : err);
 		return null;
 	}
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
@@ -98,31 +99,11 @@
 	let isResetting = $state(false);
 	let apiError = $state('');
 
-	let extracted = $derived(syllabus?.extractedData ?? null);
-	let textbookUploaded = $derived(extracted?.requiredMaterials.textbookPdfUploaded ?? false);
-	let professorRows = $derived(
-		extracted
-			? [
-					['Professor', extracted.professor.name],
-					['Email', extracted.professor.email],
-					['Office', extracted.professor.office],
-					['Office hours', extracted.professor.officeHours]
-				]
-			: []
-	);
-	let logisticsRows = $derived(
-		extracted
-			? [
-					['Class', extracted.logistics.classTime],
-					['Room', extracted.logistics.room],
-					['Attendance', extracted.logistics.attendance]
-				]
-			: []
-	);
-	let dateRows = $derived(extracted?.dates ?? []);
-	let gradingRows = $derived(extracted?.grading ?? []);
-	let knowledgeTopics = $derived(extracted?.keyKnowledge.topics ?? []);
-	let outlineRows = $derived(extracted?.keyKnowledge.outline ?? []);
+	// Polling / progress state
+	let progressCompleted = $state(0);
+	let progressPulse = $state<'polling' | 'finalising' | ''>('');
+	let pollingTimer = $state<ReturnType<typeof setInterval> | null>(null);
+
 	let activeCourse = $derived(
 		courseOptions.find((course) => course.id === selectedCourseId) ?? courseOptions[0] ?? null
 	);
@@ -170,6 +151,45 @@
 		selectedSyllabusFileName = file.name;
 	}
 
+	function startProgressPoll() {
+		// Increment through extraction items with staggered timing
+		// to show visual progress while the backend processes
+		progressCompleted = 0;
+		progressPulse = 'polling';
+		const tick = () => {
+			progressCompleted = (prev: number) => {
+				const next = prev + 1;
+				if (next >= extractionItems.length) {
+					if (pollingTimer) clearInterval(pollingTimer);
+					pollingTimer = null;
+					progressPulse = 'finalising';
+				}
+				return Math.min(next, extractionItems.length);
+			};
+			// Use function update trick — progressCompleted is a $state so we set it
+		};
+
+		pollingTimer = setInterval(() => {
+			if (progressCompleted < extractionItems.length) {
+				progressCompleted += 1;
+				if (progressCompleted >= extractionItems.length) {
+					if (pollingTimer) clearInterval(pollingTimer);
+					pollingTimer = null;
+					progressPulse = 'finalising';
+				}
+			}
+		}, 1800);
+	}
+
+	function stopProgressPoll() {
+		if (pollingTimer) {
+			clearInterval(pollingTimer);
+			pollingTimer = null;
+		}
+		progressCompleted = extractionItems.length;
+		progressPulse = '';
+	}
+
 	async function extractSyllabus() {
 		if (!selectedSyllabusFile) {
 			apiError = 'Choose a syllabus PDF first';
@@ -182,6 +202,8 @@
 
 		isExtracting = true;
 		apiError = '';
+		startProgressPoll();
+
 		try {
 			const body = (() => {
 				const form = new FormData();
@@ -194,30 +216,18 @@
 				body
 			});
 			if (!response.ok) throw new Error('Could not extract syllabus');
+			// Extraction succeeded — complete progress and navigate
+			stopProgressPoll();
 			syllabus = (await response.json()) as SyllabusImport;
 			selectedSyllabusFileName = syllabus.fileName;
+			// Small delay to show the final "complete" state before navigating
+			await new Promise((r) => setTimeout(r, 600));
+			await goto(`/app/syllabus/result/${encodeURIComponent(selectedCourseId)}`);
 		} catch (error) {
+			stopProgressPoll();
 			apiError = error instanceof Error ? error.message : 'Could not extract syllabus';
 		} finally {
 			isExtracting = false;
-		}
-	}
-
-	async function uploadTextbook(event: Event) {
-		const file = (event.currentTarget as HTMLInputElement).files?.[0];
-		if (!file) return;
-
-		apiError = '';
-		try {
-			const response = await fetch('/api/syllabus/textbook', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ fileName: file.name, courseId: selectedCourseId })
-			});
-			if (!response.ok) throw new Error('Could not save textbook');
-			syllabus = (await response.json()) as SyllabusImport;
-		} catch (error) {
-			apiError = error instanceof Error ? error.message : 'Could not save textbook';
 		}
 	}
 
@@ -264,11 +274,7 @@
 	<div class="page-cover">
 		<h1 class="page-title font-hand">Syllabus Intelligence</h1>
 		<p class="page-tagline">
-			{#if syllabus}
-				{syllabus.fileName} · {statusLabel}
-			{:else}
-				Upload a course outline. Extract the details students actually need.
-			{/if}
+			Upload a course outline. Extract the details students actually need.
 		</p>
 		<div class="page-status">
 			<StatusChip variant={statusVariant} label={statusLabel} />
@@ -351,17 +357,35 @@
 				</div>
 			{/if}
 
-			<div class="extract-list">
-				<div class="extract-list-head font-mono">Extracted points</div>
-				<ul>
-					{#each extractionItems as item, i (i)}
-						<li>
-							<span class="check font-mono" aria-hidden="true">✓</span>
-							<span>{item}</span>
-						</li>
-					{/each}
-				</ul>
-			</div>
+			{#if isExtracting}
+				<div class="progress-panel" role="status" aria-live="polite">
+					<div class="progress-head font-mono">
+						{progressPulse === 'finalising' ? 'Finalising extraction...' : 'Extracting from syllabus...'}
+					</div>
+					<ul class="progress-list">
+						{#each extractionItems as item, i (i)}
+							<li class="progress-item" class:done={i < progressCompleted} class:pending={i >= progressCompleted}>
+								<span class="progress-check font-mono" aria-hidden="true">
+									{i < progressCompleted ? '✓' : '○'}
+								</span>
+								<span>{item}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{:else}
+				<div class="extract-list">
+					<div class="extract-list-head font-mono">Extracted points</div>
+					<ul>
+						{#each extractionItems as item, i (i)}
+							<li>
+								<span class="check font-mono" aria-hidden="true">✓</span>
+								<span>{item}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 
 			<div class="upload-actions">
 				<button
@@ -394,174 +418,31 @@
 				meta={syllabus ? `FROM · ${syllabus.fileName}` : 'WAITING'}
 			/>
 
-			{#if extracted}
-				<div class="results-grid">
-					<section class="data-group">
-						<div class="data-group-head">
-							<span class="group-index font-mono">01</span>
-							<h3 class="group-title font-mono">Professor contact</h3>
-						</div>
-						<dl>
-							{#each professorRows as row, i (i)}
-								<div class="data-row">
-									<dt>{row[0]}</dt>
-									<dd>{row[1]}</dd>
-								</div>
-							{/each}
-						</dl>
-					</section>
-
-					<section class="data-group">
-						<div class="data-group-head">
-							<span class="group-index font-mono">02</span>
-							<h3 class="group-title font-mono">Course logistics</h3>
-						</div>
-						<dl>
-							{#each logisticsRows as row, i (i)}
-								<div class="data-row">
-									<dt>{row[0]}</dt>
-									<dd>{row[1]}</dd>
-								</div>
-							{/each}
-						</dl>
-					</section>
-
-					<section class="data-group">
-						<div class="data-group-head">
-							<span class="group-index font-mono">03</span>
-							<h3 class="group-title font-mono">Important dates</h3>
-						</div>
-						<dl>
-							{#each dateRows as row, i (i)}
-								<div class="data-row" class:needs-review={row.needsReview}>
-									<dt>{row.label}</dt>
-									<dd>
-										<span>{row.date}</span>
-										{#if row.needsReview}
-											<StatusChip variant="warn" label="Review" />
-										{/if}
-									</dd>
-								</div>
-							{/each}
-						</dl>
-					</section>
-
-					<section class="data-group">
-						<div class="data-group-head">
-							<span class="group-index font-mono">04</span>
-							<h3 class="group-title font-mono">Grading scheme</h3>
-						</div>
-						<dl>
-							{#each gradingRows as row, i (i)}
-								<div class="data-row">
-									<dt>{row.label}</dt>
-									<dd class="font-mono">{row.weight}%</dd>
-								</div>
-							{/each}
-						</dl>
-					</section>
-				</div>
-
-				<section class="knowledge">
-					<SectionHead
-						eyebrow="Section 05"
-						title="Key knowledge"
-						meta={extracted.keyKnowledge.source}
-					/>
-
-					<div class="topic-list" aria-label="Study topics extracted from syllabus">
-						{#each knowledgeTopics as topic, i (i)}
-							<span
-								class="topic-chip font-mono"
-								class:topic-highlight={topic === extracted?.keyKnowledge.highlightedTopic}
-							>
-								{topic}
-							</span>
-						{/each}
-					</div>
-
-					<div class="outline">
-						<div class="outline-head font-mono">Study from outline</div>
-						<ol>
-							{#each outlineRows as row, i (i)}
-								<li>
-									<span class="outline-number font-mono">{String(i + 1).padStart(2, '0')}</span>
-									<span class="outline-week font-mono">{row.range}</span>
-									<span class="outline-topic">{row.topic}</span>
-								</li>
-							{/each}
-						</ol>
-					</div>
-				</section>
-
-				<section class="materials">
-					<div class="materials-copy">
-						<div class="materials-eyebrow font-mono">Section 06</div>
-						<h3 class="group-title font-mono">Required materials</h3>
-						{#if textbookUploaded}
-							<p class="materials-title font-display">
-								{extracted?.requiredMaterials.textbookTitle}
-							</p>
-						{:else}
-							<p class="materials-empty font-mono">No textbook uploaded yet</p>
-						{/if}
-					</div>
-					{#if textbookUploaded && extracted?.requiredMaterials.textbookPdfUrl}
-						<!-- eslint-disable svelte/no-navigation-without-resolve -- textbookPdfUrl is an external asset, not an app route -->
-						<a
-							href={extracted.requiredMaterials.textbookPdfUrl}
-							class="btn btn-primary"
-							aria-label="Open textbook PDF"
-						>
-							Open textbook PDF
+			{#if syllabus}
+				<div class="existing-result">
+					<p class="existing-text">
+						Syllabus extracted for <strong>{activeCourse?.code || 'this course'}</strong>.
+					</p>
+					<div class="existing-actions">
+						<a href={`/app/syllabus/result/${encodeURIComponent(selectedCourseId)}`} class="btn btn-primary">
+							View extraction results
 						</a>
-						<!-- eslint-enable svelte/no-navigation-without-resolve -->
-					{:else}
-						<label class="btn btn-secondary upload-material">
-							<input
-								type="file"
-								accept="application/pdf"
-								aria-label="Upload textbook PDF"
-								disabled={!selectedCourseId}
-								onchange={uploadTextbook}
-							/>
-							Upload textbook PDF
-						</label>
-					{/if}
-				</section>
+						<span class="existing-status font-mono">
+							{syllabus.status === 'ready' ? 'Ready' : syllabus.status === 'mocked' ? 'Sample data' : syllabus.status}
+						</span>
+					</div>
+				</div>
+			{:else if isExtracting}
+				<div class="results-empty">
+					<p class="empty-text">Extraction in progress. Results will appear on the results page once complete.</p>
+				</div>
 			{:else}
 				<div class="results-empty">
-					<p class="empty-text">Upload a syllabus PDF to see extracted data here.</p>
+					<p class="empty-text">Upload a syllabus PDF to extract student-useful details.</p>
 				</div>
 			{/if}
 		</article>
 	</section>
-
-	{#if dateRows.length > 0}
-		<section class="timeline" aria-label="Extracted syllabus timeline">
-			<SectionHead
-				eyebrow={`${dateRows.length} ${dateRows.length === 1 ? 'date' : 'dates'}`}
-				title="Extracted timeline"
-				meta="SORTED"
-			/>
-
-			<ol class="timeline-list">
-				{#each dateRows as row, i (i)}
-					<li
-						class="timeline-item"
-						class:review={row.needsReview}
-						class:highlighted={row.label === 'Midterm exam'}
-					>
-						<span class="date font-mono">{row.date}</span>
-						<span class="timeline-label">{row.label}</span>
-						{#if row.needsReview}
-							<StatusChip variant="warn" label="Review" />
-						{/if}
-					</li>
-				{/each}
-			</ol>
-		</section>
-	{/if}
 </div>
 
 <style>
@@ -710,8 +591,7 @@
 	}
 
 	.upload-panel,
-	.results-panel,
-	.timeline {
+	.results-panel {
 		padding: 1.25rem 1.5rem 1.5rem;
 	}
 
@@ -801,6 +681,69 @@
 		flex-shrink: 0;
 	}
 
+	/* ── Progress panel (polling) ── */
+	.progress-panel {
+		border: 1px solid var(--rule);
+		background: var(--paper);
+		padding: 1rem 1.25rem 1.15rem;
+	}
+
+	.progress-head {
+		font-size: 0.75rem;
+		color: var(--ink-faint);
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		margin-bottom: 0.65rem;
+	}
+
+	.progress-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		gap: 0.4rem;
+	}
+
+	.progress-item {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		font-size: 0.88rem;
+		padding: 0.35rem 0;
+		border-bottom: 1px solid var(--rule);
+		color: var(--ink-faint);
+		transition: color 0.25s;
+	}
+
+	.progress-item:last-child {
+		border-bottom: none;
+	}
+
+	.progress-item.done {
+		color: var(--ink);
+	}
+
+	.progress-check {
+		display: inline-grid;
+		place-items: center;
+		min-width: 1.15rem;
+		height: 1.15rem;
+		font-size: 0.7rem;
+		flex-shrink: 0;
+	}
+
+	.progress-item.done .progress-check {
+		background: var(--ink);
+		color: var(--paper);
+	}
+
+	.progress-item.pending .progress-check {
+		border: 1px solid var(--rule);
+		color: var(--ink-faint);
+	}
+
+	/* ── End progress panel ── */
+
 	.extract-list-head {
 		font-size: 0.75rem;
 		color: var(--ink-faint);
@@ -859,219 +802,28 @@
 		letter-spacing: 0.08em;
 	}
 
-	.results-grid {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 1.25rem 1.5rem;
+	/* ── Existing result state ── */
+	.existing-result {
 		margin-top: 0.5rem;
 	}
 
-	.data-group {
-		min-width: 0;
+	.existing-text {
+		color: var(--ink-soft);
+		font-size: 0.92rem;
+		margin: 0 0 1rem;
 	}
 
-	.data-group-head {
-		display: flex;
-		align-items: baseline;
-		gap: 0.6rem;
-		margin-bottom: 0.5rem;
-		padding-bottom: 0.5rem;
-		border-bottom: 1px solid var(--ink);
-	}
-
-	.group-index {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		letter-spacing: 0.14em;
-	}
-
-	.group-title {
-		margin: 0;
-		color: var(--ink);
-		font-size: 0.95rem;
-		font-weight: 500;
-		text-transform: none;
-		letter-spacing: 0;
-		font-family: var(--font-display);
-	}
-
-	.data-group dl {
-		display: grid;
-		gap: 0.3rem;
-		margin: 0;
-	}
-
-	.data-row {
-		display: grid;
-		grid-template-columns: minmax(7rem, 0.5fr) minmax(0, 1fr);
-		gap: 1rem;
-		align-items: baseline;
-		padding: 0.45rem 0;
-		border-bottom: 1px solid var(--rule);
-	}
-
-	.data-row:last-child {
-		border-bottom: none;
-	}
-
-	.data-row dt {
-		color: var(--ink-faint);
-		font-size: 0.78rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.data-row dd {
-		margin: 0;
-		color: var(--ink);
-		font-size: 0.95rem;
+	.existing-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
-		justify-content: space-between;
+		gap: 0.75rem;
 	}
 
-	.data-row.needs-review dd > span:first-child {
-		color: var(--accent);
-	}
-
-	.knowledge {
-		margin-top: 1.5rem;
-		padding-top: 1.25rem;
-		border-top: 1px solid var(--ink);
-	}
-
-	.topic-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin: 0.75rem 0 0;
-	}
-
-	.topic-chip {
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink-soft);
-		font-size: 0.8rem;
-		padding: 0.35rem 0.65rem;
-		text-transform: none;
-		letter-spacing: 0;
-	}
-
-	.topic-highlight {
-		background: var(--ink);
-		color: var(--paper);
-		border-color: var(--ink);
-	}
-
-	.outline {
-		margin-top: 1rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		padding: 1rem 1.25rem 1.15rem;
-	}
-
-	.outline-head {
-		font-size: 0.75rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		margin-bottom: 0.65rem;
-	}
-
-	.outline ol {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: grid;
-		gap: 0.5rem;
-	}
-
-	.outline li {
-		display: grid;
-		grid-template-columns: 2.25rem 5.5rem 1fr;
-		gap: 0.85rem;
-		align-items: baseline;
-		color: var(--ink);
-		font-size: 0.92rem;
-		padding: 0.5rem 0;
-		border-bottom: 1px solid var(--rule);
-	}
-
-	.outline li:last-child {
-		border-bottom: none;
-	}
-
-	.outline-number {
-		font-size: 0.8rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		text-align: center;
-	}
-
-	.outline-week {
-		font-size: 0.75rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		white-space: nowrap;
-	}
-
-	.outline-topic {
-		font-size: 0.92rem;
-		color: var(--ink);
-	}
-
-	.materials {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 1rem;
-		margin-top: 1.5rem;
-		padding-top: 1.25rem;
-		border-top: 1px solid var(--ink);
-	}
-
-	.materials-copy {
-		min-width: 0;
-	}
-
-	.materials-eyebrow {
+	.existing-status {
 		font-size: 0.72rem;
 		color: var(--ink-faint);
 		text-transform: uppercase;
-		letter-spacing: 0.14em;
-		margin-bottom: 0.25rem;
-	}
-
-	.materials-title {
-		margin: 0.35rem 0 0;
-		color: var(--ink);
-		font-size: 1.15rem;
-		font-weight: 600;
-		letter-spacing: -0.01em;
-	}
-
-	.materials-empty {
-		margin: 0.5rem 0 0;
-		color: var(--ink-faint);
-		font-size: 0.78rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.upload-material {
-		position: relative;
-		overflow: hidden;
-	}
-
-	.upload-material input {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
+		letter-spacing: 0.08em;
 	}
 
 	.results-empty {
@@ -1085,53 +837,6 @@
 		margin: 0;
 	}
 
-	.timeline {
-		margin-top: 1.5rem;
-	}
-
-	.timeline-list {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-		gap: 0.5rem;
-		list-style: none;
-		padding: 0;
-		margin: 1rem 0 0;
-	}
-
-	.timeline-item {
-		display: grid;
-		gap: 0.4rem;
-		padding: 0.85rem 1rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-	}
-
-	.timeline-item.review {
-		border-color: var(--accent);
-	}
-
-	.timeline-item.highlighted {
-		background: var(--ink);
-		color: var(--paper);
-	}
-
-	.timeline-item.highlighted .date,
-	.timeline-item.highlighted .timeline-label {
-		color: var(--paper);
-	}
-
-	.date {
-		font-size: 0.75rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.timeline-label {
-		font-size: 0.92rem;
-		color: var(--ink);
-	}
-
 	@media (max-width: 1024px) {
 		.course-selector {
 			grid-template-columns: 1fr;
@@ -1140,29 +845,6 @@
 
 		.workspace {
 			grid-template-columns: 1fr;
-		}
-	}
-
-	@media (max-width: 768px) {
-		.materials {
-			flex-direction: column;
-			align-items: flex-start;
-		}
-
-		.results-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.timeline-list {
-			grid-template-columns: 1fr;
-		}
-
-		.outline li {
-			grid-template-columns: auto 1fr;
-		}
-
-		.outline li .outline-topic {
-			grid-column: 2;
 		}
 	}
 </style>

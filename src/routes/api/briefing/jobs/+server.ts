@@ -86,8 +86,8 @@ async function processJob(binding: D1Database, jobId: string, courseCode: string
 		});
 
 		if (!response.ok) {
-			const text = await response.text();
-			console.error(`OpenRouter error (${response.status}):`, text);
+			console.error(`OpenRouter error: status ${response.status}`);
+			await response.text().catch(() => undefined);
 			await runner.failJob(jobId, 'LLM_ERROR', `OpenRouter returned ${response.status}`);
 			return;
 		}
@@ -103,7 +103,7 @@ async function processJob(binding: D1Database, jobId: string, courseCode: string
 		if (latest?.status !== 'running') return;
 		await saveAndCompleteJob(binding, jobId, job.cacheKey, extractBriefingJson(text), true);
 	} catch (err) {
-		console.error('Job processing failed:', err);
+		console.error('Job processing failed:', err instanceof Error ? err.message : err);
 		if (err instanceof ValidationError || err instanceof SyntaxError) {
 			await runner.failJob(jobId, 'VALIDATION_FAILED', err.message);
 			return;
