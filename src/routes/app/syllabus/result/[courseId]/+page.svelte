@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
 
@@ -68,7 +67,8 @@
 		order: number;
 	};
 
-	let { data }: { data: { courseId: string; courses: SetupCourse[]; semesters: SetupSemester[] } } = $props();
+	let { data }: { data: { courseId: string; courses: SetupCourse[]; semesters: SetupSemester[] } } =
+		$props();
 
 	let syllabus = $state<SyllabusImport | null>(null);
 	let loading = $state(true);
@@ -81,11 +81,9 @@
 	let syncMonth = $state<number | null>(null);
 	let syncYear = $state<number | null>(null);
 
-	let activeCourse = $derived(
-		data.courses.find((course) => course.id === data.courseId) ?? null
-	);
+	let activeCourse = $derived(data.courses.find((course) => course.id === data.courseId) ?? null);
 	let activeSemester = $derived(
-		activeCourse ? data.semesters.find((s) => s.id === activeCourse.semesterId) ?? null : null
+		activeCourse ? (data.semesters.find((s) => s.id === activeCourse.semesterId) ?? null) : null
 	);
 	let extracted = $derived(syllabus?.extractedData ?? null);
 	let textbookUploaded = $derived(extracted?.requiredMaterials.textbookPdfUploaded ?? false);
@@ -114,7 +112,7 @@
 	let knowledgeTopics = $derived(extracted?.keyKnowledge.topics ?? []);
 	let outlineRows = $derived(extracted?.keyKnowledge.outline ?? []);
 
-	let statusVariant = $derived(syllabus?.status === 'error' ? 'crit' : 'ok');
+	let statusVariant: 'crit' | 'ok' = $derived(syllabus?.status === 'error' ? 'crit' : 'ok');
 	let statusLabel = $derived(
 		syllabus?.status === 'ready'
 			? 'Ready'
@@ -126,8 +124,18 @@
 	);
 
 	const MONTH_MAP: Record<string, number> = {
-		jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-		jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+		jan: 0,
+		feb: 1,
+		mar: 2,
+		apr: 3,
+		may: 4,
+		jun: 5,
+		jul: 6,
+		aug: 7,
+		sep: 8,
+		oct: 9,
+		nov: 10,
+		dec: 11
 	};
 
 	/** Parse a syllabus date string like "Oct 18" or "December 12" into { month, day }. */
@@ -187,8 +195,8 @@
 			}
 			const year = inferYear(parsed.month);
 			const calType = toCalendarType(dateItem.type, dateItem.label);
-			const gradeItem = gradingRows.find(
-				(g) => dateItem.label.toLowerCase().includes(g.label.toLowerCase())
+			const gradeItem = gradingRows.find((g) =>
+				dateItem.label.toLowerCase().includes(g.label.toLowerCase())
 			);
 			const gradeWeight = gradeItem?.weight ?? undefined;
 
@@ -207,10 +215,12 @@
 					})
 				});
 				if (res.ok) {
-				ok++;
-				if (firstMonth === null) { firstMonth = parsed.month; firstYear = year; }
-			}
-				else failed++;
+					ok++;
+					if (firstMonth === null) {
+						firstMonth = parsed.month;
+						firstYear = year;
+					}
+				} else failed++;
 			} catch {
 				failed++;
 			}
@@ -268,17 +278,13 @@
 	<title>Syllabus Results · Synapse</title>
 </svelte:head>
 
-<CatalogHeader term="Syllabus" />
-
 <div class="page">
 	<div class="page-cover">
 		<div class="page-cover-row">
-			<div>
-				<h1 class="page-title font-hand">Syllabus Extraction</h1>
+			<div class="page-cover-copy">
+				<h1 class="page-title font-display">Syllabus Extraction</h1>
 				<p class="page-tagline">
-					{activeCourse
-						? `${activeCourse.code} - ${activeCourse.name}`
-						: `Course ${data.courseId}`}
+					{activeCourse ? `${activeCourse.code} - ${activeCourse.name}` : `Course ${data.courseId}`}
 					{syllabus ? `· ${syllabus.fileName}` : ''}
 				</p>
 			</div>
@@ -290,15 +296,15 @@
 	</div>
 
 	{#if loading}
-		<div class="loading-state font-mono" role="status" aria-live="polite">Loading extraction...</div>
+		<div class="loading-state font-mono" role="status" aria-live="polite">
+			Loading extraction...
+		</div>
 	{:else if apiError}
 		<div class="error-banner font-mono" role="alert">{apiError}</div>
 	{:else if !syllabus}
 		<section class="surface-polaroid empty-state">
-			<h2 class="empty-head font-hand">No extraction found</h2>
-			<p class="empty-text">
-				No syllabus has been extracted for this course yet.
-			</p>
+			<h2 class="empty-head font-display">No extraction found</h2>
+			<p class="empty-text">No syllabus has been extracted for this course yet.</p>
 			<a href="/app/syllabus" class="btn btn-primary">Upload a syllabus</a>
 		</section>
 	{:else if extracted}
@@ -316,7 +322,11 @@
 				</div>
 				<div class="sync-bar-action">
 					{#if syncResult}
-						<span class="sync-result font-mono" class:sync-ok={syncResult.failed === 0} class:sync-partial={syncResult.failed > 0 && syncResult.ok > 0}>
+						<span
+							class="sync-result font-mono"
+							class:sync-ok={syncResult.failed === 0}
+							class:sync-partial={syncResult.failed > 0 && syncResult.ok > 0}
+						>
 							{syncResult.ok} synced
 							{#if syncResult.failed > 0}
 								· {syncResult.failed} failed
@@ -337,14 +347,11 @@
 								view in calendar
 							</a>
 						{/if}
-
 					{:else}
-						<button
-							class="btn btn-primary btn-sm"
-							disabled={syncing}
-							onclick={syncToCalendar}
-						>
-							{syncing ? `syncing ${dateRows.length} dates...` : `sync ${dateRows.length} ${dateRows.length === 1 ? 'date' : 'dates'} to calendar`}
+						<button class="btn btn-primary btn-sm" disabled={syncing} onclick={syncToCalendar}>
+							{syncing
+								? `syncing ${dateRows.length} dates...`
+								: `sync ${dateRows.length} ${dateRows.length === 1 ? 'date' : 'dates'} to calendar`}
 						</button>
 					{/if}
 				</div>
@@ -352,7 +359,9 @@
 		{/if}
 
 		{#if syncError}
-			<div class="error-banner font-mono" role="alert" style="margin-bottom: 1rem;">{syncError}</div>
+			<div class="error-banner font-mono" role="alert" style="margin-bottom: 1rem;">
+				{syncError}
+			</div>
 		{/if}
 
 		<div class="results-grid">
@@ -516,32 +525,37 @@
 		{/if}
 	{:else}
 		<section class="surface-polaroid empty-state">
-			<h2 class="empty-head font-hand">Extraction error</h2>
-			<p class="empty-text">
-				The syllabus extraction has no usable data.
-			</p>
+			<h2 class="empty-head font-display">Extraction error</h2>
+			<p class="empty-text">The syllabus extraction has no usable data.</p>
 		</section>
 	{/if}
 </div>
 
 <style>
 	.page {
-		max-width: 1100px;
+		max-width: var(--page-width);
 		margin-inline: auto;
-		padding-block: 2rem 4rem;
+		padding-block: 2.5rem 4rem;
 	}
 
 	.page-title {
-		font-size: clamp(2.4rem, 4vw, 3rem);
+		font-size: clamp(2rem, 4vw, 3.25rem);
+		font-weight: 600;
 		color: var(--ink);
 		margin: 0.25rem 0 0.5rem;
-		line-height: 1;
+		line-height: 1.05;
+		letter-spacing: -0.025em;
 	}
 
 	.page-tagline {
 		color: var(--ink-soft);
 		font-size: 0.92rem;
 		margin: 0.35rem 0 0;
+		overflow-wrap: anywhere;
+	}
+
+	.page-cover-copy {
+		min-width: 0;
 	}
 
 	.page-status {
@@ -553,9 +567,14 @@
 
 	.page-cover-row {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: flex-start;
 		gap: 1rem;
+	}
+
+	.page-cover-row .btn {
+		flex-shrink: 0;
 	}
 
 	.loading-state {
@@ -599,6 +618,7 @@
 		justify-content: space-between;
 		align-items: center;
 		gap: 1rem;
+		flex-wrap: wrap;
 		padding: 1rem 1.5rem;
 		margin-top: 1.25rem;
 	}
@@ -619,13 +639,21 @@
 		margin: 0;
 		font-size: 0.88rem;
 		color: var(--ink-soft);
+		overflow-wrap: anywhere;
 	}
 
 	.sync-bar-action {
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		flex-shrink: 0;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		min-width: min(100%, 14rem);
+	}
+
+	.sync-bar-action .btn {
+		white-space: normal;
+		text-align: center;
 	}
 
 	.sync-result {
@@ -633,10 +661,15 @@
 		color: var(--ok);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
+		overflow-wrap: anywhere;
 	}
 
-	.sync-ok { color: var(--ok); }
-	.sync-partial { color: var(--warn); }
+	.sync-ok {
+		color: var(--ok);
+	}
+	.sync-partial {
+		color: var(--warn);
+	}
 
 	.results-grid {
 		display: grid;
@@ -685,20 +718,24 @@
 
 	.data-row {
 		display: grid;
-		grid-template-columns: minmax(7rem, 0.5fr) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
 		gap: 1rem;
 		align-items: baseline;
 		padding: 0.45rem 0;
 		border-bottom: 1px solid var(--rule);
 	}
 
-	.data-row:last-child { border-bottom: none; }
+	.data-row:last-child {
+		border-bottom: none;
+	}
 
 	.data-row dt {
 		color: var(--ink-faint);
 		font-size: 0.78rem;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.data-row dd {
@@ -706,14 +743,26 @@
 		color: var(--ink);
 		font-size: 0.95rem;
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.6rem;
-		justify-content: space-between;
+		justify-content: flex-start;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
-	.data-row.needs-review dd > span:first-child { color: var(--accent); }
+	.data-row dd > span:first-child {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
 
-	.knowledge { margin-top: 1.25rem; }
+	.data-row.needs-review dd > span:first-child {
+		color: var(--accent);
+	}
+
+	.knowledge {
+		margin-top: 1.25rem;
+	}
 
 	.topic-list {
 		display: flex;
@@ -730,6 +779,8 @@
 		padding: 0.35rem 0.65rem;
 		text-transform: none;
 		letter-spacing: 0;
+		max-width: 100%;
+		overflow-wrap: anywhere;
 	}
 
 	.topic-highlight {
@@ -763,7 +814,7 @@
 
 	.outline li {
 		display: grid;
-		grid-template-columns: 2.25rem 5.5rem 1fr;
+		grid-template-columns: 2.25rem minmax(0, 5.5rem) minmax(0, 1fr);
 		gap: 0.85rem;
 		align-items: baseline;
 		color: var(--ink);
@@ -772,7 +823,9 @@
 		border-bottom: 1px solid var(--rule);
 	}
 
-	.outline li:last-child { border-bottom: none; }
+	.outline li:last-child {
+		border-bottom: none;
+	}
 
 	.outline-number {
 		font-size: 0.8rem;
@@ -787,23 +840,34 @@
 		color: var(--ink-soft);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		white-space: nowrap;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.outline-topic {
 		font-size: 0.92rem;
 		color: var(--ink);
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 
 	.materials {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: center;
 		gap: 1rem;
 		margin-top: 1.25rem;
 	}
 
-	.materials-copy { min-width: 0; }
+	.materials-copy {
+		min-width: 0;
+	}
+
+	.materials .btn {
+		max-width: 100%;
+		white-space: normal;
+	}
 
 	.materials-eyebrow {
 		font-size: 0.72rem;
@@ -819,6 +883,7 @@
 		font-size: 1.15rem;
 		font-weight: 600;
 		letter-spacing: -0.01em;
+		overflow-wrap: anywhere;
 	}
 
 	.materials-empty {
@@ -832,6 +897,8 @@
 	.upload-material {
 		position: relative;
 		overflow: hidden;
+		max-width: 100%;
+		white-space: normal;
 	}
 
 	.upload-material input {
@@ -842,7 +909,9 @@
 		clip: rect(0 0 0 0);
 	}
 
-	.timeline { margin-top: 1.25rem; }
+	.timeline {
+		margin-top: 1.25rem;
+	}
 
 	.timeline-list {
 		display: grid;
@@ -859,9 +928,12 @@
 		padding: 0.85rem 1rem;
 		border: 1px solid var(--rule);
 		background: var(--paper);
+		min-width: 0;
 	}
 
-	.timeline-item.review { border-color: var(--accent); }
+	.timeline-item.review {
+		border-color: var(--accent);
+	}
 
 	.timeline-item.highlighted {
 		background: var(--ink);
@@ -869,28 +941,55 @@
 	}
 
 	.timeline-item.highlighted .date,
-	.timeline-item.highlighted .timeline-label { color: var(--paper); }
+	.timeline-item.highlighted .timeline-label {
+		color: var(--paper);
+	}
 
 	.date {
 		font-size: 0.75rem;
 		color: var(--ink-faint);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
+		overflow-wrap: anywhere;
 	}
 
 	.timeline-label {
 		font-size: 0.92rem;
 		color: var(--ink);
+		overflow-wrap: anywhere;
 	}
 
 	@media (max-width: 1024px) {
-		.results-grid { grid-template-columns: 1fr; }
+		.results-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	@media (max-width: 768px) {
-		.materials { flex-direction: column; align-items: flex-start; }
-		.timeline-list { grid-template-columns: 1fr; }
-		.outline li { grid-template-columns: auto 1fr; }
-		.outline li .outline-topic { grid-column: 2; }
+		.materials {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+		.timeline-list {
+			grid-template-columns: 1fr;
+		}
+		.outline li {
+			grid-template-columns: auto minmax(0, 1fr);
+		}
+		.outline li .outline-topic {
+			grid-column: 2;
+		}
+	}
+
+	@media (max-width: 520px) {
+		.data-row {
+			grid-template-columns: 1fr;
+			gap: 0.25rem;
+		}
+
+		.sync-bar-action,
+		.sync-bar-action .btn {
+			width: 100%;
+		}
 	}
 </style>

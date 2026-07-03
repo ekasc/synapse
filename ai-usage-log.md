@@ -729,19 +729,56 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 
 ---
 
-## Summary of AI Usage Pattern (Updated June 26)
+## 24. Course Brief Reliability + Editorial Instrument UI Pass (July 3)
 
-| Phase                            | Tool  | Prompt Count | AI Output                                                                         | Human Review                                                                                                |
-| -------------------------------- | ----- | ------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| ...                              | ...   | ...          | (entries 1–15 unchanged)                                                          | ...                                                                                                         |
-| Course Brief → D1 + async jobs   | Codex | ~15          | D1 schema, job queue runner, full-stack async UI, LLM integration                 | Web search format fix, reasoning response parsing, cache key stability, interval lifecycle                  |
-| Bits-ui theme alignment          | Codex | 2            | 10 components rewired to design tokens                                            | ToggleGroup selected state, Button primary hover, Input disabled bg                                         |
-| DESIGN.md rewrite                | Codex | 1            | Full 13-section design document                                                   | Every section updated to match actual codebase                                                              |
-| UI audit + repair                | Codex | ~6           | CSS consolidation, breakpoints, overflow, unused code removal                     | Reverted one wrong grid cell fix, kept Google blue as intentional brand color                               |
-| Calendar intelligence            | Codex | ~8           | Google removal, D1 CRUD, crunch/gap/stakes engine, enhanced UI                    | Multiple template scoping fixes, sidebar visibility bug, popover accessibility                              |
-| Activity page + sidebar badge    | Codex | ~3           | Runner functions, API endpoint, activity page, sidebar polling/badge system       | Fixed infinite $effect loop, added input validation, fixed interval leak                                    |
-| AI usage log                     | Codex | 1            | This entry                                                                        | All session entries verified against what shipped                                                           |
-| Course briefing prompt hardening | Codex | ~6           | Shared prompt module, strict research protocol, OpenRouter server-tool web search | Adjusted for DeepSeek Flash, stale-source handling, professor/RMP search coverage, validation-backed output |
+### Prompt (to OpenCode Go / Codex)
+
+> "What did we do so far?" followed by continuing the route-by-route critique and fixes.
+
+**Context:** The Course Briefing feature needed reliability fixes after local D1 and OpenRouter issues, and the app UI was being shifted from the earlier catalog/notebook direction toward the newer "Editorial Instrument" mock in `/private/tmp/synapse-mocks/01-editorial-instrument.html`.
+
+**What changed:**
+
+- Applied the pending local D1 migration so the Briefing tables matched the current code.
+- Added `.trycloudflare.com` to Vite `server.allowedHosts` for tunnel-based dev preview.
+- Fixed syllabus result layout overlap.
+- Hardened Course Brief OpenRouter handling: stopped parsing `message.reasoning`, added `response_format`, switched web search configuration, and tightened prompt behavior around separate searches.
+- Added deterministic briefing schema/request modules, schema versioning, model-aware cache keys, and response-healing fallback.
+- Added `model_used` and `schema_version` columns through `migrations/0005_briefings_model_used.sql`.
+- Updated global design tokens and app shell toward the Editorial Instrument direction.
+- Removed redundant `CatalogHeader` usage across app routes because the app layout now owns the topbar.
+- Replaced remaining `font-hand` route headings with `font-display` for the more mature editorial style.
+- Replaced hardcoded `max-width: 1100px` page widths with `var(--page-width)`.
+- Replaced raw calendar palette hex values with CSS variables.
+
+**Route critique fixes:**
+
+- Updated Settings, Setup, Syllabus, Syllabus Result, Courses, Course Detail, Course Manage, Calendar, Digest, Practice, Activity, Semesters, and Brief page styling inconsistencies.
+- Final sweep found no remaining `CatalogHeader`, `font-hand`, or `max-width: 1100px` matches under `src/routes/app`.
+
+**Verification:**
+
+- Prettier clean on touched Svelte files.
+- `svelte-check --workspace "src/routes/app" --no-tsconfig --diagnostic-sources svelte,css`: 0 errors, 1 pre-existing `a11y_autofocus` warning.
+- Briefing server tests: 34 passed.
+- Brief page client tests: 3 passed.
+
+---
+
+## Summary of AI Usage Pattern (Updated July 3)
+
+| Phase                             | Tool  | Prompt Count | AI Output                                                                               | Human Review                                                                                                |
+| --------------------------------- | ----- | ------------ | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ...                               | ...   | ...          | (entries 1–15 unchanged)                                                                | ...                                                                                                         |
+| Course Brief → D1 + async jobs    | Codex | ~15          | D1 schema, job queue runner, full-stack async UI, LLM integration                       | Web search format fix, reasoning response parsing, cache key stability, interval lifecycle                  |
+| Bits-ui theme alignment           | Codex | 2            | 10 components rewired to design tokens                                                  | ToggleGroup selected state, Button primary hover, Input disabled bg                                         |
+| DESIGN.md rewrite                 | Codex | 1            | Full 13-section design document                                                         | Every section updated to match actual codebase                                                              |
+| UI audit + repair                 | Codex | ~6           | CSS consolidation, breakpoints, overflow, unused code removal                           | Reverted one wrong grid cell fix, kept Google blue as intentional brand color                               |
+| Calendar intelligence             | Codex | ~8           | Google removal, D1 CRUD, crunch/gap/stakes engine, enhanced UI                          | Multiple template scoping fixes, sidebar visibility bug, popover accessibility                              |
+| Activity page + sidebar badge     | Codex | ~3           | Runner functions, API endpoint, activity page, sidebar polling/badge system             | Fixed infinite $effect loop, added input validation, fixed interval leak                                    |
+| AI usage log                      | Codex | 1            | This entry                                                                              | All session entries verified against what shipped                                                           |
+| Course briefing prompt hardening  | Codex | ~6           | Shared prompt module, strict research protocol, OpenRouter server-tool web search       | Adjusted for DeepSeek Flash, stale-source handling, professor/RMP search coverage, validation-backed output |
+| Brief reliability + UI route pass | Codex | ~6           | D1 migration fix, briefing schema/request hardening, Editorial Instrument route cleanup | Verified route sweeps, targeted briefing tests, client test, and focused svelte-check                       |
 
 **Key principle (this session):** The most valuable pattern was the D1-backed async job queue — it made the entire app's AI features (briefing, future digest, practice) follow the same reliable pattern: create job → poll → display result. Everything after that was scaffolding on the same foundation.
 

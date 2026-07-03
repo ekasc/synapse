@@ -2,7 +2,6 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { resolveRoute } from '$app/paths';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import DocumentViewer from '$lib/components/course-materials/DocumentViewer.svelte';
 	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
 
@@ -278,15 +277,13 @@
 
 <svelte:head><title>Synapse · {course.code}</title></svelte:head>
 
-<CatalogHeader term={headerTerm} />
-
 <div class="page page-enter">
 	<button class="back-link font-mono" onclick={goBack}>← back</button>
 
 	<div class="page-cover">
 		<div class="cover-head">
 			<div class="cover-meta">
-				<h1 class="page-title font-hand">{course.code}</h1>
+				<h1 class="page-title font-display">{course.code}</h1>
 				<p class="course-name">{course.name}</p>
 				<p class="course-line font-mono">
 					{#if semester}{semester.term} {semester.year} ·

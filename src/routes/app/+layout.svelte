@@ -7,6 +7,7 @@
 	import TermList from '$lib/components/catalog/TermList.svelte';
 	import { routes, isRouteActive } from '$lib/sidebar/routes';
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 
 	let { data, children } = $props();
 	const semesters = $derived(data.semesters ?? []);
@@ -14,6 +15,7 @@
 	const countsById = $derived(data.countsById ?? {});
 
 	let fabOpen = $state(false);
+	let now = $state(new Date());
 
 	$effect(() => {
 		if (!fabOpen) return;
@@ -36,8 +38,6 @@
 		document.addEventListener('keydown', onKey);
 		return () => document.removeEventListener('keydown', onKey);
 	});
-
-	import { afterNavigate } from '$app/navigation';
 
 	// ── Activity badge state ──
 	let runningCount = $state(0);
@@ -67,21 +67,50 @@
 		}
 	}
 
-	// Check on mount and every 10s
+	// Update the "today" stamp every minute
 	onMount(() => {
 		checkActivity();
 		const id = setInterval(checkActivity, 10000);
+		const tick = setInterval(() => (now = new Date()), 60_000);
 		return () => {
 			clearInterval(id);
+			clearInterval(tick);
 		};
 	});
 
 	afterNavigate(() => {
 		fabOpen = false;
 	});
+
+	function currentPageLabel(pathname: string): string {
+		const route = routes.find((r) => isRouteActive(pathname, r));
+		if (route) return route.label;
+		if (pathname.startsWith('/app/courses/')) return 'Course';
+		if (pathname.startsWith('/app/calendar')) return 'Calendar';
+		return 'Workspace';
+	}
+
+	const pageLabel = $derived(currentPageLabel($page.url.pathname));
+
+	const todayLabel = $derived(
+		now
+			.toLocaleString('en-US', {
+				weekday: 'short',
+				day: '2-digit',
+				month: 'short',
+				hour: '2-digit',
+				minute: '2-digit',
+				hour12: false
+			})
+			.toUpperCase()
+	);
+
+	const currentTermLabel = $derived(
+		semesters[0] ? `${semesters[0].term} ${semesters[0].year}` : 'No term'
+	);
 </script>
 
-<div class="app-shell">
+<div class="app-grid">
 	<aside class="sidebar" aria-label="App navigation">
 		<div class="sidebar-header">
 			<a href={resolveRoute('/')} class="sidebar-brand" aria-label="Synapse home">
@@ -90,7 +119,7 @@
 		</div>
 
 		<div class="sidebar-section">
-			<div class="sidebar-section-label">Catalog</div>
+			<div class="sidebar-section-label">Workspace</div>
 			<Menu>
 				{#each routes as route (route.href)}
 					<MenuItem>
@@ -121,9 +150,20 @@
 		{/if}
 	</aside>
 
-	<main class="app-main paper" class:canvas-main={$page.url.pathname === '/app/courses'}>
-		{@render children()}
-	</main>
+	<div class="app-content">
+		<div class="topbar">
+			<div class="crumbs">Synapse · <strong>{pageLabel}</strong></div>
+			<div class="topbar-actions">
+				<input class="topbar-search" type="text" placeholder="Search courses, briefs…" />
+				<button type="button" class="term-switcher">{currentTermLabel} ▾</button>
+				<div class="today">{todayLabel}</div>
+			</div>
+		</div>
+
+		<main class="app-main" class:canvas-main={$page.url.pathname === '/app/courses'}>
+			{@render children()}
+		</main>
+	</div>
 
 	<!-- Mobile floating nav (hidden on md+) -->
 	<div id="synapse-fab" class="fab-container">
@@ -155,16 +195,29 @@
 </div>
 
 <style>
-	.app-shell {
-		display: flex;
+	.app-grid {
+		display: grid;
+		grid-template-columns: var(--sidebar-width) 1fr;
 		min-height: 100vh;
+	}
+
+	@media (max-width: 767px) {
+		.app-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.app-content {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
 	}
 
 	.sidebar {
 		width: var(--sidebar-width);
 		flex-shrink: 0;
-		background: var(--paper-shelf);
-		border-right: 1px solid var(--rule);
+		background: var(--sidebar-bg);
+		color: var(--sidebar-fg);
 		display: flex;
 		flex-direction: column;
 		padding: 1.5rem 0;
@@ -180,9 +233,9 @@
 	}
 
 	.sidebar-header {
-		padding: 0 1.25rem 1.25rem;
-		margin-bottom: 0.5rem;
-		border-bottom: 1px solid var(--rule);
+		padding: 0 1.5rem 1.5rem;
+		margin-bottom: 1rem;
+		border-bottom: 1px solid var(--sidebar-rule);
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
@@ -190,7 +243,7 @@
 	}
 
 	.sidebar-brand {
-		color: var(--ink);
+		color: var(--sidebar-fg);
 		text-decoration: none;
 		line-height: 1;
 		display: inline-flex;
@@ -199,7 +252,7 @@
 
 	.sidebar-brand-text {
 		font-family: var(--font-display);
-		font-size: 1.25rem;
+		font-size: 1.4rem;
 		font-weight: 600;
 		letter-spacing: -0.02em;
 	}
@@ -207,7 +260,7 @@
 	.sidebar-brand-dot {
 		color: var(--accent);
 		font-family: var(--font-display);
-		font-size: 1.25rem;
+		font-size: 1.4rem;
 		font-weight: 700;
 		line-height: 1;
 	}
@@ -218,17 +271,18 @@
 
 	.sidebar-section-label {
 		font-family: var(--font-mono);
-		font-size: 0.7rem;
-		color: var(--ink-soft);
+		font-size: 0.62rem;
+		color: var(--sidebar-fg-soft);
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		padding: 0 1.25rem 0.5rem;
+		padding: 0 1.5rem 0.5rem;
 	}
 
 	.sidebar-label {
-		font-size: 0.9rem;
+		font-size: 0.88rem;
 		font-weight: 500;
 		letter-spacing: 0;
+		color: var(--sidebar-fg);
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -243,6 +297,7 @@
 		border-radius: 0;
 		animation: sb-pulse 1.2s ease-in-out infinite;
 	}
+
 	.sidebar-badge {
 		font-size: 0.65rem;
 		color: var(--paper);
@@ -253,6 +308,7 @@
 		min-width: 1rem;
 		text-align: center;
 	}
+
 	@keyframes sb-pulse {
 		0%,
 		100% {
@@ -262,13 +318,34 @@
 			opacity: 0.3;
 		}
 	}
+
 	.sidebar-count {
 		font-family: var(--font-mono);
 		font-size: 0.7rem;
-		color: var(--ink-soft);
+		color: var(--sidebar-fg-soft);
 		font-weight: 500;
 		line-height: 1;
 		flex-shrink: 0;
+	}
+
+	/* Override sidebar link colors for dark theme */
+	:global(.sidebar-link) {
+		padding: 0.45rem 1.5rem;
+		color: var(--sidebar-fg);
+		border-left-color: transparent;
+	}
+
+	:global(.sidebar-link:hover) {
+		background: rgba(255, 255, 255, 0.04);
+		color: var(--sidebar-fg);
+		border-left-color: var(--accent);
+	}
+
+	:global(.sidebar-link[data-active='true']) {
+		background: rgba(255, 255, 255, 0.06);
+		color: var(--sidebar-fg);
+		border-left-color: var(--accent);
+		font-weight: 600;
 	}
 
 	.app-main {

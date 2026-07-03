@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { resolveRoute } from '$app/paths';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import type { PageData } from './$types';
 
@@ -157,8 +156,6 @@
 </script>
 
 <svelte:head><title>Synapse · Semester Connection Graph</title></svelte:head>
-
-<CatalogHeader term={currentTermLabel} />
 
 <main class="courses-page">
 	<div class="page-cover">

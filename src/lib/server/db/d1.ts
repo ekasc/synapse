@@ -16,6 +16,8 @@ export type Briefing = {
 	recommendation: string;
 	sources: { description: string; url?: string; found: boolean }[];
 	researchedAt: string;
+	modelUsed: string;
+	schemaVersion: number;
 };
 
 export type CalendarEventRow = {
@@ -62,7 +64,9 @@ function rowToBriefing(row: { [key: string]: unknown }): Briefing {
 		gradeStructure,
 		recommendation: String(row.recommendation ?? ''),
 		sources,
-		researchedAt: String(row.researchedAt)
+		researchedAt: String(row.researchedAt),
+		modelUsed: String(row.modelUsed ?? 'deepseek/deepseek-v4-flash'),
+		schemaVersion: Number(row.schemaVersion ?? 1)
 	};
 }
 
@@ -101,7 +105,9 @@ export function createDb(binding: D1Database) {
 					gradeStructure: JSON.stringify(brief.gradeStructure),
 					recommendation: brief.recommendation,
 					sources: JSON.stringify(brief.sources),
-					researchedAt: brief.researchedAt
+					researchedAt: brief.researchedAt,
+					modelUsed: brief.modelUsed,
+					schemaVersion: brief.schemaVersion
 				})
 				.onConflictDoUpdate({
 					target: schema.briefings.code,
@@ -117,7 +123,9 @@ export function createDb(binding: D1Database) {
 						gradeStructure: JSON.stringify(brief.gradeStructure),
 						recommendation: brief.recommendation,
 						sources: JSON.stringify(brief.sources),
-						researchedAt: brief.researchedAt
+						researchedAt: brief.researchedAt,
+						modelUsed: brief.modelUsed,
+						schemaVersion: brief.schemaVersion
 					}
 				});
 		},

@@ -9,15 +9,16 @@
 @import '@fontsource/jetbrains-mono/500.css';
 
 :root {
-	--paper: #f4ede0;
+	--paper: #f5ecd9;
+	--paper-2: #ede2c6;
 	--paper-edge: #e8dcc1;
 	--paper-shelf: #ebe0c8;
-	--ink: #1f1c14;
+	--ink: #1a1814;
 	--ink-soft: #4a4538;
-	--ink-faint: #5e5849;
-	--rule: #c4b494;
-	--rule-soft: #d8c8a4;
-	--rule-strong: #1f1c14;
+	--ink-faint: #8a8270;
+	--rule: #d8c8a4;
+	--rule-soft: #e8d8b4;
+	--rule-strong: #1a1814;
 	--accent: #b03a2e;
 	--warn: #c08a2e;
 	--ok: #5a7a4a;
@@ -32,6 +33,11 @@
 	--border-input: rgba(26, 26, 23, 0.28);
 	--backdrop-overlay: rgba(26, 26, 23, 0.38);
 	--backdrop-faint: rgba(26, 26, 23, 0.05);
+	--sidebar-bg: #1a1814;
+	--sidebar-bg-soft: #2a2620;
+	--sidebar-fg: #f5ecd9;
+	--sidebar-fg-soft: #8a8270;
+	--sidebar-rule: #3a3528;
 	--subject-comp: #4a6fa5;
 	--subject-math: #5a7a4a;
 	--subject-csis: #7a5a8a;
@@ -51,9 +57,10 @@
 	--z-node: 10;
 	--z-node-active: 12;
 	--z-viewer: 80;
-	--sidebar-width: 220px;
+	--sidebar-width: 240px;
 	--sidebar-width-mobile: 18rem;
-	--page-width: 1100px;
+	--page-width: 980px;
+	--topbar-height: 56px;
 }
 
 html {
@@ -366,19 +373,19 @@ body {
 
 .section-meta {
 	font-family: var(--font-mono);
-	font-size: 0.78rem;
+	font-size: 0.62rem;
 	text-transform: uppercase;
-	letter-spacing: 0.14em;
+	letter-spacing: 0.12em;
 	color: var(--ink-faint);
 }
 
 .section-eyebrow {
 	font-family: var(--font-mono);
-	font-size: 0.75rem;
+	font-size: 0.62rem;
 	text-transform: uppercase;
-	letter-spacing: 0.18em;
+	letter-spacing: 0.12em;
 	color: var(--ink-faint);
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.4rem;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -530,13 +537,14 @@ body {
 
 .status-chip {
 	font-family: var(--font-mono);
-	font-size: 0.75rem;
+	font-size: 0.62rem;
 	text-transform: uppercase;
-	letter-spacing: 0.12em;
-	padding: 0.25rem 0.55rem;
+	letter-spacing: 0.1em;
+	padding: 0.25rem 0.65rem;
 	border: 1px solid currentColor;
 	display: inline-block;
 	line-height: 1.2;
+	text-align: center;
 }
 
 .status-chip.crit {
@@ -693,6 +701,263 @@ body {
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.001ms !important;
 		scroll-behavior: auto !important;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Editorial Instrument — Direction 01
+   ═══════════════════════════════════════════════════════════════ */
+
+.label-banner {
+	background: var(--ink);
+	color: var(--paper);
+	padding: 0.5rem 2rem;
+	font-family: var(--font-mono);
+	font-size: 0.69rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+}
+
+/* ── App layout ── */
+
+.app-grid {
+	display: grid;
+	grid-template-columns: var(--sidebar-width) 1fr;
+	min-height: 100vh;
+}
+
+/* ── Topbar ── */
+
+.topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 1rem 2rem;
+	border-bottom: 1px solid var(--rule);
+	background: var(--paper);
+}
+
+.crumbs {
+	font-size: 0.82rem;
+	color: var(--ink-soft);
+}
+
+.crumbs strong {
+	color: var(--ink);
+	font-weight: 500;
+}
+
+.topbar-actions {
+	display: flex;
+	gap: 0.75rem;
+	align-items: center;
+}
+
+.topbar-search {
+	font-family: var(--font-body);
+	font-size: 0.82rem;
+	padding: 0.45rem 0.75rem;
+	border: 1px solid var(--rule);
+	background: var(--paper);
+	width: 220px;
+	color: var(--ink);
+}
+
+.topbar-search:focus {
+	outline: none;
+	border-color: var(--ink);
+}
+
+.term-switcher {
+	font-family: var(--font-mono);
+	font-size: 0.69rem;
+	padding: 0.45rem 0.65rem;
+	border: 1px solid var(--ink);
+	background: var(--ink);
+	color: var(--paper);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+.today {
+	font-family: var(--font-mono);
+	font-size: 0.69rem;
+	color: var(--ink-soft);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+/* ── Today rail ── */
+
+.today-rail {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 0;
+	border: 1px solid var(--ink);
+	background: var(--paper-2);
+	margin-bottom: 2.5rem;
+}
+
+.rail-cell {
+	padding: 1.15rem 1.25rem;
+	border-right: 1px solid var(--ink);
+}
+
+.rail-cell:last-child {
+	border-right: 0;
+}
+
+.rail-label {
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--ink-faint);
+	margin-bottom: 0.5rem;
+}
+
+.rail-num {
+	font-family: var(--font-display);
+	font-size: 2.5rem;
+	font-weight: 600;
+	line-height: 1;
+	margin-bottom: 0.4rem;
+	letter-spacing: -0.02em;
+}
+
+.rail-num.crit {
+	color: var(--accent);
+}
+
+.rail-num.warn {
+	color: var(--warn);
+}
+
+.rail-num.ok {
+	color: var(--ok);
+}
+
+.rail-sub {
+	font-size: 0.75rem;
+	color: var(--ink-soft);
+}
+
+.sparkline {
+	display: flex;
+	align-items: end;
+	gap: 3px;
+	height: 32px;
+	margin-bottom: 0.25rem;
+}
+
+.spark-bar {
+	width: 5px;
+	background: var(--ink);
+}
+
+@media (max-width: 1024px) {
+	.today-rail {
+		grid-template-columns: repeat(2, 1fr);
+	}
+	.rail-cell:nth-child(2) {
+		border-right: 0;
+	}
+	.rail-cell:nth-child(1),
+	.rail-cell:nth-child(2) {
+		border-bottom: 1px solid var(--ink);
+	}
+}
+
+/* ── Course row ── */
+
+.course-row {
+	display: grid;
+	grid-template-columns: 6px 1fr 140px 110px;
+	align-items: center;
+	gap: 1.25rem;
+	padding: 1.1rem 1rem 1.1rem 0;
+	border-bottom: 1px solid var(--rule);
+}
+
+.course-row:hover {
+	background: var(--paper-2);
+}
+
+.course-spine {
+	width: 4px;
+	height: 40px;
+	justify-self: start;
+	background: var(--accent);
+}
+
+.course-spine.ok {
+	background: var(--ok);
+}
+
+.course-spine.warn {
+	background: var(--warn);
+}
+
+.course-spine.idle {
+	background: var(--ink-faint);
+}
+
+.course-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.course-term {
+	font-family: var(--font-mono);
+	font-size: 0.62rem;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	color: var(--ink-faint);
+}
+
+.course-name {
+	font-family: var(--font-display);
+	font-size: 1.2rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	color: var(--ink);
+}
+
+.course-stats {
+	font-family: var(--font-mono);
+	font-size: 0.69rem;
+	color: var(--ink-soft);
+}
+
+.row-progress {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	font-family: var(--font-mono);
+	font-size: 0.69rem;
+	color: var(--ink-soft);
+}
+
+.row-progress-bar {
+	width: 100px;
+	height: 4px;
+	background: var(--rule);
+}
+
+.row-progress-fill {
+	height: 100%;
+	background: var(--ink);
+}
+
+@media (max-width: 768px) {
+	.course-row {
+		grid-template-columns: 6px 1fr 90px;
+	}
+	.course-row .row-status {
+		grid-column: 2 / -1;
+		justify-self: start;
 	}
 }
 

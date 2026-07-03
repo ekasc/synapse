@@ -1,6 +1,4 @@
 <script lang="ts">
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
-
 	type Question = {
 		id: string;
 		course: string;
@@ -134,11 +132,9 @@
 
 <svelte:head><title>Synapse · Practice</title></svelte:head>
 
-<CatalogHeader term={currentTermLabel} />
-
 <div class="page page-enter">
 	<div class="page-cover">
-		<h1 class="page-title font-hand">Practice</h1>
+		<h1 class="page-title font-display">Practice</h1>
 		<p class="page-tagline">
 			{#if questions.length > 0 || flashcards.length > 0}
 				<span class="tagline-num">{questions.length}</span> question{questions.length !== 1
@@ -196,7 +192,7 @@
 	{#if mode === 'quiz'}
 		{#if activeQuestions.length === 0}
 			<div class="empty-state surface-polaroid">
-				<h2 class="empty-head font-hand">No questions yet</h2>
+				<h2 class="empty-head font-display">No questions yet</h2>
 				<p class="empty-text">
 					No practice questions yet for
 					{selectedCourse === 'all' ? 'any course' : selectedCourse}. Upload course materials to
@@ -205,7 +201,7 @@
 			</div>
 		{:else if quizDone}
 			<div class="quiz-result surface-polaroid">
-				<h2 class="result-head font-hand">Quiz Complete</h2>
+				<h2 class="result-head font-display">Quiz Complete</h2>
 				<p class="result-score">{score} / {activeQuestions.length} correct</p>
 				<div class="result-bar">
 					<div
@@ -297,7 +293,7 @@
 		{/if}
 	{:else if filteredFlashcards.length === 0}
 		<div class="empty-state surface-polaroid">
-			<h2 class="empty-head font-hand">No flashcards yet</h2>
+			<h2 class="empty-head font-display">No flashcards yet</h2>
 			<p class="empty-text">
 				Upload course materials to generate flashcards for
 				{selectedCourse === 'all' ? 'your courses' : selectedCourse}.
@@ -328,7 +324,7 @@
 						<span class="fc-topic font-mono">{currentCard.topic}</span>
 					</div>
 					<div class="fc-body">
-						<span class="fc-front font-hand">{currentCard.front}</span>
+						<span class="fc-front font-display">{currentCard.front}</span>
 					</div>
 					<span class="fc-hint font-mono">tap to flip</span>
 				</div>

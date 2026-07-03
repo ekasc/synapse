@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { onDestroy } from 'svelte';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import BookShelf from '$lib/components/catalog/BookShelf.svelte';
 
@@ -19,6 +18,8 @@
 		recommendation: string;
 		sources: { description: string; url?: string; found: boolean }[];
 		researchedAt: string;
+		modelUsed: string;
+		schemaVersion: number;
 	};
 
 	type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled' | 'expired';
@@ -36,34 +37,50 @@
 		error?: string;
 	};
 
-	let { data }: { data: { briefs: Briefing[] } } = $props();
+	const POLL_INTERVAL_MS = 2000;
+	const POLL_TIMEOUT_MS = 2 * 60 * 1000;
+	const MAX_POLL_COUNT = Math.ceil(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
+
+	let { data }: { data: { briefs: Briefing[]; defaultModel: string } } = $props();
 
 	const briefs = $derived(data.briefs ?? []);
+	const defaultModel = $derived(data.defaultModel ?? 'deepseek/deepseek-v4-flash');
 
 	let courseCode = $state('');
+	let courseName = $state('');
 	let professorName = $state('');
 	let institution = $state('');
+	let additionalNotes = $state('');
 	let selectedCode = $state<string | null>(null);
 	let researching = $state(false);
 	let researchError = $state<string | null>(null);
 	let jobStatus = $state<JobStatus | null>(null);
 	let jobErrorMsg = $state<string | null>(null);
 	let pollTimer = $state<ReturnType<typeof setInterval> | undefined>();
+	let pollCount = $state(0);
+	let pollTimedOut = $state(false);
 	let deleting = $state(false);
 	let confirmDeleteCode = $state<string | null>(null);
 
-	let hasAnySearch = $derived(courseCode.trim().length > 0 || professorName.trim().length > 0);
+	let hasAnySearch = $derived(
+		courseCode.trim().length > 0 ||
+			courseName.trim().length > 0 ||
+			professorName.trim().length > 0 ||
+			institution.trim().length > 0
+	);
 
 	let filtered = $derived(
 		hasAnySearch
 			? briefs.filter((b) => {
 					const qCode = courseCode.trim().toLowerCase();
+					const qName = courseName.trim().toLowerCase();
 					const qProf = professorName.trim().toLowerCase();
 					const qInst = institution.trim().toLowerCase();
 					return (
 						(!qCode ||
 							b.code.toLowerCase().includes(qCode) ||
 							b.name.toLowerCase().includes(qCode)) &&
+						(!qName || b.name.toLowerCase().includes(qName)) &&
 						(!qProf || b.professor.toLowerCase().includes(qProf)) &&
 						(!qInst || b.institution.toLowerCase().includes(qInst))
 					);
@@ -75,8 +92,10 @@
 		selectedCode ? (briefs.find((b) => b.code === selectedCode) ?? null) : null
 	);
 
-	let pollCount = $state(0);
+	let modelMismatch = $derived(selected ? selected.modelUsed !== defaultModel : false);
+
 	let statusMessage = $derived.by(() => {
+		if (pollTimedOut) return 'Briefing is taking longer than expected.';
 		switch (jobStatus) {
 			case 'queued':
 				return 'Queued — waiting for worker…';
@@ -104,8 +123,16 @@
 	function startPolling(jobId: string) {
 		stopPolling();
 		pollCount = 0;
+		pollTimedOut = false;
 		pollTimer = setInterval(async () => {
 			pollCount++;
+			if (pollCount > MAX_POLL_COUNT) {
+				stopPolling();
+				pollTimedOut = true;
+				researching = false;
+				jobErrorMsg = 'Polling timed out after 2 minutes.';
+				return;
+			}
 			try {
 				const res = await fetch(`/api/briefing/jobs/${jobId}`);
 				const data = (await res.json()) as JobResponse;
@@ -126,7 +153,7 @@
 			} catch {
 				// keep polling
 			}
-		}, 2000);
+		}, POLL_INTERVAL_MS);
 	}
 
 	async function researchCourse() {
@@ -141,6 +168,7 @@
 		researchError = null;
 		jobStatus = null;
 		jobErrorMsg = null;
+		pollTimedOut = false;
 
 		try {
 			const res = await fetch('/api/briefing/jobs', {
@@ -148,8 +176,10 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					courseCode: code,
+					courseName: courseName.trim() || undefined,
 					professorName: professorName.trim() || undefined,
-					institution: institution.trim() || undefined
+					institution: institution.trim() || undefined,
+					additionalNotes: additionalNotes.trim() || undefined
 				})
 			});
 
@@ -197,6 +227,7 @@
 	function retry() {
 		researchError = null;
 		jobErrorMsg = null;
+		pollTimedOut = false;
 		researchCourse();
 	}
 
@@ -245,12 +276,10 @@
 
 <svelte:head><title>Synapse · Course Brief</title></svelte:head>
 
-<CatalogHeader term="Brief" />
-
 <div class="page page-enter">
 	{#if !selected}
 		<div class="page-cover">
-			<h1 class="page-title font-hand">Course Brief</h1>
+			<h1 class="page-title font-display">Course Brief</h1>
 			<p class="page-tagline">
 				{#if briefs.length > 0}
 					<span class="tagline-num">{briefs.length}</span> course{briefs.length === 1 ? '' : 's'} briefed
@@ -267,8 +296,17 @@
 					id="brief-course"
 					type="text"
 					class="sf-input"
-					placeholder="Course (e.g. CSIS 3375, MATH 1130)"
+					placeholder="Course code (e.g. CSIS 3375, MATH 1130)"
 					bind:value={courseCode}
+					onkeydown={onKeydown}
+				/>
+				<label class="sr-only" for="brief-course-name">Course name</label>
+				<input
+					id="brief-course-name"
+					type="text"
+					class="sf-input"
+					placeholder="Course name (optional, helps research)"
+					bind:value={courseName}
 					onkeydown={onKeydown}
 				/>
 				<label class="sr-only" for="brief-professor">Professor name</label>
@@ -298,6 +336,14 @@
 						{researching ? 'researching…' : 'research'}
 					</button>
 				</div>
+				<label class="sr-only" for="brief-notes">Additional notes</label>
+				<textarea
+					id="brief-notes"
+					class="sf-input sf-textarea"
+					placeholder="Additional notes (optional): term, section, modality, textbook, or anything that might narrow the search"
+					maxlength="1200"
+					bind:value={additionalNotes}
+				></textarea>
 			</div>
 			{#if researchError && !jobStatus}
 				<p class="search-note">{researchError}</p>
@@ -377,7 +423,10 @@
 					</div>
 				</div>
 				<div class="job-tracker-msg">
-					{#if jobStatus === 'failed' || jobStatus === 'expired'}
+					{#if pollTimedOut}
+						<span class="job-tracker-err font-mono">{statusMessage}</span>
+						<button class="btn btn-sm font-mono" onclick={retry}>retry</button>
+					{:else if jobStatus === 'failed' || jobStatus === 'expired'}
 						<span class="job-tracker-err font-mono">{statusMessage}</span>
 						<button class="btn btn-sm font-mono" onclick={retry}>retry</button>
 					{:else if jobStatus === 'succeeded'}
@@ -419,7 +468,7 @@
 
 			{#if filtered.length === 0 && !researching}
 				<div class="empty-state surface-polaroid">
-					<h2 class="empty-head font-hand">
+					<h2 class="empty-head font-display">
 						{hasAnySearch ? 'Nothing matches' : 'Brief a course'}
 					</h2>
 					<p class="empty-text">
@@ -445,6 +494,11 @@
 				<span class="detail-inst">{selected.institution}</span>
 				<span class="detail-date font-mono">researched {formatDate(selected.researchedAt)}</span>
 			</div>
+			{#if modelMismatch}
+				<p class="model-warn font-mono" role="status">
+					Cached briefing produced by a different model ({selected.modelUsed}). Current default: {defaultModel}.
+				</p>
+			{/if}
 
 			<div class="detail-grid">
 				<div class="detail-field">
@@ -553,16 +607,18 @@
 
 <style>
 	.page {
-		max-width: 1100px;
+		max-width: var(--page-width);
 		margin-inline: auto;
 		padding-block: 2rem 4rem;
 	}
 
 	.page-title {
-		font-size: clamp(2.4rem, 4vw, 3rem);
+		font-size: clamp(2rem, 4vw, 3.25rem);
+		font-weight: 600;
 		color: var(--ink);
 		margin: 0.25rem 0 0.5rem;
-		line-height: 1;
+		line-height: 1.05;
+		letter-spacing: -0.025em;
 	}
 
 	.page-tagline {
@@ -606,6 +662,12 @@
 	.sf-input.flex-1 {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.sf-textarea {
+		min-height: 5.5rem;
+		line-height: 1.45;
+		resize: vertical;
 	}
 
 	.sf-row {
@@ -824,6 +886,17 @@
 		margin-bottom: 1.5rem;
 		padding-bottom: 1rem;
 		border-bottom: 1px solid var(--ink);
+	}
+
+	.model-warn {
+		margin: 0 0 1rem;
+		padding: 0.5rem 0.75rem;
+		font-size: 0.72rem;
+		color: var(--warn);
+		border: 1px solid var(--warn);
+		background: rgba(192, 138, 46, 0.08);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
 	}
 
 	.detail-code {

@@ -2,7 +2,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { AlertDialog, Button, Dialog, Input, Select } from '$lib/components/ui';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 
 	type Semester = { id: string; term: string; year: number; order: number };
@@ -117,11 +116,9 @@
 
 <svelte:head><title>Synapse · Semesters</title></svelte:head>
 
-<CatalogHeader term={headerTerm} />
-
 <div class="page page-enter">
 	<div class="page-cover">
-		<h1 class="page-title font-hand">Semesters</h1>
+		<h1 class="page-title font-display">Semesters</h1>
 		<p class="page-tagline">
 			<span class="tagline-num">{taglineCount}</span> semester{taglineCount === 1 ? '' : 's'}
 			{taglineSuffix}
@@ -228,7 +225,7 @@
 
 <style>
 	.page {
-		max-width: 1100px;
+		max-width: var(--page-width);
 		margin-inline: auto;
 		padding-block: 2rem 4rem;
 	}

@@ -2,7 +2,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolveRoute } from '$app/paths';
 	import { AlertDialog } from '$lib/components/ui';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
 
@@ -95,12 +94,10 @@
 
 <svelte:head><title>Synapse · Manage Courses</title></svelte:head>
 
-<CatalogHeader term={currentTermLabel} />
-
 <div class="page page-enter">
 	<div class="page-cover">
 		<div class="page-cover-row">
-			<h1 class="page-title font-hand">Manage Courses</h1>
+			<h1 class="page-title font-display">Manage Courses</h1>
 			<div class="page-actions">
 				<button class="btn btn-primary btn-sm" onclick={openAdd}>+ add course</button>
 			</div>
@@ -202,7 +199,7 @@
 
 <style>
 	.page {
-		max-width: 1100px;
+		max-width: var(--page-width);
 		margin-inline: auto;
 		padding-block: 2rem 4rem;
 	}

@@ -1,8 +1,7 @@
 <script lang="ts">
-import { page } from '$app/stores';
-import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import type { CalendarEventRow } from '$lib/server/db/d1';
 
@@ -33,8 +32,8 @@ import { onMount } from 'svelte';
 	let showYearPicker = $state(false);
 
 	onMount(() => {
-		const m = $page.url.searchParams.get("month");
-		const y = $page.url.searchParams.get("year");
+		const m = $page.url.searchParams.get('month');
+		const y = $page.url.searchParams.get('year');
 		if (m !== null) {
 			const parsed = parseInt(m, 10);
 			if (parsed >= 0 && parsed <= 11) viewMonth = parsed;
@@ -131,7 +130,7 @@ import { onMount } from 'svelte';
 	function courseColor(code: string): string {
 		const known = courseColors.find((c) => c.code === code);
 		if (known) return known.color;
-		const PALETTE = ['#1a1814', '#b03a2e', '#4a4a42', '#8a8270'];
+		const PALETTE = ['var(--ink)', 'var(--accent)', 'var(--ink-soft)', 'var(--ink-faint)'];
 		const idx = (code.charCodeAt(0) + (code.charCodeAt(1) || 0)) % PALETTE.length;
 		return PALETTE[idx];
 	}
@@ -416,13 +415,11 @@ import { onMount } from 'svelte';
 
 <svelte:head><title>Synapse · Calendar</title></svelte:head>
 
-<CatalogHeader term={isCurrentMonth ? 'Calendar' : `${monthShort} ${viewYear}`} />
-
 <div class="page page-enter">
 	<div class="page-cover">
 		<div class="page-cover-row">
 			<div>
-				<h1 class="page-title font-hand">Calendar</h1>
+				<h1 class="page-title font-display">Calendar</h1>
 				<p class="page-tagline">
 					{#if events.length > 0}
 						<span class="tagline-num">{totalInViewedMonth}</span> event{totalInViewedMonth !== 1
@@ -489,7 +486,7 @@ import { onMount } from 'svelte';
 								>←</button
 							>
 							<button
-								class="cal-month-label font-hand"
+								class="cal-month-label font-display"
 								onclick={() => (showYearPicker = !showYearPicker)}
 								aria-label="Select month">{monthName} {viewYear}</button
 							>
@@ -742,7 +739,7 @@ import { onMount } from 'svelte';
 							<button class="cal-nav-btn font-mono" onclick={prevMonth} aria-label="Previous month"
 								>←</button
 							>
-							<span class="cal-month-label font-hand" style="cursor: default">{monthName}</span>
+							<span class="cal-month-label font-display" style="cursor: default">{monthName}</span>
 							<button class="cal-nav-btn font-mono" onclick={nextMonth} aria-label="Next month"
 								>→</button
 							>
@@ -807,7 +804,7 @@ import { onMount } from 'svelte';
 							<button class="cal-nav-btn font-mono" onclick={prevDay} aria-label="Previous day"
 								>←</button
 							>
-							<span class="cal-month-label font-hand" style="cursor: default"
+							<span class="cal-month-label font-display" style="cursor: default"
 								>{new Date(viewYear, viewMonth, viewDay).toLocaleDateString('en-US', {
 									weekday: 'long',
 									month: 'long',
@@ -889,7 +886,7 @@ import { onMount } from 'svelte';
 			{#if events.length === 0}
 				<div class="sidebar-empty">
 					<div class="sidebar-empty-icon">◷</div>
-					<p class="sidebar-empty-title font-hand">Empty calendar</p>
+					<p class="sidebar-empty-title font-display">Empty calendar</p>
 					<p class="sidebar-empty-text">
 						Add events to track exams, assignments, and study sessions. Each event can include a
 						grade weight so Synapse can calculate your stakes.
@@ -990,7 +987,7 @@ import { onMount } from 'svelte';
 
 <style>
 	.page {
-		max-width: 1100px;
+		max-width: var(--page-width);
 		margin-inline: auto;
 		padding-block: 2rem 4rem;
 	}

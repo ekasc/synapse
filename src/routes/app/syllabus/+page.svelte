@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
 
@@ -268,14 +267,10 @@
 	<title>Syllabus Intelligence · Synapse</title>
 </svelte:head>
 
-<CatalogHeader term="Syllabus" />
-
 <div class="page">
 	<div class="page-cover">
-		<h1 class="page-title font-hand">Syllabus Intelligence</h1>
-		<p class="page-tagline">
-			Upload a course outline. Extract the details students actually need.
-		</p>
+		<h1 class="page-title font-display">Syllabus Intelligence</h1>
+		<p class="page-tagline">Upload a course outline. Extract the details students actually need.</p>
 		<div class="page-status">
 			<StatusChip variant={statusVariant} label={statusLabel} />
 		</div>
@@ -360,11 +355,17 @@
 			{#if isExtracting}
 				<div class="progress-panel" role="status" aria-live="polite">
 					<div class="progress-head font-mono">
-						{progressPulse === 'finalising' ? 'Finalising extraction...' : 'Extracting from syllabus...'}
+						{progressPulse === 'finalising'
+							? 'Finalising extraction...'
+							: 'Extracting from syllabus...'}
 					</div>
 					<ul class="progress-list">
 						{#each extractionItems as item, i (i)}
-							<li class="progress-item" class:done={i < progressCompleted} class:pending={i >= progressCompleted}>
+							<li
+								class="progress-item"
+								class:done={i < progressCompleted}
+								class:pending={i >= progressCompleted}
+							>
 								<span class="progress-check font-mono" aria-hidden="true">
 									{i < progressCompleted ? '✓' : '○'}
 								</span>
@@ -424,17 +425,26 @@
 						Syllabus extracted for <strong>{activeCourse?.code || 'this course'}</strong>.
 					</p>
 					<div class="existing-actions">
-						<a href={`/app/syllabus/result/${encodeURIComponent(selectedCourseId)}`} class="btn btn-primary">
+						<a
+							href={`/app/syllabus/result/${encodeURIComponent(selectedCourseId)}`}
+							class="btn btn-primary"
+						>
 							View extraction results
 						</a>
 						<span class="existing-status font-mono">
-							{syllabus.status === 'ready' ? 'Ready' : syllabus.status === 'mocked' ? 'Sample data' : syllabus.status}
+							{syllabus.status === 'ready'
+								? 'Ready'
+								: syllabus.status === 'mocked'
+									? 'Sample data'
+									: syllabus.status}
 						</span>
 					</div>
 				</div>
 			{:else if isExtracting}
 				<div class="results-empty">
-					<p class="empty-text">Extraction in progress. Results will appear on the results page once complete.</p>
+					<p class="empty-text">
+						Extraction in progress. Results will appear on the results page once complete.
+					</p>
 				</div>
 			{:else}
 				<div class="results-empty">
@@ -447,16 +457,18 @@
 
 <style>
 	.page {
-		max-width: 1100px;
+		max-width: var(--page-width);
 		margin-inline: auto;
-		padding-block: 2rem 4rem;
+		padding-block: 2.5rem 4rem;
 	}
 
 	.page-title {
-		font-size: clamp(2.4rem, 4vw, 3rem);
+		font-size: clamp(2rem, 4vw, 3.25rem);
+		font-weight: 600;
 		color: var(--ink);
 		margin: 0.25rem 0 0.5rem;
-		line-height: 1;
+		line-height: 1.05;
+		letter-spacing: -0.025em;
 	}
 
 	.page-tagline {

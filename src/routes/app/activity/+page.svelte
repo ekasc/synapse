@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 
 	type BriefingJob = {
 		id: string;
@@ -110,19 +109,19 @@
 
 <svelte:head><title>Synapse · Activity</title></svelte:head>
 
-<CatalogHeader term="Activity" />
-
 <div class="page page-enter">
 	<div class="page-cover">
 		<div class="page-cover-row">
 			<div>
-				<h1 class="page-title font-hand">Activity</h1>
+				<h1 class="page-title font-display">Activity</h1>
 				<p class="page-tagline">
 					{(() => {
 						const briefRunning = briefingJobs.filter((j) => j.status === 'running').length;
 						const briefQueued = briefingJobs.filter((j) => j.status === 'queued').length;
 						const briefDone = briefingJobs.filter((j) => j.status === 'succeeded').length;
-						const syllabusRunning = syllabusExtractions.filter((e) => e.status === 'processing').length;
+						const syllabusRunning = syllabusExtractions.filter(
+							(e) => e.status === 'processing'
+						).length;
 						const syllabusDone = syllabusExtractions.filter((e) => e.status === 'completed').length;
 						const parts: string[] = [];
 						if (briefRunning || syllabusRunning) {
@@ -135,7 +134,14 @@
 					})()}
 				</p>
 			</div>
-			<button class="btn btn-sm btn-ghost font-mono" onclick={() => { loadJobs(); loadSyllabusActivity(); }} disabled={loading}>
+			<button
+				class="btn btn-sm btn-ghost font-mono"
+				onclick={() => {
+					loadJobs();
+					loadSyllabusActivity();
+				}}
+				disabled={loading}
+			>
 				{loading ? 'refreshing...' : 'refresh'}
 			</button>
 		</div>
@@ -149,7 +155,7 @@
 		<div class="loading-state font-mono" role="status" aria-live="polite">Loading activity...</div>
 	{:else if briefingJobs.length === 0 && syllabusExtractions.length === 0 && syllabusError}
 		<div class="empty-state surface-polaroid">
-			<h2 class="empty-head font-hand">No activity yet</h2>
+			<h2 class="empty-head font-display">No activity yet</h2>
 			<p class="empty-text">AI tasks like course briefings and digests will appear here.</p>
 		</div>
 	{:else}
@@ -182,10 +188,14 @@
 										<div class="activity-meta">
 											<span class="activity-time font-mono">{timeSince(job.createdAt)}</span>
 											{#if job.startedAt}
-												<span class="activity-time font-mono">started {timeSince(job.startedAt)}</span>
+												<span class="activity-time font-mono"
+													>started {timeSince(job.startedAt)}</span
+												>
 											{/if}
 											{#if job.completedAt}
-												<span class="activity-time font-mono">done {timeSince(job.completedAt)}</span>
+												<span class="activity-time font-mono"
+													>done {timeSince(job.completedAt)}</span
+												>
 											{/if}
 										</div>
 										{#if job.errorMessage}
@@ -195,8 +205,9 @@
 								</div>
 								<div class="activity-right">
 									{#if job.status === 'queued' || job.status === 'running'}
-										<button class="btn btn-sm btn-danger font-mono" onclick={() => cancelJob(job.id)}
-											>cancel</button
+										<button
+											class="btn btn-sm btn-danger font-mono"
+											onclick={() => cancelJob(job.id)}>cancel</button
 										>
 									{/if}
 								</div>
@@ -230,12 +241,17 @@
 										<div class="activity-meta">
 											<span class="activity-time font-mono">{timeSince(ext.createdAt)}</span>
 											{#if ext.completedAt}
-												<span class="activity-time font-mono">done {timeSince(ext.completedAt)}</span>
+												<span class="activity-time font-mono"
+													>done {timeSince(ext.completedAt)}</span
+												>
 											{/if}
 										</div>
 										{#if ext.status === 'completed'}
 											<div class="activity-link">
-												<a href={`/app/syllabus/result/${encodeURIComponent(ext.courseCode)}`} class="activity-result-link font-mono">
+												<a
+													href={`/app/syllabus/result/${encodeURIComponent(ext.courseCode)}`}
+													class="activity-result-link font-mono"
+												>
 													view results
 												</a>
 											</div>

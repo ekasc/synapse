@@ -1,11 +1,14 @@
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from '../db/d1-schema';
+import { BRIEFING_SCHEMA_VERSION } from './schema';
+import type { Briefing } from './schema';
 
 // ── Types ──
 
 export type BriefingJob = {
 	id: string;
 	courseCode: string;
+	model: string;
 	status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled' | 'expired';
 	frozenContext: string;
 	contextHash: string;
@@ -17,6 +20,26 @@ export type BriefingJob = {
 	startedAt: string | null;
 	expiresAt: string;
 	completedAt: string | null;
+};
+
+export type CreateBriefingJobParams = {
+	courseCode: string;
+	courseName?: string;
+	professorName?: string;
+	institution?: string;
+	additionalNotes?: string;
+	model: string;
+};
+
+export type BriefingFrozenContext = {
+	courseCode: string;
+	courseName: string | null;
+	professorName: string | null;
+	institution: string | null;
+	additionalNotes: string | null;
+	model: string;
+	schemaVersion: number;
+	researchedAt: string;
 };
 
 export const RUNNING_JOB_TIMEOUT_MS = 30 * 60 * 1000;
@@ -36,6 +59,29 @@ export function isReusableBriefingJob(job: BriefingJob, now = new Date()): boole
 	return false;
 }
 
+export function parseFrozenContext(frozen: string): BriefingFrozenContext | null {
+	try {
+		return JSON.parse(frozen) as BriefingFrozenContext;
+	} catch {
+		return null;
+	}
+}
+
+export function frozenContextMatchesRequest(
+	frozen: BriefingFrozenContext,
+	request: CreateBriefingJobParams
+): boolean {
+	return (
+		frozen.courseCode === request.courseCode &&
+		(frozen.courseName ?? null) === (request.courseName ?? null) &&
+		(frozen.professorName ?? null) === (request.professorName ?? null) &&
+		(frozen.institution ?? null) === (request.institution ?? null) &&
+		(frozen.additionalNotes ?? null) === (request.additionalNotes ?? null) &&
+		frozen.model === request.model &&
+		frozen.schemaVersion === BRIEFING_SCHEMA_VERSION
+	);
+}
+
 /** SHA-256 hex hash using Web Crypto API (available in Workers) */
 async function sha256Hex(input: string): Promise<string> {
 	const encoder = new TextEncoder();
@@ -43,6 +89,22 @@ async function sha256Hex(input: string): Promise<string> {
 	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
 	const hashArray = Array.from(new Uint8Array(hashBuffer));
 	return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function buildStableContext(params: CreateBriefingJobParams): string {
+	return JSON.stringify({
+		courseCode: params.courseCode,
+		courseName: params.courseName ?? null,
+		professorName: params.professorName ?? null,
+		institution: params.institution ?? null,
+		additionalNotes: params.additionalNotes ?? null,
+		model: params.model,
+		schemaVersion: BRIEFING_SCHEMA_VERSION
+	});
+}
+
+export function buildCacheKey(params: CreateBriefingJobParams, contextHash: string): string {
+	return `briefing:${params.model}:${params.courseCode}:${contextHash}`;
 }
 
 export function createBriefingRunner(binding: D1Database) {
@@ -117,27 +179,23 @@ export function createBriefingRunner(binding: D1Database) {
 	}
 
 	/** Create a new briefing job */
-	async function createJob(params: {
-		courseCode: string;
-		professorName?: string;
-		institution?: string;
-	}): Promise<BriefingJob> {
+	async function createJob(params: CreateBriefingJobParams): Promise<BriefingJob> {
 		const id = crypto.randomUUID();
 		const now = new Date().toISOString();
 
 		const frozenContext = JSON.stringify({
 			courseCode: params.courseCode,
+			courseName: params.courseName ?? null,
 			professorName: params.professorName ?? null,
 			institution: params.institution ?? null,
+			additionalNotes: params.additionalNotes ?? null,
+			model: params.model,
+			schemaVersion: BRIEFING_SCHEMA_VERSION,
 			researchedAt: now
 		});
-		const stableContext = JSON.stringify({
-			courseCode: params.courseCode,
-			professorName: params.professorName ?? null,
-			institution: params.institution ?? null
-		});
+		const stableContext = buildStableContext(params);
 		const contextHash = await sha256Hex(stableContext);
-		const cacheKey = `briefing:${params.courseCode}:${contextHash}`;
+		const cacheKey = buildCacheKey(params, contextHash);
 		const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
 		await db.insert(schema.briefingJobs).values({
@@ -159,6 +217,7 @@ export function createBriefingRunner(binding: D1Database) {
 		return {
 			id,
 			courseCode: params.courseCode,
+			model: params.model,
 			status: 'queued' as const,
 			frozenContext,
 			contextHash,
@@ -245,15 +304,19 @@ export function createBriefingRunner(binding: D1Database) {
 	}
 
 	/** Write to prompt cache (7-day TTL) */
-	async function setCachedOutput(cacheKey: string, output: string): Promise<void> {
+	async function setCachedOutput(
+		cacheKey: string,
+		output: string,
+		modelUsed: string
+	): Promise<void> {
 		const now = new Date().toISOString();
 		const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 		await binding
 			.prepare(
-				`INSERT OR REPLACE INTO prompt_cache (cache_key, output, created_at, expires_at)
-			 VALUES (?, ?, ?, ?)`
+				`INSERT OR REPLACE INTO prompt_cache (cache_key, output, model_used, created_at, expires_at)
+			 VALUES (?, ?, ?, ?, ?)`
 			)
-			.bind(cacheKey, output, now, expiresAt)
+			.bind(cacheKey, output, modelUsed, now, expiresAt)
 			.run();
 	}
 
@@ -273,9 +336,11 @@ export function createBriefingRunner(binding: D1Database) {
 }
 
 function rowToJob(row: Record<string, unknown>): BriefingJob {
+	const frozen = parseFrozenContext(String(row.frozen_context));
 	return {
 		id: String(row.id),
 		courseCode: String(row.course_code),
+		model: frozen?.model ?? 'unknown',
 		status: row.status as BriefingJob['status'],
 		frozenContext: String(row.frozen_context),
 		contextHash: String(row.context_hash),
@@ -289,3 +354,5 @@ function rowToJob(row: Record<string, unknown>): BriefingJob {
 		completedAt: row.completed_at ? String(row.completed_at) : null
 	};
 }
+
+export type { Briefing };

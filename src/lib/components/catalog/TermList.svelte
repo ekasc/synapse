@@ -56,18 +56,19 @@
 
 	.sidebar-section-label {
 		font-family: var(--font-mono);
-		font-size: 0.7rem;
-		color: var(--ink-soft);
+		font-size: 0.62rem;
+		color: var(--sidebar-fg-soft);
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		padding: 0 1.25rem 0.5rem;
+		padding: 0 1.5rem 0.5rem;
 	}
 
 	.term-list-item {
 		font-family: var(--font-body);
-		font-size: 0.9rem;
+		font-size: 0.88rem;
 		font-weight: 500;
-		color: var(--ink-soft);
+		color: var(--sidebar-fg);
+		padding: 0.45rem 1.5rem;
 	}
 
 	.term-label {
@@ -75,14 +76,12 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
 
 	.sidebar-count {
 		font-family: var(--font-mono);
 		font-size: 0.7rem;
-		color: var(--ink-soft);
+		color: var(--sidebar-fg-soft);
 		font-weight: 500;
 		line-height: 1;
 		flex-shrink: 0;

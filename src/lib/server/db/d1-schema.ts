@@ -15,7 +15,9 @@ export const briefings = sqliteTable('briefings', {
 	gradeStructure: text('grade_structure').notNull(), // JSON string
 	recommendation: text('recommendation').notNull(),
 	sources: text('sources').notNull(), // JSON string
-	researchedAt: text('researched_at').notNull()
+	researchedAt: text('researched_at').notNull(),
+	modelUsed: text('model_used').notNull().default('deepseek/deepseek-v4-flash'),
+	schemaVersion: integer('schema_version').notNull().default(1)
 });
 
 // ── Async job queue ──

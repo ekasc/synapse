@@ -2,10 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { resolveRoute } from '$app/paths';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
-	import BookShelf from '$lib/components/catalog/BookShelf.svelte';
-	import BookCard from '$lib/components/catalog/BookCard.svelte';
+	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
 
 	const here = $derived($page.url.pathname);
 
@@ -63,16 +61,35 @@
 		const prefix = course.code.split(/[\s-]/)[0];
 		return subjectColors[prefix];
 	}
+
+	function semesterSubjectCount(semesterId: string): number {
+		const subjectSet = new Set<string>();
+		for (const c of courses.filter((c) => c.semesterId === semesterId)) {
+			subjectSet.add(c.code.split(/[\s-]/)[0]);
+		}
+		return subjectSet.size;
+	}
+
+	function semesterStatusLabel(semesterId: string): string {
+		const status = semesterStatus(semesterId);
+		return `${status.label.toUpperCase()} · ${semesterSubjectCount(semesterId)} SUBJECTS`;
+	}
+
+	const todayEyebrow = $derived(
+		new Date().toLocaleDateString('en-US', {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long'
+		})
+	);
 </script>
 
 <svelte:head><title>Synapse · Dashboard</title></svelte:head>
 
-<CatalogHeader term={currentTermLabel} />
-
 <div class="page">
 	{#if semesters.length === 0}
 		<div class="empty">
-			<h1 class="page-title font-hand">Dashboard</h1>
+			<h1 class="page-title font-display">Dashboard</h1>
 			<p class="page-tagline">Your catalog is empty. Set up your semesters to get started.</p>
 			<div class="empty-actions">
 				<button class="btn btn-primary" onclick={() => goto(resolveRoute('/app/setup'))}>
@@ -83,13 +100,12 @@
 	{:else}
 		<div class="dashboard page-enter">
 			<div class="page-cover">
-				<h1 class="page-title font-hand">Catalog</h1>
+				<div class="eyebrow">Today · {todayEyebrow}</div>
+				<h1 class="page-title font-display">
+					{courses.length} courses across {semesters.length} terms.
+				</h1>
 				<p class="page-tagline">
-					<span class="tagline-num">{courses.length}</span> course{courses.length === 1 ? '' : 's'}
-					across
-					<span class="tagline-num">{semesters.length}</span> term{semesters.length === 1
-						? ''
-						: 's'}
+					<span class="tagline-num">{currentTermLabel}</span> is the current term. Keep moving.
 				</p>
 			</div>
 
@@ -98,27 +114,39 @@
 				{@const status = semesterStatus(semester.id)}
 				<div class="semester-section">
 					<SectionHead
-						eyebrow={`${semesterCourses.length} ${semesterCourses.length === 1 ? 'course' : 'courses'}`}
 						title={`${semester.term} ${semester.year}`}
-						meta={status.label.toUpperCase()}
+						meta={semesterStatusLabel(semester.id)}
 					/>
 					{#if semesterCourses.length === 0}
 						<div class="empty-shelf">No courses in this term yet.</div>
 					{:else}
-						<BookShelf>
+						<div class="course-list">
 							{#each semesterCourses as course (course.id)}
-								<BookCard
-									href={`${resolveRoute(`/app/courses/${course.id}`)}?from=${encodeURIComponent(here)}`}
-									spine={spineForSemester(semester.id)}
-									spineColor={courseColor(course)}
-									meta={course.code}
-									title={course.name}
-									detail={`${semester.term} ${semester.year}`}
-									statusLabel={termShort(semester.id)}
-									statusVariant={status.variant}
-								/>
+								<button
+									type="button"
+									class="course-row"
+									style="--row-spine: {courseColor(course) ?? 'var(--accent)'}"
+									onclick={() =>
+										goto(
+											`${resolveRoute(`/app/courses/${course.id}`)}?from=${encodeURIComponent(here)}`
+										)}
+								>
+									<span class="course-spine"></span>
+									<div class="course-body">
+										<span class="course-term">{course.code}</span>
+										<span class="course-name font-display">{course.name}</span>
+										<span class="course-stats">
+											{semester.term}
+											{semester.year} · {termShort(semester.id)}
+										</span>
+									</div>
+									<StatusChip
+										variant={status.variant === 'idle' ? 'idle' : status.variant}
+										label={status.label}
+									/>
+								</button>
 							{/each}
-						</BookShelf>
+						</div>
 					{/if}
 				</div>
 			{/each}
@@ -137,32 +165,126 @@
 
 <style>
 	.page {
-		max-width: 1100px;
+		max-width: var(--page-width);
 		margin-inline: auto;
-		padding-block: 2rem 4rem;
+		padding-block: 2.5rem 4rem;
+	}
+
+	.page-cover {
+		margin-bottom: 2.5rem;
+		padding-bottom: 1.5rem;
+		border-bottom: 1px solid var(--ink);
+	}
+
+	.eyebrow {
+		font-family: var(--font-mono);
+		font-size: 0.69rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: var(--ink-faint);
+		margin-bottom: 0.75rem;
 	}
 
 	.page-title {
-		font-size: clamp(2.4rem, 4vw, 3rem);
+		font-family: var(--font-display);
+		font-size: clamp(2rem, 4vw, 3.25rem);
+		font-weight: 600;
 		color: var(--ink);
-		margin: 0.4rem 0 0.25rem;
-		line-height: 1;
+		margin: 0.25rem 0 0.75rem;
+		line-height: 1.05;
+		letter-spacing: -0.025em;
 	}
 
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.95rem;
-		margin: 0 0 1.5rem;
+		font-size: 0.92rem;
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	.tagline-num {
+		font-family: var(--font-mono);
+		font-size: 0.85rem;
+		color: var(--ink);
+		font-weight: 500;
+		padding: 0 2px;
 	}
 
 	.dashboard {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1.75rem;
 	}
 
 	.semester-section {
-		margin-top: 1rem;
+		margin-top: 0.5rem;
+	}
+
+	.course-list {
+		display: flex;
+		flex-direction: column;
+		border-top: 1px solid var(--rule);
+	}
+
+	.course-row {
+		--row-spine: var(--accent);
+		display: grid;
+		grid-template-columns: 8px 1fr 120px;
+		align-items: center;
+		gap: 1.25rem;
+		padding: 0.9rem 1rem 0.9rem 0;
+		border-bottom: 1px solid var(--rule);
+		cursor: pointer;
+		background: var(--paper);
+		font-family: inherit;
+		color: inherit;
+		text-align: left;
+		transition: background 0.12s var(--ease-out-quart);
+	}
+
+	.course-row:hover {
+		background: var(--paper-2);
+	}
+
+	.course-row:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: -2px;
+	}
+
+	.course-spine {
+		width: 4px;
+		height: 38px;
+		justify-self: start;
+		background: var(--row-spine);
+	}
+
+	.course-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		min-width: 0;
+	}
+
+	.course-term {
+		font-family: var(--font-mono);
+		font-size: 0.62rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--ink-faint);
+	}
+
+	.course-name {
+		font-family: var(--font-display);
+		font-size: 1.1rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		color: var(--ink);
+	}
+
+	.course-stats {
+		font-family: var(--font-mono);
+		font-size: 0.66rem;
+		color: var(--ink-soft);
 	}
 
 	.empty-shelf {

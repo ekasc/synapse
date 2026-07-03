@@ -5,6 +5,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 export default defineConfig({
 	plugins: [sveltekit()],
 	server: {
+		allowedHosts: ['.trycloudflare.com'],
 		watch: {
 			ignored: ['**/*.sync-conflict-*', '**/.syncthing.*', '**/.stversions/**', '**/*.tmp']
 		}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 
 	type GradeItem = {
@@ -696,8 +695,6 @@
 </script>
 
 <svelte:head><title>Synapse - Digest</title></svelte:head>
-
-<CatalogHeader term="Grade Digest" />
 
 <div class="page page-enter">
 	<div class="page-cover">
@@ -2511,7 +2508,7 @@
 		color: var(--paper);
 	}
 
-	@media (max-width: 1100px) {
+	@media (max-width: 1024px) {
 		.gpa-panel {
 			grid-template-columns: 1fr;
 		}
