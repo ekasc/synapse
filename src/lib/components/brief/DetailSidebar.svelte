@@ -8,7 +8,6 @@
 	const quickFacts = $derived.by<Row[]>(() => [
 		{ label: 'Credits', value: brief.credits?.text?.trim() || null },
 		{ label: 'Delivery', value: brief.delivery?.text?.trim() || null },
-		{ label: 'Prereqs', value: brief.prerequisites?.text?.trim() || null },
 		{ label: 'Corequisites', value: brief.corequisites?.text?.trim() || null }
 	]);
 

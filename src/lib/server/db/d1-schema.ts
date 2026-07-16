@@ -1,4 +1,13 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import {
+	check,
+	index,
+	integer,
+	primaryKey,
+	sqliteTable,
+	text,
+	uniqueIndex
+} from 'drizzle-orm/sqlite-core';
 
 // ── Output store ──
 
@@ -17,26 +26,100 @@ export const briefings = sqliteTable('briefings', {
 	sources: text('sources').notNull(), // JSON string
 	researchedAt: text('researched_at').notNull(),
 	modelUsed: text('model_used').notNull().default('deepseek/deepseek-v4-flash'),
-	schemaVersion: integer('schema_version').notNull().default(1)
+	schemaVersion: integer('schema_version').notNull().default(1),
+	briefingJson: text('briefing_json')
 });
 
 // ── Async job queue ──
 
-export const briefingJobs = sqliteTable('briefing_jobs', {
-	id: text('id').primaryKey(),
-	courseCode: text('course_code').notNull(),
-	status: text('status').notNull().default('queued'), // queued|running|succeeded|failed|canceled
-	frozenContext: text('frozen_context').notNull(), // JSON string — context snapshot at creation
-	contextHash: text('context_hash').notNull(), // SHA256 of frozen_context
-	cacheKey: text('cache_key').notNull(), // for prompt cache lookup
-	output: text('output'), // JSON string — result when succeeded
-	errorCode: text('error_code'),
-	errorMessage: text('error_message'),
-	createdAt: text('created_at').notNull(),
-	startedAt: text('started_at'),
-	expiresAt: text('expires_at').notNull(), // 30min TTL on queued
-	completedAt: text('completed_at')
-});
+export const briefingJobs = sqliteTable(
+	'briefing_jobs',
+	{
+		id: text('id').primaryKey(),
+		courseCode: text('course_code').notNull(),
+		status: text('status').notNull().default('queued'),
+		frozenContext: text('frozen_context').notNull(),
+		contextHash: text('context_hash').notNull(),
+		cacheKey: text('cache_key').notNull(),
+		activeKey: text('active_key'),
+		leaseToken: text('lease_token'),
+		clientIpHash: text('client_ip_hash'),
+		stageUpdatedAt: text('stage_updated_at'),
+		identityCandidates: text('identity_candidates'),
+		cacheHit: integer('cache_hit').notNull().default(0),
+		output: text('output'),
+		errorCode: text('error_code'),
+		errorMessage: text('error_message'),
+		createdAt: text('created_at').notNull(),
+		startedAt: text('started_at'),
+		expiresAt: text('expires_at').notNull(),
+		completedAt: text('completed_at')
+	},
+	(table) => [
+		uniqueIndex('briefing_jobs_active_key_unique')
+			.on(table.activeKey)
+			.where(sql`${table.activeKey} IS NOT NULL`),
+		index('briefing_jobs_created_at_idx').on(table.createdAt),
+		index('briefing_jobs_ip_created_at_idx').on(table.clientIpHash, table.createdAt)
+	]
+);
+
+export const briefingRequestAttempts = sqliteTable(
+	'briefing_request_attempts',
+	{
+		jobId: text('job_id').notNull(),
+		stage: text('stage').notNull(),
+		attemptNumber: integer('attempt_number').notNull(),
+		responseId: text('response_id'),
+		requestedModel: text('requested_model').notNull(),
+		actualModel: text('actual_model'),
+		provider: text('provider'),
+		query: text('query'),
+		responseJson: text('response_json'),
+		usageJson: text('usage_json').notNull(),
+		costMicrodollars: integer('cost_microdollars').notNull().default(0),
+		elapsedMs: integer('elapsed_ms').notNull(),
+		httpStatus: integer('http_status').notNull(),
+		wasRetry: integer('was_retry').notNull().default(0),
+		createdAt: text('created_at').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.jobId, table.stage, table.attemptNumber] })]
+);
+
+export const briefingEvidence = sqliteTable(
+	'briefing_evidence',
+	{
+		jobId: text('job_id').notNull(),
+		sourceId: text('source_id').notNull(),
+		category: text('category').notNull(),
+		canonicalUrl: text('canonical_url').notNull(),
+		domain: text('domain').notNull(),
+		publisher: text('publisher').notNull(),
+		publishedAt: text('published_at'),
+		updatedAt: text('updated_at'),
+		retrievedAt: text('retrieved_at').notNull(),
+		currentness: text('currentness').notNull(),
+		retrievalStatus: text('retrieval_status').notNull(),
+		contentFingerprint: text('content_fingerprint').notNull(),
+		claimsSupportedJson: text('claims_supported_json').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.jobId, table.sourceId] })]
+);
+
+export const briefingEvidenceCache = sqliteTable(
+	'briefing_evidence_cache',
+	{
+		cacheKey: text('cache_key').notNull(),
+		category: text('category').notNull(),
+		evidenceJson: text('evidence_json').notNull(),
+		createdAt: text('created_at').notNull(),
+		expiresAt: text('expires_at').notNull()
+	},
+	(table) => [
+		primaryKey({ columns: [table.cacheKey, table.category] }),
+		index('briefing_evidence_cache_expires_at_idx').on(table.expiresAt)
+	]
+);
 
 // ── Prompt cache (7-day TTL) ──
 

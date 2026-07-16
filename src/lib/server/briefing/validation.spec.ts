@@ -1,131 +1,176 @@
 import { describe, expect, it } from 'vitest';
 import {
-	extractBriefingContent,
-	parseBriefingContent,
-	parseCachedBriefing,
-	validateBriefing,
+	validateCachedBriefingIdentity,
+	validateStructuredBriefing,
 	ValidationError
 } from './validation';
-import { BRIEFING_SCHEMA_VERSION } from './schema';
-
-const validOutput = {
-	code: 'CSIS 3375',
-	name: 'Software Engineering',
-	institution: 'Douglas College',
-	professor: 'A. Instructor',
-	rmpRating: '4.1 / 5.0',
-	rmpCount: 12,
-	workload: 'Medium workload with weekly labs',
-	weeklyHours: '6-8',
-	prereqReadiness: 'Prerequisites not checked against your graph',
-	gradeStructure: [{ item: 'Assignments', weight: '40%' }],
-	recommendation: 'Confirm the current outline before registering.',
-	sources: [
+import type { EvidenceSource } from './schema';
+const usage = {
+	inputTokens: 0,
+	outputTokens: 0,
+	reasoningTokens: 0,
+	cachedTokens: 0,
+	searchRequests: 0,
+	costMicrodollars: 0
+};
+const source = (overrides: Partial<EvidenceSource> = {}): EvidenceSource => ({
+	id: 'src_01',
+	category: 'catalog',
+	title: 'CSIS 3375',
+	url: 'https://www.douglascollege.ca/course',
+	canonicalUrl: 'https://www.douglascollege.ca/course',
+	domain: 'www.douglascollege.ca',
+	publisher: 'Douglas College',
+	excerpt: 'CSIS 3375 Official course',
+	sourceType: 'official',
+	publishedAt: null,
+	updatedAt: '2026-01-01',
+	retrievedAt: '2026-07-01',
+	currentness: 'current',
+	retrievalStatus: 'retrieved',
+	contentFingerprint: 'x',
+	claimsSupported: [],
+	...overrides
+});
+const section = () => ({ text: 'Supported', sourceIds: ['src_01'], claimIds: ['c1'] });
+const value = () => ({
+	identity: {
+		code: 'CSIS 3375',
+		name: 'Software Engineering',
+		institution: 'Douglas College',
+		officialDomain: 'douglascollege.ca',
+		catalogSourceId: 'src_01',
+		candidates: [],
+		confidence: 'high',
+		verifiedAt: '2026-07-01'
+	},
+	instructor: {
+		requestedName: 'Ada',
+		name: null,
+		status: 'requested_by_user',
+		sourceIds: []
+	},
+	description: { text: 'Course overview', sourceIds: ['src_01'], claimIds: ['c1'] },
+	credits: { text: '3 credits', sourceIds: ['src_01'], claimIds: ['c1'] },
+	prerequisites: { text: 'CSIS 2260', sourceIds: ['src_01'], claimIds: ['c1'] },
+	corequisites: { text: 'None', sourceIds: ['src_01'], claimIds: ['c1'] },
+	delivery: { text: 'Lecture', sourceIds: ['src_01'], claimIds: ['c1'] },
+	assessments: { text: 'Final exam 100%', sourceIds: ['src_01'], claimIds: ['c1'] },
+	workload: section(),
+	rateMyProfessors: { text: '', sourceIds: [], claimIds: [] },
+	contradictions: { text: '', sourceIds: [], claimIds: [] },
+	missing: { text: 'None', sourceIds: [], claimIds: [] },
+	summary: section(),
+	claims: [
 		{
-			description: 'Official course outline',
-			url: 'https://example.edu/courses/csis-3375',
-			found: true
-		},
-		{
-			description: 'RateMyProfessor profile',
-			found: false
+			id: 'c1',
+			text: 'Fact',
+			status: 'verified_current',
+			sourceIds: ['src_01'],
+			asOf: '2026-07-01',
+			explanation: null
 		}
 	]
+});
+const metadata = {
+	researchedAt: '2026-07-01',
+	modelUsed: 'pro',
+	searchModel: 'flash',
+	synthesisModel: 'pro',
+	usage
 };
-
-describe('course briefing validation', () => {
-	it('extracts a trimmed JSON string from a response', () => {
-		const extracted = extractBriefingContent(`  {"code":"CSIS 3375"}  `);
-		expect(extracted).toBe('{"code":"CSIS 3375"}');
-	});
-
-	it('rejects empty or missing content', () => {
-		expect(() => extractBriefingContent('')).toThrow(ValidationError);
-		expect(() => extractBriefingContent(null)).toThrow(ValidationError);
-		expect(() => extractBriefingContent(undefined)).toThrow(ValidationError);
-	});
-
-	it('parses LLM content and stamps model + schema version', () => {
-		const briefing = parseBriefingContent(JSON.stringify(validOutput), 'openai/gpt-5.2');
-		expect(briefing.code).toBe('CSIS 3375');
-		expect(briefing.rmpRating).toBe('4.1 / 5.0');
-		expect(briefing.modelUsed).toBe('openai/gpt-5.2');
-		expect(briefing.schemaVersion).toBe(BRIEFING_SCHEMA_VERSION);
-		expect(briefing.researchedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-	});
-
-	it('parses cached content without re-stamping researchedAt', () => {
-		const original = {
-			...validOutput,
-			researchedAt: '2026-01-01T00:00:00.000Z',
-			modelUsed: 'deepseek/deepseek-v4-flash',
-			schemaVersion: BRIEFING_SCHEMA_VERSION
+describe('persistence identity protection', () => {
+	it('accepts an official catalog subdomain in a cached briefing', () => {
+		const briefing = {
+			...value(),
+			sources: [
+				source({
+					title: 'CSIS 3375 Software Engineering',
+					excerpt: 'CSIS 3375 Software Engineering'
+				})
+			]
 		};
-		const cached = parseCachedBriefing(JSON.stringify(original));
-		expect(cached.researchedAt).toBe('2026-01-01T00:00:00.000Z');
-		expect(cached.modelUsed).toBe('deepseek/deepseek-v4-flash');
+		briefing.identity.name = 'CSIS 3375 Software Engineering';
+		briefing.identity.officialDomain = 'www.douglascollege.ca';
+		expect(() =>
+			validateCachedBriefingIdentity(briefing as never, {
+				courseCode: 'CSIS 3375',
+				institution: 'Douglas College'
+			})
+		).not.toThrow();
 	});
 
-	it('normalizes a valid course briefing for storage', () => {
-		const result = validateBriefing(validOutput);
-		expect(result).toMatchObject({
-			code: 'CSIS 3375',
-			name: 'Software Engineering',
-			weeklyHours: '6-8',
-			sources: [{ found: true }, { found: false }]
-		});
-		expect(result.modelUsed).toBe('unknown');
-		expect(result.schemaVersion).toBe(BRIEFING_SCHEMA_VERSION);
-	});
-
-	it('normalizes null rmpRating to "N/A" instead of throwing', () => {
-		const result = parseBriefingContent(
-			JSON.stringify({ ...validOutput, rmpRating: null }),
-			'model'
-		);
-		expect(result.rmpRating).toBe('N/A');
-	});
-
-	it('normalizes rmpCount non-finite values to null', () => {
-		const result = parseBriefingContent(
-			JSON.stringify({ ...validOutput, rmpCount: 'NaN' }),
-			'model'
-		);
-		expect(result.rmpCount).toBeNull();
-	});
-
-	it('rejects found sources without an http URL', () => {
-		const output = {
-			...validOutput,
-			sources: [{ description: 'Official source', url: 'example.edu/course', found: true }]
+	it('rejects a cached briefing whose catalog source is not identity-admissible', () => {
+		const briefing = {
+			...value(),
+			schemaVersion: 5,
+			sources: [
+				source({
+					title: 'CSIS 3375 Software Engineering',
+					excerpt: 'CSIS 3375 Software Engineering',
+					url: 'https://www.douglascollege.ca/faculty/csis-3375'
+				})
+			]
 		};
-
-		expect(() => validateBriefing(output)).toThrow(ValidationError);
+		expect(() =>
+			validateCachedBriefingIdentity(briefing as never, {
+				courseCode: 'CSIS 3375',
+				institution: 'Douglas College'
+			})
+		).toThrow(ValidationError);
 	});
+});
 
-	it('rejects found sources with a non-http URL', () => {
-		const output = {
-			...validOutput,
-			sources: [{ description: 'Official source', url: 'ftp://example.edu/course', found: true }]
-		};
-
-		expect(() => validateBriefing(output)).toThrow(ValidationError);
+describe('structured briefing validation', () => {
+	it('accepts sourced Douglas evidence and preserves requested instructor name', () =>
+		expect(
+			validateStructuredBriefing(
+				value(),
+				[source()],
+				{ courseCode: 'CSIS 3375', professorName: 'Ada' },
+				metadata
+			).instructor.requestedName
+		).toBe('Ada'));
+	it('rejects invented source IDs', () => {
+		const v = value();
+		v.summary.sourceIds = ['invented'];
+		expect(() =>
+			validateStructuredBriefing(
+				v,
+				[source()],
+				{ courseCode: 'CSIS 3375', professorName: 'Ada' },
+				metadata
+			)
+		).toThrow(ValidationError);
 	});
-
-	it('rejects briefings without actionable source evidence', () => {
-		const output = {
-			...validOutput,
-			sources: [{ description: 'No public source found', found: false }]
-		};
-
-		expect(() => validateBriefing(output)).toThrow('At least one found source is required');
-	});
-
-	it('rejects malformed JSON content from the LLM', () => {
-		expect(() => parseBriefingContent('not json', 'model')).toThrow(ValidationError);
-	});
-
-	it('rejects cached content that is not a Briefing', () => {
-		expect(() => parseCachedBriefing('{"code":"x"}')).toThrow(ValidationError);
+	it('rejects non-Douglas identity evidence', () =>
+		expect(() =>
+			validateStructuredBriefing(
+				value(),
+				[source({ domain: 'example.edu' })],
+				{ courseCode: 'CSIS 3375', professorName: 'Ada', institution: 'Douglas College' },
+				metadata
+			)
+		).toThrow('official catalog source for the requested institution'));
+	it('rejects historical current instructors', () =>
+		expect(() =>
+			validateStructuredBriefing(
+				value(),
+				[source({ currentness: 'historical' })],
+				{ courseCode: 'CSIS 3375', professorName: 'Ada' },
+				metadata
+			)
+		).toThrow('current claims require current evidence'));
+	it('requires explanations and sources for inferred claims', () => {
+		const v = value();
+		v.claims[0] = { ...v.claims[0], status: 'inferred', explanation: null };
+		expect(() =>
+			validateStructuredBriefing(
+				v,
+				[source()],
+				{ courseCode: 'CSIS 3375', professorName: 'Ada' },
+				metadata
+			)
+		).toThrow('inferred claims');
 	});
 });

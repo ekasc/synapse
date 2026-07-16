@@ -14,10 +14,60 @@ export type Briefing = {
 	prereqReadiness: string;
 	gradeStructure: { item: string; weight: string }[];
 	recommendation: string;
-	sources: { description: string; url?: string; found: boolean }[];
+	sources: {
+		description: string;
+		url?: string;
+		found: boolean;
+		id?: string;
+		title?: string;
+		sourceType?: string;
+		currentness?: string;
+	}[];
 	researchedAt: string;
 	modelUsed: string;
 	schemaVersion: number;
+	currentOrHistorical?: string;
+	officialPrerequisites?: string[];
+	instructorVerification?: { status?: string; detail?: string } | string;
+	assessmentBasis?: string;
+	workloadBasis?: string;
+	contradictions?: string[];
+	missingEvidence?: string[];
+	searches?: number | { query: string; status?: string }[];
+	cost?: number | string;
+	currency?: string;
+	modelPolicy?: string;
+	summary?: string;
+	prerequisites?: string;
+	usage?: {
+		inputTokens: number;
+		outputTokens: number;
+		searchRequests: number;
+		costMicrodollars: number;
+	};
+	identity?: {
+		courseCode?: string;
+		title?: string;
+		institution?: string;
+		officialDomain?: string;
+		term?: string;
+	};
+	instructor?: {
+		requestedName?: string;
+		name?: string;
+		status?: string;
+		detail?: string;
+	};
+	sections?: { id?: string; title?: string; content?: string; claims?: string[] }[];
+	claims?: {
+		id?: string;
+		text: string;
+		sourceIds: string[];
+		sourceType?: string;
+		basis?: string;
+		section?: string;
+	}[];
+	v4Report?: Record<string, unknown>;
 };
 
 export type CalendarEventRow = {
@@ -44,7 +94,132 @@ function parseJsonField<T>(value: unknown, fallback: T): T {
 	}
 }
 
+function jsonObject(value: unknown): Record<string, unknown> {
+	return value && typeof value === 'object' && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+function v4ReportSection(raw: unknown): { text: string; sourceIds: string[] } {
+	const obj = jsonObject(raw);
+	return {
+		text: String(obj.text ?? ''),
+		sourceIds: Array.isArray(obj.sourceIds) ? obj.sourceIds.map(String) : []
+	};
+}
+
 function rowToBriefing(row: { [key: string]: unknown }): Briefing {
+	if (row.briefingJson) {
+		const parsed = parseJsonField<Record<string, unknown> | null>(row.briefingJson, null);
+		if (parsed?.schemaVersion != null && Number(parsed.schemaVersion) >= 4 && parsed.identity) {
+			const identity = jsonObject(parsed.identity);
+			const instructor = jsonObject(parsed.instructor);
+			const v4Sources = Array.isArray(parsed.sources) ? parsed.sources.map(jsonObject) : [];
+			const claims = Array.isArray(parsed.claims) ? parsed.claims.map(jsonObject) : [];
+			const v4Usage = jsonObject(parsed.usage ?? parsed.usage);
+			const v4Summary = v4ReportSection(parsed.summary);
+			const v4Prereqs = v4ReportSection(parsed.prerequisites);
+			const v4Workload = v4ReportSection(parsed.workload);
+			const v4Rmp = v4ReportSection(parsed.rateMyProfessors);
+			const v4Contradictions = v4ReportSection(parsed.contradictions);
+			const v4Missing = v4ReportSection(parsed.missing);
+			const sectionNames = [
+				'description',
+				'credits',
+				'prerequisites',
+				'corequisites',
+				'delivery',
+				'assessments',
+				'workload',
+				'rateMyProfessors',
+				'contradictions',
+				'missing',
+				'summary'
+			];
+			return {
+				code: String(identity.code ?? ''),
+				name: String(identity.name ?? ''),
+				institution: String(identity.institution ?? ''),
+				professor: String(instructor.requestedName ?? 'Not requested'),
+				rmpRating: v4Rmp.text || 'N/A',
+				rmpCount: instructor.rmpCount != null ? Number(instructor.rmpCount) : undefined,
+				workload: v4Workload.text || 'Not verified',
+				weeklyHours: parsed.weeklyHours ? String(parsed.weeklyHours) : null,
+				prereqReadiness: '',
+				gradeStructure: [],
+				recommendation: v4Summary.text || 'No verified summary available',
+				sources: v4Sources.map((s) => ({
+					id: String(s.id ?? ''),
+					description: String(s.title ?? s.excerpt ?? ''),
+					title: String(s.title ?? ''),
+					url: String(s.url ?? ''),
+					found: s.retrievalStatus !== 'unavailable',
+					sourceType: String(s.sourceType ?? 'other'),
+					currentness: String(s.currentness ?? 'unknown')
+				})),
+				researchedAt: String(parsed.researchedAt ?? ''),
+				modelUsed: String(parsed.modelUsed ?? ''),
+				schemaVersion: 4,
+				currentOrHistorical: v4Sources.some((s) => s.currentness === 'historical')
+					? v4Sources.some((s) => s.currentness === 'current')
+						? 'mixed'
+						: 'historical'
+					: 'current',
+				officialPrerequisites: [],
+				instructorVerification: undefined,
+				instructor: {
+					requestedName: String(instructor.requestedName ?? ''),
+					name: String(instructor.name ?? ''),
+					status: String(instructor.status ?? 'not_verified'),
+					detail: String(instructor.detail ?? '')
+				},
+				assessmentBasis: undefined,
+				workloadBasis: undefined,
+				contradictions: v4Contradictions.text ? [v4Contradictions.text] : [],
+				missingEvidence: v4Missing.text ? [v4Missing.text] : [],
+				searches: Number(v4Usage.searchRequests ?? 0),
+				cost: String((Number(v4Usage.costMicrodollars ?? 0) / 1_000_000).toFixed(4)),
+				currency: 'USD',
+				modelPolicy: String(parsed.synthesisModel ?? parsed.modelUsed ?? ''),
+				summary: v4Summary.text || undefined,
+				prerequisites: v4Prereqs.text || undefined,
+				usage: {
+					inputTokens: Number(v4Usage.inputTokens ?? 0),
+					outputTokens: Number(v4Usage.outputTokens ?? 0),
+					searchRequests: Number(v4Usage.searchRequests ?? 0),
+					costMicrodollars: Number(v4Usage.costMicrodollars ?? 0)
+				},
+				identity: {
+					courseCode: String(identity.code ?? ''),
+					title: String(identity.name ?? ''),
+					institution: String(identity.institution ?? ''),
+					officialDomain: String(identity.officialDomain ?? ''),
+					term: String(identity.term ?? '')
+				},
+				claims: claims.map((claim) => ({
+					id: String(claim.id ?? ''),
+					text: String(claim.text ?? ''),
+					sourceIds: Array.isArray(claim.sourceIds) ? claim.sourceIds.map(String) : [],
+					sourceType: String(claim.sourceType ?? ''),
+					basis: String(claim.status ?? '').replace('verified_', ''),
+					section: String(claim.section ?? '')
+				})),
+				sections: sectionNames
+					.map((name) => {
+						const sec = v4ReportSection(parsed[name]);
+						return {
+							id: name,
+							title: name === 'rateMyProfessors' ? 'Professor reviews' : name,
+							content: sec.text,
+							claims: []
+						};
+					})
+					.filter((section) => section.content || section.claims.length),
+				v4Report: parsed
+			};
+		}
+		if (parsed) return parsed as unknown as Briefing;
+	}
 	const gradeStructure = parseJsonField<{ item: string; weight: string }[]>(row.gradeStructure, []);
 	const sources = parseJsonField<{ description: string; url?: string; found: boolean }[]>(
 		row.sources,
