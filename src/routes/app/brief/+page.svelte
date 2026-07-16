@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import ResearchSlip from '$lib/components/brief/ResearchSlip.svelte';
 	import NotebookEntry from '$lib/components/brief/NotebookEntry.svelte';
 	import EmptyState from '$lib/components/brief/EmptyState.svelte';
@@ -16,10 +16,23 @@
 
 	const briefs = $derived(data.briefs ?? []);
 
-	onMount(() => {
+	const refreshParams = $derived.by(() => {
+		if (!browser) return null;
 		const params = new URLSearchParams(window.location.search);
 		const code = params.get('code');
-		if (code) {
+		if (!code) return null;
+		return {
+			code,
+			name: params.get('name') ?? '',
+			prof: params.get('prof') ?? '',
+			inst: params.get('inst') ?? ''
+		};
+	});
+
+	const slipKey = $derived(refreshParams?.code ?? 'fresh');
+
+	$effect(() => {
+		if (refreshParams && browser) {
 			window.history.replaceState({}, '', '/app/brief');
 		}
 	});
@@ -33,7 +46,16 @@
 
 <div class="page page-enter">
 	<div class="slip-slot">
-		<ResearchSlip onSuccess={handleSlipSuccess} />
+		{#key slipKey}
+			<ResearchSlip
+				onSuccess={handleSlipSuccess}
+				initialCode={refreshParams?.code ?? ''}
+				initialName={refreshParams?.name ?? ''}
+				initialProfessor={refreshParams?.prof ?? ''}
+				initialInstitution={refreshParams?.inst ?? ''}
+				autoStart={refreshParams != null}
+			/>
+		{/key}
 	</div>
 
 	{#if briefs.length > 0}

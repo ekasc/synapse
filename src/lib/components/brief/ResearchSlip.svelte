@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import JobTracker from './JobTracker.svelte';
 
 	type JobStatus =
@@ -32,14 +32,29 @@
 	const POLL_TIMEOUT_MS = 4 * 60 * 1000;
 	const MAX_POLL_COUNT = Math.ceil(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
 
-	let { onSuccess }: { onSuccess?: (code: string) => void } = $props();
+	let {
+		onSuccess,
+		initialCode = '',
+		initialName = '',
+		initialProfessor = '',
+		initialInstitution = '',
+		autoStart = false
+	}: {
+		onSuccess?: (code: string) => void;
+		initialCode?: string;
+		initialName?: string;
+		initialProfessor?: string;
+		initialInstitution?: string;
+		autoStart?: boolean;
+	} = $props();
 
-	let courseCode = $state('');
-	let courseName = $state('');
-	let professorName = $state('');
-	let institution = $state('');
+	let courseCode = $state(untrack(() => initialCode));
+	let courseName = $state(untrack(() => initialName));
+	let professorName = $state(untrack(() => initialProfessor));
+	let institution = $state(untrack(() => initialInstitution));
 	let additionalNotes = $state('');
 	let moreOptionsOpen = $state(false);
+	let hasAutoStarted = $state(false);
 
 	let researchError = $state<string | null>(null);
 	let activeJobId = $state<string | null>(null);
@@ -49,6 +64,13 @@
 	let pollCount = $state(0);
 	let succeededCode = $state<string | null>(null);
 	let submitAttempted = $state(false);
+
+	$effect(() => {
+		if (autoStart && !hasAutoStarted && courseCode.trim().length > 0) {
+			hasAutoStarted = true;
+			untrack(() => submit());
+		}
+	});
 
 	let today = $derived.by(() => {
 		const d = new Date();
