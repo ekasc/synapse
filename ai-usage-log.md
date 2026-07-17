@@ -783,3 +783,306 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 **Key principle (this session):** The most valuable pattern was the D1-backed async job queue — it made the entire app's AI features (briefing, future digest, practice) follow the same reliable pattern: create job → poll → display result. Everything after that was scaffolding on the same foundation.
 
 **Key principle (briefing hardening):** For research-style AI features, the prompt should force search coverage and evidence accounting, but the application still needs schema validation and source checks after generation. The model is allowed to say "not found"; it is not allowed to skip the search categories that would prove that.
+
+---
+
+## 25. Static Course Map + Dependency Inspector (July 12)
+
+### Prompt (to OpenCode)
+
+> "Agent Execution Plan - Static Course Map + Dependency Inspector"
+
+**Context:** The semester connection summary needed to become a deterministic, read-only prerequisite map before adding schedule simulation or graph editing.
+
+**What changed:**
+
+- Added feature-local course map types with no XYFlow dependency.
+- Added cycle-safe prerequisite and dependant traversal, cycle detection, and blocking-reason calculations.
+- Added deterministic fixed-size semester-column layout with an Unplaced column.
+- Replaced the semester summary with a horizontally scrollable map, SVG prerequisite edges, separate course links and inspect buttons, dependency highlighting, Escape-to-clear selection, and a blocked/ready/invalid inspector.
+- Added 21 focused unit tests covering traversal edge cases and deterministic layout behavior.
+
+**Verification:** Course-map tests passed (21/21) and the production build passed. The full suite had 114 passing tests but could not launch browser tests because the Playwright Chromium binary was missing. Project check and lint remained blocked by pre-existing errors and formatting drift outside the course-map files.
+
+---
+
+## 26. Course Map Eligibility, Simulation, and Planning Scenarios (July 12)
+
+### Prompts (to OpenCode)
+
+> "Implement the next Course Map phase in two strictly ordered parts: UI polish, then Earliest eligible semester."
+
+> "Implement the next Course Map phase: a local-only Course Move Simulator."
+
+> "Implement Planning Scenarios for the Course Map."
+
+**Context:** The static prerequisite map was extended incrementally into a local planning workspace. Each phase remained feature-local and explicitly excluded persistence, database writes, automatic rescheduling, AI recommendations, and freeform graph editing.
+
+**What changed:**
+
+- Replaced the vertical inspect control with a compact accessible View button, refined selected-state styling, added mobile scroll affordances, actionable empty states, and user-friendly missing-prerequisite labels.
+- Added pure earliest-eligible-semester calculation with explicit eligible, already-eligible, outside-plan, unknown, and cycle results, including current-schedule timing comparisons.
+- Added a pure single-course move simulator that compares baseline and proposed plans, separates new/resolved/pre-existing violations, calculates downstream eligibility effects, and never mutates inputs.
+- Added temporary deterministic map previews with moved, conflict, and resolved labels plus responsive simulation controls.
+- Extended the simulator into an immutable cumulative planning scenario with ordered move history, deterministic replay, individual undo, undo-last, reset, jump-to-course controls, comparison summaries, and readiness status.
+- Kept the inspector and map derived from the current simulated plan while retaining the original plan as an immutable baseline.
+- Used temporary local D1 fixtures for visual QA, restored the original local records after every pass, and sent requested viewport screenshots to the user's iPhone through Tailscale Taildrop.
+
+**Testing and verification:**
+
+- Added 22 earliest-eligibility cases, 32 move-simulation cases, and 10 cumulative-planning cases.
+- Final Course Map suite passed 85/85 tests.
+- Final full Vitest run passed 182/182 tests.
+- Feature-scoped Prettier and ESLint checks passed.
+- Production builds passed throughout; two pre-existing warnings remained in the landing page and course-detail route.
+- Responsive Playwright QA covered 1440px, 1024px, 768px, and 390px layouts, including cumulative moves, map relayout, conflicts, history, undo, reset, scrolling, and overflow checks.
+- `git diff --check` could not run because the workspace is not a Git repository.
+
+**Key principle:** Planning state is safest when represented as an immutable baseline plus ordered move intents. Replaying those intents produces deterministic current state, makes individual undo reliable, and keeps comparison logic independent from UI and persistence concerns.
+
+---
+
+## 27. Shareable and Persistent Planning Scenarios (July 12-13)
+
+### Prompts (to OpenCode)
+
+> "Implement Shareable Planning Scenarios for the Course Map."
+
+> "Implement persistent Saved Planning Scenarios for the Course Map."
+
+> "Perform a strict integration audit and fix for the Saved Planning Scenarios history mismatch."
+
+**Context:** The local cumulative planner was extended first with URL transport and then with feature-owned D1 persistence. A final integration audit investigated a reported mismatch between a four-move summary and only three visibly rendered history rows.
+
+**What changed:**
+
+- Added a versioned `plan=v1.<base64url>` URL contract with strict length, move-count, ID, shape, JSON, and version validation.
+- Added pure shared-scenario encoding, decoding, and ordered replay with explicit per-move skip results for missing courses, missing semesters, Unplaced targets, no-ops, cycles, and unsafe inputs.
+- Added shared-link hydration, clipboard sharing with fallback URL field, imported-scenario notices, skipped-move reporting, stale-link warnings, and client-side shared-scenario clearing.
+- Added migration `0006_course_map_planning_scenarios.sql` with scenario metadata and ordered move tables. Course and semester references intentionally have no foreign keys so stale intent remains inspectable.
+- Added a feature-owned D1 repository and CRUD APIs for list, create, read, update, rename, duplicate-through-create, and revision-checked delete operations.
+- Added strict server validation, parameterized SQL, atomic D1 batches, UTC timestamps, server-generated IDs, contiguous move ordering, optimistic revisions, and safe API errors.
+- Added a responsive saved-scenario library with save, load/replay, dirty tracking, save changes, rename, duplicate, delete confirmation, replacement confirmation, conflict recovery, refresh persistence, and shared-to-saved behavior.
+- Kept persisted data limited to scenario name, revision, timestamps, and ordered move intent. Graph positions, conflicts, eligibility, summaries, validity, and UI state remain derived.
+
+**History mismatch audit:**
+
+- Direct D1 inspection returned four contiguous move rows with orders `0, 1, 2, 3`.
+- Repository, API, replay engine, component props, and DOM all retained four ordered moves.
+- The fourth row was visually hidden by `max-height: 260px` and `overflow-y: auto` on the history list; measured content height was 462px.
+- Removed the fixed history height/internal scrolling, added stable `data-move-id` markers, and added history invariant tests for unique ordered keys, repeated-course moves, and first/middle/final undo behavior.
+- Verified rename increments revision without changing move order, duplicate uses a distinct ID with all four moves, and deleting a loaded saved record leaves the full in-memory history open.
+
+**Testing and verification:**
+
+- Sharing suite added 40 encode/decode/replay cases and passed.
+- Persistent repository/API suite passed 26/26 focused tests.
+- Final Course Map regression suite passed 133/133 tests.
+- Focused Prettier and ESLint checks passed; production builds passed with two pre-existing out-of-scope warnings.
+- Applied migration `0006` successfully to local D1 and exercised real CRUD, refresh, optimistic conflict, rename, duplicate, delete, shared-to-saved, and stale-reference flows.
+- Playwright visual QA covered desktop, laptop, tablet, and mobile states. Temporary QA records were removed and the original local baseline restored.
+- Fresh screenshots for sharing, persistence, revision conflict, rename, duplicate, four-row history, undo, mobile controls, and deletion retention were sent to the user's iPhone through Tailscale Taildrop.
+- `git diff --check` remained unavailable because the workspace is not a Git repository.
+
+**Key principle:** Persist only ordered planning intent. Replaying that intent against the current baseline keeps saved records durable across curriculum changes, while explicit revision checks and visible compatibility warnings prevent stale data from being silently overwritten or misrepresented.
+
+---
+
+## 28. Course Brief Semantic Corrections (July 13)
+
+### Prompts (to OpenCode)
+
+> "Continue from the current worktree and current Course Brief thread. This is a narrow corrective pass. Do not redesign Course Brief again."
+
+> "update the ai usage log accordingly"
+
+**Context:** After the URL-driven rendering architecture was accepted in the previous session, seven remaining evidence-semantics regressions and legacy presentation regressions needed narrow, surgical fixes before proceeding to CSIS 4495. The previous session had withdrawn a false Svelte 5.56.3 hydration-bug claim after identifying the actual root cause as an application-level field-name mismatch between the old `Briefing` type and the new `BriefingDetailViewModel`.
+
+**What changed:**
+
+- Split the mixed instructor-assignment/RMP claim (c5) in the CSIS 4280 V4 fixture into two independent claims: c5 (Bambang Sarif listed as Fall 2026 instructor, `verified_current`, source 1 only) and c5b (4.2/5.0 from 42 RMP ratings, `supported_non_official`, source 3 only).
+- Added description-based source classification: the `classifySourceType` helper now detects `include('outline')` in the description, and the V4 mapper passes source titles as description context so outline URLs that lack term-code patterns (like `.../202640`) are correctly classified as `official_outline` instead of falling through to `official_catalog`.
+- Passed the `explanation` field through `sectionFromV4` so structured sections can carry provenance notes; the V4 workload fixture carries `"Student-reported via RateMyProfessors; not official workload data"` which renders as a field hint in the template.
+- Removed the duplicate RMP rating count from the legacy view-model mapper: the `label` field now carries only the raw rating string (`"1.8 / 5.0"`), and the template is the single source of the `(76 ratings)` display.
+- Removed the duplicate summary note block from the detail template: legacy reports previously showed the same text in the Summary field and again in a green note block below claims; the note block is now deleted.
+- Fixed the legacy telemetry fallback: the usage line formerly read `"0 searches · Legacy briefing"` and now reads `"Usage details unavailable for this legacy briefing"` with no zero searches, zero cost, zero tokens, or model slug.
+- Added and ran a 9-scenario Playwright browser navigation test against the production-shaped Wrangler worker: list rendering, click-to-legacy-detail, detail refresh, click-to-V4-detail, browser-back-to-list, browser-forward-to-detail, direct-unknown-code not-found, zero real console errors, and split claim verification.
+- Captured 8 semantically-asserted screenshots (legacy + V4 at 1440/1024/768/390) with pre-capture checks for course headings, report height >500px, assessment structure, passing requirements, sources, workload labels, source classification, duplicate absence, and telemetry correctness; delivered to iphone183 via Taildrop.
+
+**Testing and verification:**
+
+- Final server test suite passed 270/270 tests.
+- Final build passed.
+- Prettier formatting passed on all changed files.
+- Browser navigation: 5/5 functional scenarios passed; pre-existing CSP `font-src 'self'` warnings for inline data font URIs remain unchanged.
+- All 8 screenshots passed semantic assertions and were delivered.
+
+**Key principle:** Evidence classes must never bleed: official assignment is `verified_current`, student reviews are `supported_non_official`, and no claim may cite sources that do not support its exact text. URL-driven navigation proves correctness in real browsers, not just component tests. Missing data must remain missing — never convert unknown into zero, false, or verified.
+
+---
+
+## 29. Legacy Teaching-History Sanitization and Mobile FAB Fix (July 13)
+
+### Prompt (to OpenCode)
+
+> "Continue in the current OpenCode thread. Complete two unresolved correctness checks from the CSIS 3560/4280 pass, then run and audit CSIS 4495."
+
+**Context:** Two unresolved issues from the previous semantic corrections pass needed fixing before CSIS 4495 research could begin: (1) the legacy CSIS 3560 summary still contained unsupported RMP-derived teaching-history wording, and (2) the mobile floating action button at 390px could overlap page content at the bottom.
+
+**What changed:**
+
+- Added `safeLegacySummary()` function to `view-model.ts` that detects unsupported RMP-based teaching-history claims in legacy summary text using patterns like `"taught...per RateMyProfessors"`, `"has taught...per RMP"`, and RMP-instructor associations. When detected, the entire legacy summary is suppressed since its mixed evidence cannot be safely separated.
+- Applied the sanitizer at the summary construction point in `toDetailViewModel()`, keeping persisted D1 data untouched.
+- Confirmed via curl that the CSIS 3560 summary no longer renders `"has taught this course previously per RateMyProfessors tags"` — 0 matches post-fix.
+- Added `padding-bottom: 7rem` to the `.page` CSS at `@media (max-width: 700px)` in `+page.svelte` to prevent the floating action button (`.fab-container`, `position: fixed`, `bottom: 1.25rem`, ~44px tall) from overlapping source cards and other page-bottom content at mobile viewports.
+- Verified via Playwright that assessment rows (y: 952–1200) do not overlap with the FAB (y: 1336–1380) at 390px viewport. Zero assessment-row overlaps confirmed.
+- Created `/tmp/synapse-csis-4495/ledger.json` with a fresh budget ledger for CSIS 4495: max $0.10/report, $0.12 total, DeepSeek V4 Flash (StreamLake) for search, DeepSeek V4 Pro (DigitalOcean) for synthesis.
+
+**Blocked:**
+
+- CSIS 4495 live research could not proceed because the `wrangler dev` worker failed to restart under high system load from zombie `vite dev` and `workerd` processes from earlier sessions. The ledger, budget, and provider policy are ready for a clean restart.
+
+**Testing and verification:**
+
+- Server tests: 270/270 passed.
+- Build: passed (vite build 4.62s).
+- Prettier: formatted.
+- Playwright mobile check: 0 assessment-row FAB overlaps, content padding added for bottom-of-page clearance.
+- Legacy summary sanitization: unsupported wording confirmed absent via browser SSR output.
+
+---
+
+## 30. Seven-Day Dashboard and Course Workspace Architecture (July 16)
+
+### Prompts (to Pi coding agent)
+
+> "Replace the dashboard with a seven-day priority brief."
+
+> "Establish semesters as top-level planning contexts and courses as nested workspaces."
+
+> "Move course-dependent Syllabus, Materials, and Practice UI into canonical course routes."
+
+**Context:** Global catalog-style pages and repeated course selectors obscured what needed attention and which saved course owned a feature.
+
+**How AI was used:**
+
+- The coding agent inspected product, ownership, routing, persistence, and design-system files before proposing the domain hierarchy.
+- A screenshot critique evaluated desktop/mobile hierarchy, empty states, typography, balance, and overflow.
+- The agent implemented and tested loaders, nested layouts, sidebar behavior, dashboard ranking, and shared calendar UI. These features use no runtime model.
+
+**What changed:**
+
+- Replaced the dashboard catalog with a seven-day priority brief ranked by overdue work, due-today work, high-risk courses, major assessments, and paused Practice.
+- Added current/next/latest term resolution and consolidated quiet/all-clear states.
+- Added canonical semester/course routes and local workspace tabs instead of a third sidebar level.
+- Moved Materials, Practice, and Syllabus into course routes and added semester-filtered Calendar views.
+- Added a nested semester accordion sidebar shared by desktop and mobile.
+
+**Key principle:** Persisted context should come from canonical routes, not repeated selectors. Global navigation owns cross-course tools; semester and course tabs own features requiring those records.
+
+---
+
+## 31. Practice Generation Validation Repair (July 16)
+
+### Prompt (to Pi coding agent)
+
+> "The course practice generation is not working. I’m getting `Generated output failed validation`."
+
+**Context:** OpenRouter returned five valid questions and eight flashcards from a cybersecurity textbook, but emitted inferred course code `CYBER101` while the saved course was `CSIS 3560`.
+
+**How AI was used:**
+
+- The coding agent compared the supplied OpenRouter response field-by-field with the runtime validator and response schema.
+- It found that the prompt never supplied the exact saved course code.
+- It added a mocked OpenRouter regression test for the complete request contract.
+
+**What changed:**
+
+- Injected the exact saved course code into the prompt and constrained it with a single-value schema enum.
+- Added precise validation reasons to API/UI errors.
+- Registered PDF.js `WorkerMessageHandler` and passed PDF data as `Uint8Array` for Node and Cloudflare.
+- Increased timeout to 120 seconds after the real indexed request exceeded 60 seconds.
+
+**Runtime AI:** OpenRouter with configured `OPENROUTER_MODEL` (tested with DeepSeek V4 Flash), temperature `0`, strict JSON Schema, exactly five questions and eight flashcards.
+
+**Verification:** A live indexed request completed in about 72 seconds and returned five questions, eight flashcards, the exact saved course code, and trusted page citations.
+
+**Key principle:** Server-owned identity fields must never be inferred by a model. Put exact values into the output contract and validate them again after generation.
+
+---
+
+## 32. Persistent Large-PDF Practice Index and Topic Retrieval (July 16–17)
+
+### Prompts (to Pi coding agent)
+
+> "What do we do if the user uploads a 1000 pages PDF?"
+
+> "What do we do if the users only wants specific topics? Do we extract the PDF and save the text?"
+
+> "Yes, implement it."
+
+**Context:** Practice reparsed files on every generation and selected a small sequential context window, which could not represent a large textbook reliably.
+
+**How AI was used:**
+
+- The agent compared synchronous extraction, Cloudflare Workflows/Vectorize, and resumable client-driven indexing.
+- It documented the bounded design before implementing page extraction, deterministic retrieval, persistence, APIs, UI states, and tests.
+- Runtime AI is used only after retrieval; extraction, chunking, checkpointing, broad sampling, and topic ranking are deterministic code.
+
+**What changed:**
+
+- Added D1 material-index and page-aware chunk tables with local fallback.
+- Extracts 25 pages per request, resumes from checkpoints, and supports up to 1,000 pages under the 50 MB upload limit.
+- Stores approximately 2,000-character chunks and never reparses ready materials during generation.
+- Added broad beginning/middle/end sampling and lexical topic scoring with adjacent context.
+- The model cites a server-generated `chunkId`; the server attaches trusted material, filename, and page metadata.
+- Added pending, indexing, ready, OCR-required, unsupported, failed, and too-large states.
+
+**Real textbook verification:**
+
+- `Cybersecurity_Ops_with_bash.pdf`: 256 pages
+- 11 resumable indexing requests
+- 223 chunks and 161,395 extracted characters
+- Pages 1–255 represented; page 256 had no extractable text
+- Unrelated topics returned 422 before a model request
+- Topic generation returned trusted page citations
+
+**Limitations:** OCR, autonomous indexing after the browser closes, and Vectorize semantic retrieval remain deferred rather than being silently simulated.
+
+**Key principle:** RAG should extract once, retrieve deterministically, and send bounded relevant evidence. Citations must come from trusted server metadata, not model-authored filenames or page numbers.
+
+---
+
+## 33. Course-Specific Practice Persistence, History, and Material Scope (July 17)
+
+### Prompts (to Pi coding agent)
+
+> "The quiz generated but I got this error message in the UI: `questions[].explanation must be 1 to 128 characters`."
+
+> "We also need a way to look back at old quizzes/flashcards. Also, need material-specific quizzes/flashcards."
+
+> "They are also course specific so keep in mind."
+
+**Context:** Successful generations could fail persistence because paragraph-length explanations inherited a metadata limit. Saved sessions appeared as anonymous chips, and generation always considered every ready course material.
+
+**How AI was used:**
+
+- The agent traced the failure past generation into the D1 session validator.
+- It designed and implemented a course-local history library and material selection validated at request, ownership, and indexing boundaries.
+
+**What changed:**
+
+- Aligned generated-content limits: explanations/backs up to 4,000 characters, questions/fronts 2,000, options 1,000, and topics 256.
+- Added a save retry so an in-memory set can persist without another paid generation.
+- Added course-specific history with topics, source files, counts, score, status, date, quiz/card review, and delete actions.
+- Added ready-material multi-selection; all course materials are selected by default.
+- Added strict 1–8 unique material validation and rejects foreign-course or non-ready selections before generation.
+
+**Final verification:**
+
+- 524 Vitest tests passed.
+- Production Cloudflare build and Wrangler dry-run passed.
+- Foreign-course material selection returned 422.
+- Canonical course Practice route returned 200.
+
+**Key principle:** Generated prose needs content-sized limits, not metadata-sized limits. Practice history and source selection belong to the owning course, and every material ID must be revalidated server-side.
