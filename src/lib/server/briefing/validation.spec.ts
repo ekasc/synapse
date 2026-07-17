@@ -161,6 +161,36 @@ describe('structured briefing validation', () => {
 				metadata
 			)
 		).toThrow('current claims require current evidence'));
+	it('accepts one-source instructor assignment contradiction but rejects unrelated one-source contradictions', () => {
+		const schedule = source({
+			id: 'src_schedule_01',
+			category: 'schedule',
+			title: 'Current schedule: CSIS 3375 — Bambang Sarif',
+			excerpt: 'CSIS 3375 is scheduled with Bambang Sarif',
+			claimsSupported: []
+		});
+		const v = value();
+		v.instructor = { requestedName: 'Gabriel Vitus', name: 'Bambang Sarif', status: 'contradicted', sourceIds: ['src_schedule_01'] };
+		v.claims[0] = { id: 'c1', text: 'Gabriel Vitus was requested, but the official schedule assigns Bambang Sarif as instructor.', status: 'contradicted', sourceIds: ['src_schedule_01'], asOf: null, explanation: null };
+		v.contradictions = { text: 'Instructor assignment conflict', sourceIds: ['src_schedule_01'], claimIds: ['c1'] };
+		expect(validateStructuredBriefing(v, [source(), schedule], { courseCode: 'CSIS 3375', professorName: 'Gabriel Vitus', institution: 'Douglas College' }, metadata)).toBeTruthy();
+		const unconfirmedInstructor = { ...v };
+		unconfirmedInstructor.instructor = {
+			requestedName: 'Gabriel Vitus',
+			name: 'Bambang Sarif',
+			status: 'requested_by_user',
+			sourceIds: ['src_schedule_01']
+		};
+		expect(() =>
+			validateStructuredBriefing(
+				unconfirmedInstructor,
+				[source(), schedule],
+				{ courseCode: 'CSIS 3375', professorName: 'Gabriel Vitus', institution: 'Douglas College' },
+				metadata
+			)
+		).toThrow('conflicting sources');
+	});
+
 	it('requires explanations and sources for inferred claims', () => {
 		const v = value();
 		v.claims[0] = { ...v.claims[0], status: 'inferred', explanation: null };

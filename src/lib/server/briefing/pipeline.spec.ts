@@ -253,6 +253,14 @@ describe('Course Brief extraction boundary', () => {
 		expect(result.briefing.prerequisites.text).toBe('Minimum grade C in CSIS 3175.');
 		expect(result.briefing.delivery.text).toBe('Three-hour weekly lecture with a lab.');
 		expect(result.briefing.assessments.text).toBe('Assignments 30%; project 40%; final exam 30%.');
+		const synthesisBodies = fetchImpl.mock.calls
+			.map(([, init]) => (init?.body ? JSON.parse(String(init.body)) : null))
+			.filter((body) => body?.response_format);
+		expect(synthesisBodies).toHaveLength(1);
+		for (const body of synthesisBodies) {
+			expect(body.response_format.json_schema.schema.required).not.toContain('sources');
+			expect(body.response_format.json_schema.schema.properties).not.toHaveProperty('sources');
+		}
 	});
 
 	it('rejects a polluted synthesized field while retaining the valid fixture shape', () => {
@@ -359,6 +367,14 @@ describe('Course Brief extraction boundary', () => {
 		expect(result.briefing.prerequisites.text).toBe('');
 		expect(result.briefing.delivery.text).toBe('');
 		expect(result.briefing.assessments.text).toBe('');
+		const synthesisBodies = fetchImpl.mock.calls
+			.map(([, init]) => (init?.body ? JSON.parse(String(init.body)) : null))
+			.filter((body) => body?.response_format);
+		expect(synthesisBodies.length).toBeGreaterThanOrEqual(1);
+		for (const body of synthesisBodies) {
+			expect(body.response_format.json_schema.schema.required).not.toContain('sources');
+			expect(body.response_format.json_schema.schema.properties).not.toHaveProperty('sources');
+		}
 	});
 
 	it('does not retain the former deterministic excerpt fallback', () => {

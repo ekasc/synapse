@@ -52,7 +52,8 @@
 						<dd>
 							{currentOffering.instructor.name}
 							<span class="hint font-mono">
-								({currentOffering.instructor.sourceLabel ?? currentOffering.instructor.verification})
+								({currentOffering.instructor.sourceLabel ??
+									currentOffering.instructor.verification})
 							</span>
 						</dd>
 					</div>
@@ -101,7 +102,7 @@
 					<p class="muted">No RMP rating available.</p>
 				{/if}
 				{#if brief.studentReviews.rmpNote}
-					<p class="hint font-mono">{brief.studentReviews.rmpNote}</p>
+					<p class="note">{brief.studentReviews.rmpNote}</p>
 				{/if}
 			</div>
 		</section>
@@ -171,6 +172,16 @@
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 		margin-top: 0.1rem;
+	}
+
+	.note {
+		font-family: var(--font-body);
+		font-size: 0.875rem;
+		line-height: 1.5;
+		color: var(--ink-soft);
+		text-transform: none;
+		letter-spacing: normal;
+		margin: 0;
 	}
 
 	.rmp {

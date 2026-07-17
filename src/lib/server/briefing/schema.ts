@@ -528,6 +528,14 @@ export const BRIEFING_V4_JSON_SCHEMA = {
 	}
 } as const;
 
+const { sources: _synthesisSources, ...synthesisProperties } = BRIEFING_V4_JSON_SCHEMA.properties;
+
+export const SYNTHESIS_ONLY_JSON_SCHEMA = {
+	...BRIEFING_V4_JSON_SCHEMA,
+	required: BRIEFING_V4_JSON_SCHEMA.required.filter((field) => field !== 'sources'),
+	properties: synthesisProperties
+} as const;
+
 export const BRIEFING_V3_JSON_SCHEMA = BRIEFING_V4_JSON_SCHEMA;
 export type BriefingV3 = BriefingV4;
 export const BRIEFING_JSON_SCHEMA = BRIEFING_V4_JSON_SCHEMA;
