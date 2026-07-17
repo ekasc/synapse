@@ -91,4 +91,4 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ### 5. Feature Boundaries
 
-Strictly respect feature ownership. See `FEATURES.md` for the complete scope definitions. Do not implement, modify, refactor, or debug any code owned by **demi** — including components, routes, API handlers, database schemas, styles, tests, or any other artifact within demi's feature scope. If a task touches demi's code, stop and flag it. Work only within your assigned feature boundaries.
+Strictly respect feature ownership. See `FEATURES.md` for the complete scope definitions. Do not implement, modify, refactor, or debug any code owned by **demi** — including components, routes, API handlers, database schemas, styles, tests, or any other artifact within demi's feature scope. If a task touches demi's code, stop and flag it. Work only within your assigned feature boundaries. Refer to the chat for identification on whether you are Ekas or Demi.
