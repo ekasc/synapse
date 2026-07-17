@@ -22,7 +22,14 @@
 		"db:studio": "drizzle-kit studio",
 		"db:d1:generate": "drizzle-kit generate --config=drizzle-d1.config.ts",
 		"db:d1:push": "drizzle-kit push --config=drizzle-d1.config.ts",
-		"db:d1:migrate": "drizzle-kit migrate --config=drizzle-d1.config.ts"
+		"db:d1:migrate": "pnpm db:d1:migrate:local",
+		"db:d1:migrate:local": "wrangler d1 migrations apply BRIEF_DB --local --persist-to .synapse-local/wrangler",
+		"db:d1:migrate:remote": "wrangler d1 migrations apply BRIEF_DB --remote",
+		"local:bootstrap": "node scripts/bootstrap.mjs",
+		"local:dev": "node scripts/local-dev.mjs",
+		"local:verify": "node scripts/local-verify.mjs",
+		"briefing:evaluate": "node scripts/evaluate-accuracy.mjs",
+		"briefing:evaluate-agent": "node scripts/evaluate-agent.mjs"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
@@ -49,14 +56,13 @@
 		"vite": "^8.0.16",
 		"vitest": "^4.1.9",
 		"vitest-browser-svelte": "^2.1.1",
-		"wrangler": "^4.103.0"
+		"wrangler": "^4.110.0"
 	},
 	"dependencies": {
 		"@fontsource/inter": "^5.2.8",
 		"@fontsource/jetbrains-mono": "^5.2.8",
 		"@fontsource/kalam": "^5.2.8",
 		"@fontsource/source-serif-4": "^5.2.9",
-		"@xyflow/svelte": "^1.6.0",
 		"bits-ui": "^2.18.1",
 		"jszip": "^3.10.1",
 		"mammoth": "^1.12.0",
