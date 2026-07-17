@@ -13,6 +13,10 @@ import {
 	deleteMaterialRecordFallback,
 	getMaterialRecordFallback
 } from '$lib/server/r2';
+import {
+	attachMaterialIndexes,
+	createMaterialIndexRepository
+} from '$lib/server/practice/material-index';
 
 function getBackend(event: { platform?: Readonly<App.Platform> | undefined }) {
 	const bucket = event.platform?.env?.MATERIALS;
@@ -41,7 +45,11 @@ const MAX_MATERIAL_BYTES = 50 * 1024 * 1024; // 50 MB
 export async function GET({ params, platform }: RequestEvent) {
 	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
 	const items = await getBackend({ platform }).list(params.id);
-	return json(items);
+	const indexedItems = await attachMaterialIndexes(
+		items,
+		createMaterialIndexRepository(platform?.env?.BRIEF_DB)
+	);
+	return json(indexedItems);
 }
 
 export async function POST({ params, request, platform }: RequestEvent) {
@@ -72,7 +80,8 @@ export async function POST({ params, request, platform }: RequestEvent) {
 	}
 
 	const material = await getBackend({ platform }).upload(params.id, file);
-	return json({ ok: true, material });
+	const index = await createMaterialIndexRepository(platform?.env?.BRIEF_DB).ensure(material);
+	return json({ ok: true, material: { ...material, index } });
 }
 
 export async function PATCH({ params, request, platform }: RequestEvent) {
@@ -123,6 +132,7 @@ export async function DELETE({ params, request, platform }: RequestEvent) {
 		return json({ ok: false, error: 'Material does not belong to this course' }, { status: 400 });
 	}
 
+	await createMaterialIndexRepository(platform?.env?.BRIEF_DB).delete(id);
 	await backend.delete(id);
 	return json({ ok: true });
 }
