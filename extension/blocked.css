@@ -1,0 +1,96 @@
+:root {
+	color-scheme: light;
+	--paper: #f4ede0;
+	--shelf: #ebe0c8;
+	--ink: #1f1c14;
+	--soft: #4a4538;
+	--rule: #c4b494;
+	--highlight: #d8ff5c;
+	--red: #b03a2e;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	min-height: 100vh;
+	margin: 0;
+	display: grid;
+	place-items: center;
+	background: var(--paper);
+	color: var(--ink);
+	font-family: Inter, Arial, sans-serif;
+}
+main {
+	width: min(580px, calc(100% - 2rem));
+	border: 1px solid var(--ink);
+	background: var(--paper);
+	padding: 2.5rem;
+	box-shadow: 8px 8px 0 var(--shelf);
+}
+.eyebrow,
+.course,
+.privacy {
+	font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+}
+.eyebrow {
+	margin: 0 0 1rem;
+	font-size: 0.7rem;
+	color: var(--red);
+}
+h1 {
+	margin: 0;
+	font-family: Georgia, serif;
+	font-size: clamp(2.4rem, 7vw, 4.5rem);
+	line-height: 1;
+}
+.intention {
+	margin: 1rem 0 2rem;
+	color: var(--soft);
+}
+.timer {
+	display: inline-block;
+	background: var(--highlight);
+	border-bottom: 2px solid var(--ink);
+	font:
+		500 clamp(2.6rem, 8vw, 4rem) ui-monospace,
+		monospace;
+	letter-spacing: -0.08em;
+}
+.course {
+	margin: 0.75rem 0 2rem;
+	font-size: 0.72rem;
+	color: var(--soft);
+}
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	border-top: 1px solid var(--rule);
+	padding-top: 1.25rem;
+}
+button {
+	min-height: 2.5rem;
+	border: 1px solid var(--ink);
+	border-radius: 0;
+	padding: 0.55rem 0.9rem;
+	background: var(--ink);
+	color: var(--paper);
+	font:
+		500 0.8rem Inter,
+		Arial,
+		sans-serif;
+	cursor: pointer;
+}
+button.override {
+	background: transparent;
+	color: var(--red);
+	border-color: var(--red);
+}
+.privacy {
+	margin: 1.5rem 0 0;
+	font-size: 0.6rem;
+	line-height: 1.5;
+	color: var(--soft);
+}

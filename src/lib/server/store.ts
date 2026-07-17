@@ -140,6 +140,30 @@ export type Course = {
 
 type CourseRow = Omit<Course, 'signals'> & { signals: string | null };
 
+export type FocusPreferences = {
+	allowedSites: string[];
+	blockedSites: string[];
+	updatedAt: string;
+};
+
+export type StudySession = {
+	id: string;
+	courseId: string | null;
+	intention: string;
+	plannedSeconds: number;
+	completedSeconds: number;
+	distractionCount: number;
+	focusScore: number;
+	startedAt: string;
+	completedAt: string;
+};
+
+const DEFAULT_FOCUS_PREFERENCES: FocusPreferences = {
+	allowedSites: ['notebooklm.google.com', 'blackboard.douglascollege.ca'],
+	blockedSites: ['instagram.com', 'tiktok.com', 'reddit.com'],
+	updatedAt: ''
+};
+
 export type GraphState = {
 	positions: Record<string, { x: number; y: number }>;
 	viewport?: { x: number; y: number; zoom: number };
@@ -1072,4 +1096,110 @@ function rowToSyllabusImport(row: Record<string, unknown>): SyllabusImport {
 		createdAt: String(row.created_at),
 		updatedAt: String(row.updated_at)
 	};
+}
+
+// — Study Timer —
+
+function parseSiteList(value: unknown): string[] {
+	try {
+		const parsed = JSON.parse(String(value ?? '[]')) as unknown;
+		return Array.isArray(parsed)
+			? parsed.filter((site): site is string => typeof site === 'string')
+			: [];
+	} catch {
+		return [];
+	}
+}
+
+function rowToStudySession(row: Record<string, unknown>): StudySession {
+	return {
+		id: String(row.id),
+		courseId: row.course_id ? String(row.course_id) : null,
+		intention: String(row.intention ?? ''),
+		plannedSeconds: Number(row.planned_seconds),
+		completedSeconds: Number(row.completed_seconds),
+		distractionCount: Number(row.distraction_count),
+		focusScore: Number(row.focus_score),
+		startedAt: String(row.started_at),
+		completedAt: String(row.completed_at)
+	};
+}
+
+export async function getFocusPreferences(): Promise<FocusPreferences> {
+	if (_d1) {
+		const row = await d1First<Record<string, unknown>>(
+			'SELECT allowed_sites, blocked_sites, updated_at FROM focus_preferences WHERE id = ?',
+			'default'
+		);
+		if (!row) return DEFAULT_FOCUS_PREFERENCES;
+		return {
+			allowedSites: parseSiteList(row.allowed_sites),
+			blockedSites: parseSiteList(row.blocked_sites),
+			updatedAt: String(row.updated_at)
+		};
+	}
+	return read<FocusPreferences>('focus-preferences').at(-1) ?? DEFAULT_FOCUS_PREFERENCES;
+}
+
+export async function saveFocusPreferences(input: {
+	allowedSites: string[];
+	blockedSites: string[];
+}): Promise<FocusPreferences> {
+	const record: FocusPreferences = { ...input, updatedAt: new Date().toISOString() };
+	if (_d1) {
+		await d1Run(
+			`INSERT OR REPLACE INTO focus_preferences (id, allowed_sites, blocked_sites, updated_at)
+			 VALUES (?, ?, ?, ?)`,
+			'default',
+			JSON.stringify(record.allowedSites),
+			JSON.stringify(record.blockedSites),
+			record.updatedAt
+		);
+		return record;
+	}
+	write('focus-preferences', [record]);
+	return record;
+}
+
+export async function getStudySessions(limit = 20): Promise<StudySession[]> {
+	const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+	if (_d1) {
+		const rows = await d1All<Record<string, unknown>>(
+			`SELECT * FROM study_sessions ORDER BY completed_at DESC LIMIT ${safeLimit}`
+		);
+		return rows.map(rowToStudySession);
+	}
+	return read<StudySession>('study-sessions')
+		.sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+		.slice(0, safeLimit);
+}
+
+export async function addStudySession(
+	input: Omit<StudySession, 'id' | 'completedAt'> & { id?: string; completedAt?: string }
+): Promise<StudySession> {
+	const record: StudySession = {
+		...input,
+		id: input.id ?? crypto.randomUUID(),
+		completedAt: input.completedAt ?? new Date().toISOString()
+	};
+	if (_d1) {
+		await d1Run(
+			`INSERT INTO study_sessions
+			 (id, course_id, intention, planned_seconds, completed_seconds, distraction_count, focus_score, started_at, completed_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			record.id,
+			record.courseId,
+			record.intention,
+			record.plannedSeconds,
+			record.completedSeconds,
+			record.distractionCount,
+			record.focusScore,
+			record.startedAt,
+			record.completedAt
+		);
+		return record;
+	}
+	const sessions = read<StudySession>('study-sessions');
+	write('study-sessions', [...sessions, record]);
+	return record;
 }
