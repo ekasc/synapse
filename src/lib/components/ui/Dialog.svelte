@@ -49,7 +49,6 @@
 		top: 50%;
 		left: 50%;
 		animation: ui-dialog-in 0.18s var(--ease-out-quart);
-		overflow: auto;
 		width: min(38rem, calc(100vw - 2rem));
 		max-height: calc(100vh - 2rem);
 		overflow: auto;

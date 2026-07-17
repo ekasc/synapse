@@ -5,7 +5,7 @@ import path from 'node:path';
 
 let _d1: D1Database | null = null;
 
-export function setStoreDb(d1: D1Database): void {
+export function setStoreDb(d1: D1Database | null): void {
 	_d1 = d1;
 }
 
@@ -29,6 +29,32 @@ function write<T>(name: string, data: T[]): void {
 	fs.writeFileSync(path.join(DATA_DIR, `${name}.json`), JSON.stringify(data, null, '\t'));
 }
 
+function writeManyAtomically(entries: { name: string; data: unknown[] }[]): void {
+	ensureDir();
+	const originals = new Map<string, string | null>();
+	const temporary: string[] = [];
+	try {
+		for (const { name, data } of entries) {
+			const file = path.join(DATA_DIR, `${name}.json`);
+			originals.set(file, fs.existsSync(file) ? fs.readFileSync(file, 'utf-8') : null);
+			const temp = `${file}.${crypto.randomUUID()}.tmp`;
+			fs.writeFileSync(temp, JSON.stringify(data, null, '\t'));
+			temporary.push(temp);
+		}
+		entries.forEach(({ name }, index) =>
+			fs.renameSync(temporary[index], path.join(DATA_DIR, `${name}.json`))
+		);
+	} catch (error) {
+		for (const [file, contents] of originals) {
+			if (contents === null) fs.rmSync(file, { force: true });
+			else fs.writeFileSync(file, contents);
+		}
+		throw error;
+	} finally {
+		for (const temp of temporary) fs.rmSync(temp, { force: true });
+	}
+}
+
 // ── D1 helpers ──
 
 function ok(v: unknown): string {
@@ -38,19 +64,28 @@ function ok(v: unknown): string {
 
 async function d1All<T>(sql: string, ...bind: unknown[]): Promise<T[]> {
 	if (!_d1) return [];
-	const { results } = await _d1.prepare(sql).bind(...bind).all<T>();
+	const { results } = await _d1
+		.prepare(sql)
+		.bind(...bind)
+		.all<T>();
 	return results ?? [];
 }
 
 async function d1First<T>(sql: string, ...bind: unknown[]): Promise<T | null> {
 	if (!_d1) return null;
-	const row = await _d1.prepare(sql).bind(...bind).first<T>();
+	const row = await _d1
+		.prepare(sql)
+		.bind(...bind)
+		.first<T>();
 	return row ?? null;
 }
 
 async function d1Run(sql: string, ...bind: unknown[]): Promise<void> {
 	if (!_d1) return;
-	await _d1.prepare(sql).bind(...bind).run();
+	await _d1
+		.prepare(sql)
+		.bind(...bind)
+		.run();
 }
 
 // ── Types ──
@@ -102,6 +137,8 @@ export type Course = {
 	color?: string;
 	signals?: CourseSignal;
 };
+
+type CourseRow = Omit<Course, 'signals'> & { signals: string | null };
 
 export type GraphState = {
 	positions: Record<string, { x: number; y: number }>;
@@ -282,7 +319,10 @@ export async function addSemester(s: Semester): Promise<void> {
 	if (_d1) {
 		await d1Run(
 			'INSERT INTO semesters (id, term, year, "order") VALUES (?, ?, ?, ?)',
-			s.id, s.term, s.year, s.order
+			s.id,
+			s.term,
+			s.year,
+			s.order
 		);
 		return;
 	}
@@ -291,13 +331,25 @@ export async function addSemester(s: Semester): Promise<void> {
 	write('semesters', all);
 }
 
-export async function updateSemester(id: string, updates: Partial<Omit<Semester, 'id'>>): Promise<void> {
+export async function updateSemester(
+	id: string,
+	updates: Partial<Omit<Semester, 'id'>>
+): Promise<void> {
 	if (_d1) {
 		const sets: string[] = [];
 		const bind: unknown[] = [];
-		if (updates.term !== undefined) { sets.push('term = ?'); bind.push(updates.term); }
-		if (updates.year !== undefined) { sets.push('year = ?'); bind.push(updates.year); }
-		if (updates.order !== undefined) { sets.push('"order" = ?'); bind.push(updates.order); }
+		if (updates.term !== undefined) {
+			sets.push('term = ?');
+			bind.push(updates.term);
+		}
+		if (updates.year !== undefined) {
+			sets.push('year = ?');
+			bind.push(updates.year);
+		}
+		if (updates.order !== undefined) {
+			sets.push('"order" = ?');
+			bind.push(updates.order);
+		}
 		if (sets.length === 0) return;
 		bind.push(id);
 		await d1Run(`UPDATE semesters SET ${sets.join(', ')} WHERE id = ?`, ...bind);
@@ -313,15 +365,28 @@ export async function updateSemester(id: string, updates: Partial<Omit<Semester,
 
 export async function deleteSemester(id: string): Promise<void> {
 	if (_d1) {
-		await d1Run('DELETE FROM courses WHERE semester_id = ?', id);
-		await d1Run('DELETE FROM semesters WHERE id = ?', id);
+		const removed = await getCourses(id);
+		const graph = removeCoursesFromGraph(
+			await getGraphState(),
+			new Set(removed.map((course) => course.id))
+		);
+		await _d1.batch([
+			_d1.prepare('DELETE FROM courses WHERE semester_id = ?').bind(id),
+			_d1.prepare('DELETE FROM semesters WHERE id = ?').bind(id),
+			graphStatement(graph)
+		]);
 		return;
 	}
-	const all = read<Semester>('semesters').filter((s) => s.id !== id);
-	write('semesters', all);
-	// cascade: delete courses for this semester
-	const courses = getCoursesFsSync().filter((c) => c.semesterId !== id);
-	write('courses', courses);
+	const semesters = read<Semester>('semesters').filter((s) => s.id !== id);
+	const allCourses = getCoursesFsSync();
+	const removedIds = new Set(allCourses.filter((c) => c.semesterId === id).map((c) => c.id));
+	const courses = allCourses.filter((c) => c.semesterId !== id);
+	const graph = removeCoursesFromGraph(getGraphStateFsSync(), removedIds);
+	writeManyAtomically([
+		{ name: 'semesters', data: semesters },
+		{ name: 'courses', data: courses },
+		{ name: 'graph', data: [graph] }
+	]);
 }
 
 // ── Courses ──
@@ -329,14 +394,18 @@ export async function deleteSemester(id: string): Promise<void> {
 export async function getCourses(semesterId?: string): Promise<Course[]> {
 	if (_d1) {
 		if (semesterId) {
-			return d1All<Course>(
-				'SELECT id, semester_id AS semesterId, code, name, instructor, credits, tag, color, signals FROM courses WHERE semester_id = ?',
-				semesterId
-			);
+			return (
+				await d1All<CourseRow>(
+					'SELECT id, semester_id AS semesterId, code, name, instructor, credits, tag, color, signals FROM courses WHERE semester_id = ?',
+					semesterId
+				)
+			).map(rowToCourse);
 		}
-		return d1All<Course>(
-			'SELECT id, semester_id AS semesterId, code, name, instructor, credits, tag, color, signals FROM courses'
-		);
+		return (
+			await d1All<CourseRow>(
+				'SELECT id, semester_id AS semesterId, code, name, instructor, credits, tag, color, signals FROM courses'
+			)
+		).map(rowToCourse);
 	}
 	const all = read<Course>('courses');
 	return semesterId ? all.filter((c) => c.semesterId === semesterId) : all;
@@ -363,9 +432,80 @@ function serializeSignals(c: Course): string | null {
 	return c.signals ? JSON.stringify(c.signals) : null;
 }
 
-function parseSignals(raw: string | unknown): CourseSignal | undefined {
+function parseSignals(raw: string | null): CourseSignal | undefined {
 	if (!raw || typeof raw !== 'string') return undefined;
-	try { return JSON.parse(raw) as CourseSignal; } catch { return undefined; }
+	try {
+		const value: unknown = JSON.parse(raw);
+		if (!isCourseSignal(value)) return undefined;
+		return value;
+	} catch {
+		return undefined;
+	}
+}
+
+function isCourseSignal(value: unknown): value is CourseSignal {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+	const signal = value as Record<string, unknown>;
+	const allowed = new Set([
+		'status',
+		'credits',
+		'currentGrade',
+		'projectedGrade',
+		'deadlinesThisWeek',
+		'nextDeadline',
+		'studyHours',
+		'materialCount',
+		'noteCount',
+		'riskLevel',
+		'requirementGroup',
+		'topics'
+	]);
+	if (Object.keys(signal).some((key) => !allowed.has(key))) return false;
+	if (
+		signal.status !== undefined &&
+		!['planned', 'active', 'completed', 'at-risk'].includes(String(signal.status))
+	)
+		return false;
+	if (
+		signal.riskLevel !== undefined &&
+		!['none', 'low', 'medium', 'high'].includes(String(signal.riskLevel))
+	)
+		return false;
+	if (
+		signal.requirementGroup !== undefined &&
+		!['core', 'programming', 'math', 'systems', 'ai', 'writing', 'elective', 'general'].includes(
+			String(signal.requirementGroup)
+		)
+	)
+		return false;
+	for (const key of [
+		'credits',
+		'currentGrade',
+		'projectedGrade',
+		'deadlinesThisWeek',
+		'studyHours',
+		'materialCount',
+		'noteCount'
+	]) {
+		if (
+			signal[key] !== undefined &&
+			(typeof signal[key] !== 'number' || !Number.isFinite(signal[key]))
+		)
+			return false;
+	}
+	if (signal.nextDeadline !== undefined && typeof signal.nextDeadline !== 'string') return false;
+	if (
+		signal.topics !== undefined &&
+		(!Array.isArray(signal.topics) || signal.topics.some((topic) => typeof topic !== 'string'))
+	)
+		return false;
+	return true;
+}
+
+function rowToCourse(row: CourseRow): Course {
+	const { signals: rawSignals, ...course } = row;
+	const signals = parseSignals(rawSignals);
+	return signals ? { ...course, signals } : course;
 }
 
 // Sync variant for local fs (used by deleteSemester cascade internally)
@@ -400,17 +540,39 @@ export async function updateCourse(id: string, updates: Partial<Course>): Promis
 	if (_d1) {
 		const sets: string[] = [];
 		const bind: unknown[] = [];
-		if (updates.semesterId !== undefined) { sets.push('semester_id = ?'); bind.push(updates.semesterId); }
-		if (updates.code !== undefined) { sets.push('code = ?'); bind.push(updates.code); }
-		if (updates.name !== undefined) { sets.push('name = ?'); bind.push(updates.name); }
-		if (updates.instructor !== undefined) { sets.push('instructor = ?'); bind.push(updates.instructor); }
-		if (updates.credits !== undefined) { sets.push('credits = ?'); bind.push(updates.credits); }
-		if (updates.tag !== undefined) { sets.push('tag = ?'); bind.push(updates.tag); }
+		if (updates.semesterId !== undefined) {
+			sets.push('semester_id = ?');
+			bind.push(updates.semesterId);
+		}
+		if (updates.code !== undefined) {
+			sets.push('code = ?');
+			bind.push(updates.code);
+		}
+		if (updates.name !== undefined) {
+			sets.push('name = ?');
+			bind.push(updates.name);
+		}
+		if (updates.instructor !== undefined) {
+			sets.push('instructor = ?');
+			bind.push(updates.instructor);
+		}
+		if (updates.credits !== undefined) {
+			sets.push('credits = ?');
+			bind.push(updates.credits);
+		}
+		if (updates.tag !== undefined) {
+			sets.push('tag = ?');
+			bind.push(updates.tag);
+		}
 		if ('color' in updates && updates.color !== undefined) {
 			const c = sanitizeCourseColor(updates.color);
-			sets.push('color = ?'); bind.push(c ?? null);
+			sets.push('color = ?');
+			bind.push(c ?? null);
 		}
-		if (updates.signals !== undefined) { sets.push('signals = ?'); bind.push(JSON.stringify(updates.signals)); }
+		if (updates.signals !== undefined) {
+			sets.push('signals = ?');
+			bind.push(JSON.stringify(updates.signals));
+		}
 		if (sets.length === 0) return;
 		bind.push(id);
 		await d1Run(`UPDATE courses SET ${sets.join(', ')} WHERE id = ?`, ...bind);
@@ -434,11 +596,19 @@ export async function updateCourse(id: string, updates: Partial<Course>): Promis
 
 export async function deleteCourse(id: string): Promise<void> {
 	if (_d1) {
-		await d1Run('DELETE FROM courses WHERE id = ?', id);
+		const graph = removeCoursesFromGraph(await getGraphState(), new Set([id]));
+		await _d1.batch([
+			_d1.prepare('DELETE FROM courses WHERE id = ?').bind(id),
+			graphStatement(graph)
+		]);
 		return;
 	}
 	const all = read<Course>('courses').filter((c) => c.id !== id);
-	write('courses', all);
+	const graph = removeCoursesFromGraph(getGraphStateFsSync(), new Set([id]));
+	writeManyAtomically([
+		{ name: 'courses', data: all },
+		{ name: 'graph', data: [graph] }
+	]);
 }
 
 // ── Graph State ──
@@ -473,6 +643,80 @@ export async function saveGraphState(state: GraphState): Promise<void> {
 	write('graph', [state]);
 }
 
+function getGraphStateFsSync(): GraphState {
+	return read<GraphState>('graph')[0] ?? { positions: {}, edges: [] };
+}
+
+function removeCoursesFromGraph(state: GraphState, courseIds: Set<string>): GraphState {
+	return {
+		...state,
+		positions: Object.fromEntries(
+			Object.entries(state.positions).filter(([courseId]) => !courseIds.has(courseId))
+		),
+		edges: state.edges.filter((edge) => !courseIds.has(edge.source) && !courseIds.has(edge.target))
+	};
+}
+
+function graphStatement(state: GraphState): D1PreparedStatement {
+	if (!_d1) throw new Error('D1 is not configured');
+	return _d1
+		.prepare(
+			'INSERT OR REPLACE INTO graph_state (id, positions, viewport, edges) VALUES (?, ?, ?, ?)'
+		)
+		.bind(
+			'graph-root',
+			JSON.stringify(state.positions),
+			state.viewport ? JSON.stringify(state.viewport) : null,
+			JSON.stringify(state.edges)
+		);
+}
+
+export async function applyGraphImport(
+	courses: { course: Course; existing: boolean }[],
+	state: GraphState
+): Promise<void> {
+	if (_d1) {
+		const statements = courses.map(({ course, existing }) => {
+			const sanitized = sanitizeCourse(course);
+			return existing
+				? _d1!
+						.prepare('UPDATE courses SET semester_id = ?, code = ?, name = ?, tag = ? WHERE id = ?')
+						.bind(
+							sanitized.semesterId,
+							sanitized.code,
+							sanitized.name,
+							ok(sanitized.tag),
+							sanitized.id
+						)
+				: _d1!
+						.prepare(
+							'INSERT INTO courses (id, semester_id, code, name, instructor, credits, tag, color, signals) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+						)
+						.bind(
+							sanitized.id,
+							sanitized.semesterId,
+							sanitized.code,
+							sanitized.name,
+							ok(sanitized.instructor),
+							sanitized.credits ?? null,
+							ok(sanitized.tag),
+							ok(sanitized.color),
+							serializeSignals(sanitized)
+						);
+		});
+		await _d1.batch([...statements, graphStatement(state)]);
+		return;
+	}
+
+	const current = read<Course>('courses');
+	const byId = new Map(current.map((course) => [course.id, course]));
+	for (const { course } of courses) byId.set(course.id, sanitizeCourse(course));
+	writeManyAtomically([
+		{ name: 'courses', data: [...byId.values()] },
+		{ name: 'graph', data: [state] }
+	]);
+}
+
 // ── Academic Progress Digest ──
 
 function currentCourseCredits(crs: Course[]): number {
@@ -481,9 +725,7 @@ function currentCourseCredits(crs: Course[]): number {
 
 export async function getAcademicDigest(): Promise<AcademicDigest | null> {
 	if (_d1) {
-		const row = await d1First<Record<string, unknown>>(
-			'SELECT * FROM academic_digest LIMIT 1'
-		);
+		const row = await d1First<Record<string, unknown>>('SELECT * FROM academic_digest LIMIT 1');
 		if (!row) return null;
 		return rowToDigest(row);
 	}
@@ -501,7 +743,8 @@ export function buildAcademicDigest(input?: {
 	const crs = !_d1 ? read<Course>('courses') : [];
 	const source = input?.source ?? (crs.length > 0 ? 'setup-import' : 'sample');
 	const currentCourseCount = input?.analysis?.currentCourseCount ?? crs.length;
-	const currentCredits = input?.analysis?.currentCredits ?? (crs.length > 0 ? currentCourseCredits(crs) : 0);
+	const currentCredits =
+		input?.analysis?.currentCredits ?? (crs.length > 0 ? currentCourseCredits(crs) : 0);
 	const fileName = input?.fileName?.trim();
 	const analyticsLabel =
 		input?.analysis?.extractionSource === 'openrouter' ? 'OpenRouter' : 'backend';
@@ -614,7 +857,11 @@ function rowToDigest(row: Record<string, unknown>): AcademicDigest {
 }
 
 function parseJsonArr<T>(v: unknown): T[] {
-	try { return JSON.parse(String(v ?? '[]')) as T[]; } catch { return []; }
+	try {
+		return JSON.parse(String(v ?? '[]')) as T[];
+	} catch {
+		return [];
+	}
 }
 
 // ── Syllabus Intelligence ──
@@ -633,7 +880,8 @@ export async function getSyllabusImport(courseId?: string): Promise<SyllabusImpo
 	if (_d1) {
 		if (courseId) {
 			const row = await d1First<Record<string, unknown>>(
-				'SELECT * FROM syllabus_imports WHERE course_id = ?', courseId
+				'SELECT * FROM syllabus_imports WHERE course_id = ?',
+				courseId
 			);
 			return row ? rowToSyllabusImport(row) : null;
 		}
@@ -733,12 +981,15 @@ export async function saveSyllabusImport(input: {
 	return record;
 }
 
-export async function updateSyllabusTextbook(fileName: string, courseId?: string): Promise<SyllabusImport> {
+export async function updateSyllabusTextbook(
+	fileName: string,
+	courseId?: string
+): Promise<SyllabusImport> {
 	if (_d1) {
 		const existing = await getSyllabusImport(courseId);
 		const now = new Date().toISOString();
 		const record: SyllabusImport = {
-			...existing ?? {
+			...(existing ?? {
 				id: crypto.randomUUID(),
 				courseId: courseId ?? 'csis-4495',
 				fileName: 'CSIS 4495 Syllabus.pdf',
@@ -754,9 +1005,9 @@ export async function updateSyllabusTextbook(fileName: string, courseId?: string
 				status: 'mocked' as const,
 				createdAt: now,
 				updatedAt: now
-			},
+			}),
 			extractedData: {
-				...(existing?.extractedData ?? {} as SyllabusExtractedData),
+				...(existing?.extractedData ?? ({} as SyllabusExtractedData)),
 				requiredMaterials: {
 					textbookTitle: 'Database Systems, 7th ed.',
 					textbookPdfUploaded: true,
@@ -782,7 +1033,8 @@ export async function updateSyllabusTextbook(fileName: string, courseId?: string
 		return record;
 	}
 
-	const existing = await getSyllabusImport(courseId) ?? await mockExtractSyllabus(undefined, courseId);
+	const existing =
+		(await getSyllabusImport(courseId)) ?? (await mockExtractSyllabus(undefined, courseId));
 	const all = _d1 ? [] : read<SyllabusImport>('syllabus-imports');
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
