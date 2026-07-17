@@ -8,6 +8,20 @@ const config = {
 	},
 	kit: {
 		adapter: adapter(),
+		csp: {
+			mode: 'auto',
+			directives: {
+				'default-src': ['self'],
+				'base-uri': ['self'],
+				'connect-src': ['self'],
+				'font-src': ['self'],
+				'frame-ancestors': ['none'],
+				'img-src': ['self', 'data:', 'blob:'],
+				'object-src': ['none'],
+				'script-src': ['self'],
+				'style-src': ['self', 'unsafe-inline']
+			}
+		},
 		typescript: {
 			config: (config) => ({
 				...config,

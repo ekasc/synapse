@@ -1,10 +1,14 @@
-import { getCourses, getSemesters } from '$lib/server/store';
+import { error, redirect } from '@sveltejs/kit';
+import { getCourses } from '$lib/server/store';
 
 export async function load({ params }) {
-	const [courses, semesters] = await Promise.all([getCourses(), getSemesters()]);
-	return {
-		courseId: params.courseId,
-		courses,
-		semesters
-	};
+	const course = (await getCourses()).find(
+		(item) =>
+			item.id === params.courseId || item.code.toLowerCase() === params.courseId.toLowerCase()
+	);
+	if (!course) error(404, 'Course not found');
+	redirect(
+		307,
+		`/app/semesters/${encodeURIComponent(course.semesterId)}/courses/${encodeURIComponent(course.id)}/syllabus/result`
+	);
 }

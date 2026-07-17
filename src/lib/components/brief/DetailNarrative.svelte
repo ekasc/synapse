@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { BriefingDetailViewModel, SourceClass, SourceCurrentness } from '$lib/server/briefing/view-model';
+	import type {
+		BriefingDetailViewModel,
+		SourceClass,
+		SourceCurrentness
+	} from '$lib/server/briefing/view-model';
 
 	let { brief }: { brief: BriefingDetailViewModel } = $props();
 
@@ -103,7 +107,7 @@
 		<section class="block">
 			<h2 class="heading">Assessment</h2>
 			{#if brief.assessmentHistoryNote}
-				<p class="hint font-mono">{brief.assessmentHistoryNote}</p>
+				<p class="hint">{brief.assessmentHistoryNote}</p>
 			{/if}
 			{#if assessmentComponents.length}
 				<table class="assessment-table">
@@ -135,7 +139,7 @@
 					{/each}
 				</div>
 				{#if brief.gradeNotes}
-					<p class="hint font-mono">{brief.gradeNotes}</p>
+					<p class="hint">{brief.gradeNotes}</p>
 				{/if}
 			{/if}
 			{#if passingRequirements.length}
@@ -149,7 +153,7 @@
 							{/if}
 						</div>
 						{#if rule.explanation}
-							<p class="hint font-mono">{rule.explanation}</p>
+							<p class="hint">{rule.explanation}</p>
 						{/if}
 					{/each}
 				</div>
@@ -421,11 +425,14 @@
 	}
 
 	.hint {
-		font-size: 0.78rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		font-family: var(--font-body);
+		font-size: 0.9rem;
+		line-height: 1.5;
+		color: var(--ink-soft);
+		text-transform: none;
+		letter-spacing: normal;
 		margin: 0.25rem 0 0;
+		max-width: 70ch;
 	}
 
 	.assessments-text {

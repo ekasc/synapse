@@ -19,13 +19,21 @@
 	"vars": {
 		"DATABASE_URL": "",
 		"OPENROUTER_API_KEY": "",
-		"OPENROUTER_MODEL": ""
+		"OPENROUTER_MODEL": "",
+		"COURSE_RESEARCH_SEARCH_MODEL": "deepseek/deepseek-v4-flash",
+		"COURSE_RESEARCH_SYNTHESIS_MODEL": "deepseek/deepseek-v4-pro",
+		"COURSE_RESEARCH_MAX_ESTIMATED_COST_USD": "0.10",
+		"COURSE_RESEARCH_MAX_JOBS_PER_DAY": "20",
+		"COURSE_RESEARCH_MAX_JOBS_PER_IP_PER_DAY": "20",
+		"COURSE_RESEARCH_MAX_ACTIVE_JOBS": "3",
+		"COURSE_RESEARCH_MIN_REFRESH_AGE_HOURS": "6"
 	},
 	"d1_databases": [
 		{
 			"binding": "BRIEF_DB",
 			"database_name": "synapse-briefs",
-			"database_id": "08029d46-ff0a-41d9-bed3-5e837620170e"
+			"database_id": "08029d46-ff0a-41d9-bed3-5e837620170e",
+			"migrations_dir": "migrations"
 		}
 	]
 }

@@ -10,7 +10,7 @@ description: A notebook for your degree.
 Synapse has two connected surfaces:
 
 - **Public cover page** at `/`: a field-notebook landing page that demonstrates the product idea with real academic data, syllabus extraction, query examples, and a timeline.
-- **Notebook app** at `/app`: a persistent app shell with onboarding, dashboard, course management, course graph, syllabus intelligence, calendar sync, practice questions, briefings, weekly digest, and settings.
+- **Notebook app** at `/app`: a persistent app shell with onboarding, dashboard, course management, course graph, syllabus intelligence, an academic calendar, practice questions, briefings, weekly digest, and settings.
 
 The design system serves both surfaces. The cover page feels more editorial and artifact-heavy. The app is quieter, denser, and more tool-like while still using the same paper, ink, highlighter, and notebook materials.
 
@@ -294,7 +294,7 @@ Full AI syllabus extraction feature:
 
 ### Calendar (`/app/calendar`)
 
-Aggregated calendar view showing deadlines across all courses. Google Calendar sync (connect/disconnect in Settings). Displays assignments, exams, quizzes, and Google-synced events.
+First-party calendar showing assignments, exams, quizzes, and deadlines across all courses.
 
 ### Weekly Digest (`/app/digest`)
 
@@ -302,7 +302,7 @@ AI-generated weekly summary of workload, deadlines, and study recommendations. C
 
 ### Practice (`/app/practice`)
 
-Multiple choice questions and flashcards for exam prep. Features course filter, show-answer toggle, and score tracking.
+Grounded multiple-choice questions and flashcards generated from uploaded PDF and text course materials. Features course selection, answer explanations, source references, missed-question review, and score tracking.
 
 ### Course Brief (`/app/brief`)
 
@@ -316,7 +316,7 @@ Full async job-queue based LLM briefing system:
 
 ### Settings (`/app/settings`)
 
-Google Calendar OAuth connect/disconnect and sync status. Additional settings surface as needed.
+Reserved for future application preferences.
 
 ### Semesters (`/app/semesters`)
 

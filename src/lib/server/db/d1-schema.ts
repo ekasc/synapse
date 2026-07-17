@@ -178,6 +178,36 @@ export const graphState = sqliteTable('graph_state', {
 	edges: text('edges').notNull()
 });
 
+// ── Course Map planning scenarios ──
+
+export const planningScenarios = sqliteTable(
+	'planning_scenarios',
+	{
+		id: text('id').primaryKey(),
+		name: text('name').notNull(),
+		revision: integer('revision').notNull().default(1),
+		createdAt: text('created_at').notNull(),
+		updatedAt: text('updated_at').notNull()
+	},
+	(table) => [check('planning_scenarios_revision_check', sql`${table.revision} >= 1`)]
+);
+
+export const planningScenarioMoves = sqliteTable(
+	'planning_scenario_moves',
+	{
+		scenarioId: text('scenario_id')
+			.notNull()
+			.references(() => planningScenarios.id, { onDelete: 'cascade' }),
+		moveOrder: integer('move_order').notNull(),
+		courseId: text('course_id').notNull(),
+		targetSemesterId: text('target_semester_id').notNull()
+	},
+	(table) => [
+		primaryKey({ columns: [table.scenarioId, table.moveOrder] }),
+		index('planning_scenario_moves_order_idx').on(table.scenarioId, table.moveOrder)
+	]
+);
+
 // ── Syllabus imports (extracted_data as JSON) ──
 
 export const syllabusImports = sqliteTable('syllabus_imports', {
@@ -226,3 +256,88 @@ export const calendarEvents = sqliteTable('calendar_events', {
 	createdAt: text('created_at').notNull(),
 	updatedAt: text('updated_at').notNull()
 });
+
+export const practiceMaterialIndexes = sqliteTable(
+	'practice_material_indexes',
+	{
+		materialId: text('material_id').primaryKey(),
+		courseId: text('course_id').notNull(),
+		status: text('status').notNull().default('pending'),
+		pageCount: integer('page_count'),
+		nextPage: integer('next_page').notNull().default(1),
+		characterCount: integer('character_count').notNull().default(0),
+		errorMessage: text('error_message'),
+		indexVersion: integer('index_version').notNull().default(1),
+		createdAt: text('created_at').notNull(),
+		updatedAt: text('updated_at').notNull()
+	},
+	(table) => [
+		check(
+			'practice_material_indexes_status_check',
+			sql`${table.status} IN ('pending', 'indexing', 'ready', 'needs_ocr', 'unsupported', 'failed', 'too_large')`
+		),
+		check('practice_material_indexes_next_page_check', sql`${table.nextPage} >= 1`),
+		check('practice_material_indexes_character_count_check', sql`${table.characterCount} >= 0`),
+		index('practice_material_indexes_course_status_idx').on(table.courseId, table.status)
+	]
+);
+
+export const practiceMaterialChunks = sqliteTable(
+	'practice_material_chunks',
+	{
+		id: text('id').primaryKey(),
+		materialId: text('material_id').notNull(),
+		courseId: text('course_id').notNull(),
+		chunkIndex: integer('chunk_index').notNull(),
+		pageStart: integer('page_start'),
+		pageEnd: integer('page_end'),
+		text: text('text').notNull(),
+		normalizedText: text('normalized_text').notNull(),
+		createdAt: text('created_at').notNull()
+	},
+	(table) => [
+		uniqueIndex('practice_material_chunks_material_chunk_idx').on(
+			table.materialId,
+			table.chunkIndex
+		),
+		index('practice_material_chunks_course_material_idx').on(
+			table.courseId,
+			table.materialId,
+			table.chunkIndex
+		)
+	]
+);
+
+export const practiceSessions = sqliteTable(
+	'practice_sessions',
+	{
+		id: text('id').primaryKey(),
+		courseId: text('course_id').notNull(),
+		courseCode: text('course_code').notNull(),
+		sourceMaterials: text('source_materials').notNull(),
+		questions: text('questions').notNull(),
+		flashcards: text('flashcards').notNull(),
+		score: integer('score').notNull().default(0),
+		currentQuestionIndex: integer('current_question_index').notNull().default(0),
+		missedQuestionIds: text('missed_question_ids').notNull().default('[]'),
+		currentCardIndex: integer('current_card_index').notNull().default(0),
+		cardSide: text('card_side').notNull().default('front'),
+		status: text('status').notNull().default('in_progress'),
+		createdAt: text('created_at').notNull(),
+		updatedAt: text('updated_at').notNull()
+	},
+	(table) => [
+		check('practice_sessions_score_check', sql`${table.score} >= 0`),
+		check(
+			'practice_sessions_current_question_index_check',
+			sql`${table.currentQuestionIndex} >= 0`
+		),
+		check('practice_sessions_current_card_index_check', sql`${table.currentCardIndex} >= 0`),
+		check('practice_sessions_card_side_check', sql`${table.cardSide} IN ('front', 'back')`),
+		check(
+			'practice_sessions_status_check',
+			sql`${table.status} IN ('in_progress', 'completed', 'paused')`
+		),
+		index('practice_sessions_course_id_updated_at_idx').on(table.courseId, table.updatedAt)
+	]
+);

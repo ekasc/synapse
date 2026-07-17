@@ -1,41 +1,11 @@
-import { error } from '@sveltejs/kit';
-import { getCourses, getGraphState, getSemesters } from '$lib/server/store';
-import { listMaterials, listMaterialsFallback } from '$lib/server/r2';
+import { redirect } from '@sveltejs/kit';
+import { getCourses } from '$lib/server/store';
 
-export async function load({ params, platform }) {
-	const courses = await getCourses();
-	const course = courses.find((c) => c.id === params.id);
-	if (!course) {
-		error(404, 'Course not found');
-	}
-
-	const [semesters, graph] = await Promise.all([getSemesters(), getGraphState()]);
-	const semester = semesters.find((s) => s.id === course.semesterId) ?? null;
-
-	const edges = graph.edges.filter((e) => e.source === course.id || e.target === course.id);
-
-	const incoming = edges.filter((e) => e.target === course.id);
-	const outgoing = edges.filter((e) => e.source === course.id);
-
-	const bucket = platform?.env?.MATERIALS;
-	const materials = bucket
-		? await listMaterials(bucket, course.id)
-		: listMaterialsFallback(course.id);
-
-	materials.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
-
-	return {
-		course,
-		semester,
-		semesters,
-		edges,
-		incoming,
-		outgoing,
-		materials,
-		courses: courses.filter(
-			(c) =>
-				c.id !== course.id &&
-				(incoming.some((e) => e.source === c.id) || outgoing.some((e) => e.target === c.id))
-		)
-	};
+export async function load({ params }) {
+	const course = (await getCourses()).find((item) => item.id === params.id);
+	if (!course) redirect(308, '/app/semesters');
+	redirect(
+		308,
+		`/app/semesters/${encodeURIComponent(course.semesterId)}/courses/${encodeURIComponent(course.id)}`
+	);
 }

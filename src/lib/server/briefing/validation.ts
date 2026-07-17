@@ -230,8 +230,35 @@ export function validateStructuredBriefing(
 			claimSources.some((sourceId) => sourceById.get(sourceId)!.sourceType === 'official')
 		)
 			fail('non-official claims require non-official evidence');
-		if (status === 'contradicted' && claimSources.length < 2)
-			fail('contradicted claims require conflicting sources');
+		if (status === 'contradicted' && claimSources.length < 2) {
+			const isInstructorAssignmentConflict =
+				status === 'contradicted' &&
+				String(instructor.status) === 'contradicted' &&
+				String(instructor.requestedName ?? '').trim() !== '' &&
+				String(instructor.requestedName) === String(request.professorName ?? '') &&
+				String(instructor.name ?? '').trim() !== '' &&
+				instructorIds.length === 1 &&
+				instructorIds[0] === claimSources[0] &&
+				(() => {
+					const source = sourceById.get(claimSources[0]);
+					return !!source &&
+						source.category === 'schedule' &&
+						source.currentness === 'current' &&
+						isOfficialInstitutionSource(source, request) &&
+						`${source.title} ${source.excerpt}`
+							.toLocaleLowerCase()
+							.includes(String(instructor.name).toLocaleLowerCase());
+				})();
+			const linkedFromContradictions =
+				Array.isArray((value.contradictions as Record<string, unknown> | undefined)?.claimIds) &&
+					((value.contradictions as Record<string, unknown>).claimIds as unknown[]).map(String).includes(id);
+			const describesConflict =
+				String(claim.text ?? '').includes(String(instructor.requestedName)) &&
+				String(claim.text ?? '').includes(String(instructor.name)) &&
+				/assign|instructor|teach|schedule|official/i.test(String(claim.text ?? ''));
+			if (!isInstructorAssignmentConflict || !linkedFromContradictions || !describesConflict)
+				fail('contradicted claims require conflicting sources');
+		}
 	}
 	const sections = {} as Record<string, ReportSection>;
 	for (const name of SECTIONS) {

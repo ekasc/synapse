@@ -40,4 +40,7 @@ vite.config.ts.timestamp-*
 # Syncthing conflict/temp artifacts
 .syncthing.*
 *.sync-conflict-*
-**/.stversions/**
+**/.stversions/
+
+# Project-local state (shared via Syncthing, not Git)
+.synapse-local/**

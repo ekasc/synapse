@@ -75,19 +75,19 @@ Job: communicate the product concept. Heavy on paper artifacts: stamps, polaroid
 ## 8. Implementation steps with verification
 
 1. **Spike: import check** — confirm the catalog components import from `$lib/components/catalog/*` in a route outside `/app`.
-   *Verify:* `pnpm exec svelte-kit sync && grep -n CatalogHeader src/routes/+page.svelte` resolves cleanly.
+   _Verify:_ `pnpm exec svelte-kit sync && grep -n CatalogHeader src/routes/+page.svelte` resolves cleanly.
 2. **Skeleton** — replace `+page.svelte` with `<CatalogHeader>` + empty `<main class="page">` mirroring the `/app` page rhythm.
-   *Verify:* `pnpm exec vite build 2>&1 | tail -8`.
+   _Verify:_ `pnpm exec vite build 2>&1 | tail -8`.
 3. **Hero section** — `font-hand` h1 with a single highlight sweep + Inter paragraph + CTA + `BookShelf` of 3–4 `BookCard`s with subject spines.
-   *Verify:* dev-server screenshot at 390×1100 (mobile) and 1440×900 (desktop) via Playwright MCP. Acceptance: no element uses a token that isn't in `layout.css`; highlighter appears on exactly one element.
+   _Verify:_ dev-server screenshot at 390×1100 (mobile) and 1440×900 (desktop) via Playwright MCP. Acceptance: no element uses a token that isn't in `layout.css`; highlighter appears on exactly one element.
 4. **"What it does"** — three `SectionHead`-shaped blocks, all Inter, all referencing real design tokens.
-   *Verify:* visual diff vs. `/app` page rhythm — `gap`, `padding-block`, `max-width` match `app/+page.svelte`.
+   _Verify:_ visual diff vs. `/app` page rhythm — `gap`, `padding-block`, `max-width` match `app/+page.svelte`.
 5. **Query** — re-skin to `BookCard` layout, gate autoplay on `prefers-reduced-motion`.
-   *Verify:* DevTools "Emulate CSS prefers-reduced-motion: reduce" (`mcp__chrome_devtools__emulate`) and confirm the reveal doesn't run.
+   _Verify:_ DevTools "Emulate CSS prefers-reduced-motion: reduce" (`mcp__chrome_devtools__emulate`) and confirm the reveal doesn't run.
 6. **Timeline** — render the six `weeks` as a single block with `var(--rule-soft)` row dividers.
-   *Verify:* the `weeks[0..5]` array still appears in source; visually it reads as a table, not a hand column.
+   _Verify:_ the `weeks[0..5]` array still appears in source; visually it reads as a table, not a hand column.
 7. **Closing CTA + colophon** — single button (preferred) or `BookCard` → `/app`.
-   *Verify:* clicking it routes to `/app`.
+   _Verify:_ clicking it routes to `/app`.
 8. **Final verification**:
    - `pnpm exec vite build 2>&1 | tail -8` clean.
    - `pnpm exec svelte-check --tsconfig ./tsconfig.json 2>&1 | tail -20` reports no new errors (pre-existing checker debt ignored per memory).
@@ -137,7 +137,7 @@ The hero strategy, the number of in-page sections, how the page talks to the rea
 
 ## Variation A — "The Catalog" (mirror the dashboard)
 
-**Hero strategy**: Show the product UI. The first thing the reader sees after the top bar is a real `BookShelf` of four `BookCard`s with subject-colored spines, with the headline + CTA sitting *above* the shelf like a column header. The landing is literally the `/app` dashboard, minus the sidebar, onboarding, and FAB.
+**Hero strategy**: Show the product UI. The first thing the reader sees after the top bar is a real `BookShelf` of four `BookCard`s with subject-colored spines, with the headline + CTA sitting _above_ the shelf like a column header. The landing is literally the `/app` dashboard, minus the sidebar, onboarding, and FAB.
 
 **Tone**: Quiet, tool-like, confident. "We have an opinion about what a course list should look like. Here it is."
 
@@ -145,7 +145,7 @@ The hero strategy, the number of in-page sections, how the page talks to the rea
 
 1. **Top bar** — `CatalogHeader` with `term="synapse"` (the in-app component, repurposed as a brand bar).
 2. **Hero (single column, max-width 720px)** — `<h1 class="font-hand">` reading `synapse` with a single `<span class="highlighter">` sweep on the word `notebook`. One Inter sentence: "every course, grade, and deadline on one connected page." Primary CTA → `/app`.
-3. **Demo shelf** — `BookShelf` with four `BookCard`s. Hard-coded course list, e.g. CSIS 4495 (Current, `csis` spine), COMP 1710 (Current, `comp`), MATH 1150 (Current, `math`), STAT 2000 (Past, `stat`). Each with `statusLabel = "F25"` / `"S25"` and `statusVariant` set appropriately. No section title — the shelf *is* the demo.
+3. **Demo shelf** — `BookShelf` with four `BookCard`s. Hard-coded course list, e.g. CSIS 4495 (Current, `csis` spine), COMP 1710 (Current, `comp`), MATH 1150 (Current, `math`), STAT 2000 (Past, `stat`). Each with `statusLabel = "F25"` / `"S25"` and `statusVariant` set appropriately. No section title — the shelf _is_ the demo.
 4. **What it does** — three `SectionHead` blocks (eyebrow + Inter title + body): "every course on one shelf", "a graph behind your degree", "a query instead of a search bar".
 5. **Closing CTA + colophon** — single `<a class="btn btn-primary">` → `/app`. Colophon in JetBrains Mono caps.
 
@@ -155,7 +155,7 @@ The hero strategy, the number of in-page sections, how the page talks to the rea
 
 **Pros**: Closest to `/app`. Cheapest to build. Reads as the actual product. Shows the subject color system at a glance. Strongest "I trust this product" signal.
 
-**Cons**: Doesn't communicate *what Synapse does* on the public page. A first-time visitor who has never seen a course-management tool won't know the graph or query features exist without reading the "What it does" prose. Loses all of the editorial storytelling.
+**Cons**: Doesn't communicate _what Synapse does_ on the public page. A first-time visitor who has never seen a course-management tool won't know the graph or query features exist without reading the "What it does" prose. Loses all of the editorial storytelling.
 
 **Profile**: Best for a recruiting/demo audience that already understands the problem space (CS students shopping for an academic tool). The same page a hiring manager sees; the same page a TA might open.
 
@@ -163,7 +163,7 @@ The hero strategy, the number of in-page sections, how the page talks to the rea
 
 ## Variation B — "The Walkthrough" (real product steps, in order)
 
-**Hero strategy**: Show the product doing the thing. The first thing the reader sees is a single highlighted `BookCard` for the user's "current" course, with the rest of the page walking through how a course goes from *uploaded syllabus* → *extracted deadlines* → *in the shelf* → *queried* → *summarized in a digest*. Each step is a small composition of `/app` components. The page is a guided tour using only `/app` building blocks.
+**Hero strategy**: Show the product doing the thing. The first thing the reader sees is a single highlighted `BookCard` for the user's "current" course, with the rest of the page walking through how a course goes from _uploaded syllabus_ → _extracted deadlines_ → _in the shelf_ → _queried_ → _summarized in a digest_. Each step is a small composition of `/app` components. The page is a guided tour using only `/app` building blocks.
 
 **Tone**: Instructional, evidence-driven. "Here is exactly what synapse does, in the order it does it, with the real pieces shown."
 
@@ -171,9 +171,9 @@ The hero strategy, the number of in-page sections, how the page talks to the rea
 
 1. **Top bar** — `CatalogHeader` with `term="synapse"`.
 2. **Hero (two columns)** — left: `<h1 class="font-hand">synapse</h1>` + one Inter sentence + CTA. Right: a single `BookCard` standing in for the user's current course (CSIS 4495, `csis` spine, `statusVariant="warn"`, `statusLabel="F25"`, `statusValue={81.2}` for a running grade). One highlight sweep on the word `connected` in the h1.
-3. **Step 1 — upload** — `SectionHead` "01 / upload a syllabus" eyebrow + title + body. Below: a `BookShelf single` containing a `BookCard` whose `meta` is `SYLLABUS`, `title` is `CSIS 4495-071 · fall '25`, `detail` is `extracted: 14 deadlines, 4 weights`, `statusVariant="ok"`. (Slight `01` numeric eyebrow here is a *narrative* number for a step in a story, not a section scaffold — flag for review.)
+3. **Step 1 — upload** — `SectionHead` "01 / upload a syllabus" eyebrow + title + body. Below: a `BookShelf single` containing a `BookCard` whose `meta` is `SYLLABUS`, `title` is `CSIS 4495-071 · fall '25`, `detail` is `extracted: 14 deadlines, 4 weights`, `statusVariant="ok"`. (Slight `01` numeric eyebrow here is a _narrative_ number for a step in a story, not a section scaffold — flag for review.)
 4. **Step 2 — extract** — `SectionHead` "02 / deadlines land on the shelf" + body. Below: a row of three `BookCard`s with `meta = DEADLINE`, `title = assignment name`, `detail = due date`, `statusVariant` set to `crit`/`warn`/`ok` by proximity. A `StatusChip` `crit`/`warn`/`ok` does the actual signaling.
-5. **Step 3 — graph** — `SectionHead` "03 / the graph connects them" + body. Below: a `BookShelf single` of 4 `BookCard`s for CSIS 4495, COMP 1710, MATH 1150, STAT 2000, with subject spines. The visual story is "they are books on a shelf, and behind the scenes they have edges" — no SVG. The shelf *is* the graph visualization, expressed through the data.
+5. **Step 3 — graph** — `SectionHead` "03 / the graph connects them" + body. Below: a `BookShelf single` of 4 `BookCard`s for CSIS 4495, COMP 1710, MATH 1150, STAT 2000, with subject spines. The visual story is "they are books on a shelf, and behind the scenes they have edges" — no SVG. The shelf _is_ the graph visualization, expressed through the data.
 6. **Step 4 — query** — `SectionHead` "04 / ask plain English" + body. Below: the existing in-page `queries` array, but each entry is a `BookCard` with `meta = QUERY`, `title = question`, `detail = answer`, `statusVariant="ok"`. No autoplay. Static list, click to expand.
 7. **Step 5 — digest** — `SectionHead` "05 / the weekly digest" + body. Below: the existing in-page `weeks` array rendered as six `BookCard`s with `meta = week 0n`, `title = entry`, `detail = data`. `statusVariant` rotates `ok/warn/crit` based on a fixed map.
 8. **Closing CTA + colophon** — `<a class="btn btn-primary">` → `/app`. Colophon.
@@ -207,7 +207,7 @@ The hero strategy, the number of in-page sections, how the page talks to the rea
 
 **Pros**: Shortest page. Highest information density. The `IndexBar` is the most `/app`-native way to show data, and it puts Synapse's "we know your degree" claim front and center. One red-pen moment is well-used.
 
-**Cons**: The `IndexBar` numbers (5 courses, 12.5 hours) are *hand-tuned* on a public page — that risks looking like a metric-card hero, which `DESIGN.md` bans. **Mitigation**: the cells are peers in a row, not stacked, and the page never leads with a single big number. But this is the riskiest variation relative to `DESIGN.md` rules. Also loses the editorial story entirely.
+**Cons**: The `IndexBar` numbers (5 courses, 12.5 hours) are _hand-tuned_ on a public page — that risks looking like a metric-card hero, which `DESIGN.md` bans. **Mitigation**: the cells are peers in a row, not stacked, and the page never leads with a single big number. But this is the riskiest variation relative to `DESIGN.md` rules. Also loses the editorial story entirely.
 
 **Profile**: Best for an audience that skims (recruiters, advisors, the instructor grading the project). Reads in 10 seconds, says everything.
 
@@ -215,18 +215,18 @@ The hero strategy, the number of in-page sections, how the page talks to the rea
 
 # Side-by-side
 
-| | **A. The Catalog** | **B. The Walkthrough** | **C. The Summary** |
-|---|---|---|---|
-| First thing the reader sees | `BookShelf` of 4 `BookCard`s | Hero + single `BookCard` of current course | `IndexBar` of 4 cells |
-| Page length | Medium (~5 sections) | Long (~8 sections) | Short (~6 sections, but compact) |
-| Component count | 4 unique | 4 unique, ~18 instances | 5 unique, ~7 instances |
-| Uses in-page `weeks` / `queries`? | No | Yes | No |
-| Editorial storytelling | None | Heavy (5 steps) | Minimal (2 sections) |
-| Risk of violating `DESIGN.md` | Low | Medium (`01..05` eyebrows — needs a call) | Medium (IndexBar is one step from a metric-card hero) |
-| Audience fit | CS students, TAs | CSIS 4495-071 course demo | Recruiters, advisors, instructor |
-| Build effort | Smallest | Largest | Small–medium |
-| What it sacrifices | Product story | The "keep it short" rule | Real data on the page |
-| What it wins | Trust via showing the product | Comprehensiveness | Brevity + density |
+|                                   | **A. The Catalog**            | **B. The Walkthrough**                     | **C. The Summary**                                    |
+| --------------------------------- | ----------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| First thing the reader sees       | `BookShelf` of 4 `BookCard`s  | Hero + single `BookCard` of current course | `IndexBar` of 4 cells                                 |
+| Page length                       | Medium (~5 sections)          | Long (~8 sections)                         | Short (~6 sections, but compact)                      |
+| Component count                   | 4 unique                      | 4 unique, ~18 instances                    | 5 unique, ~7 instances                                |
+| Uses in-page `weeks` / `queries`? | No                            | Yes                                        | No                                                    |
+| Editorial storytelling            | None                          | Heavy (5 steps)                            | Minimal (2 sections)                                  |
+| Risk of violating `DESIGN.md`     | Low                           | Medium (`01..05` eyebrows — needs a call)  | Medium (IndexBar is one step from a metric-card hero) |
+| Audience fit                      | CS students, TAs              | CSIS 4495-071 course demo                  | Recruiters, advisors, instructor                      |
+| Build effort                      | Smallest                      | Largest                                    | Small–medium                                          |
+| What it sacrifices                | Product story                 | The "keep it short" rule                   | Real data on the page                                 |
+| What it wins                      | Trust via showing the product | Comprehensiveness                          | Brevity + density                                     |
 
 # Combinations worth considering
 

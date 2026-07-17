@@ -28,11 +28,15 @@
 		open = $bindable(false),
 		course = null,
 		semesters = [],
+		defaultSemesterId,
+		lockSemester = false,
 		onSaved
 	}: {
 		open?: boolean;
 		course?: Course | null;
 		semesters?: Semester[];
+		defaultSemesterId?: string;
+		lockSemester?: boolean;
 		onSaved?: () => void;
 	} = $props();
 
@@ -86,10 +90,13 @@
 				topics: course.signals?.topics ? course.signals.topics.join(', ') : ''
 			};
 		} else {
+			const presetSemester = semesters.some((semester) => semester.id === defaultSemesterId)
+				? defaultSemesterId
+				: semesters[0]?.id;
 			form = {
 				code: '',
 				name: '',
-				semesterId: semesters[0]?.id ?? '',
+				semesterId: presetSemester ?? '',
 				instructor: '',
 				credits: '',
 				tag: '',
@@ -174,7 +181,14 @@
 </script>
 
 <Dialog bind:open title={isEditing ? 'Edit Course' : 'Add Course'} class="modal">
-	<div class="modal-body">
+	<form
+		id="course-edit-form"
+		class="modal-body"
+		onsubmit={(event) => {
+			event.preventDefault();
+			void save();
+		}}
+	>
 		<label>
 			<span class="field-label font-mono">Course Code *</span>
 			<input
@@ -193,132 +207,144 @@
 				bind:value={form.name}
 			/>
 		</label>
-		<label>
-			<span class="field-label font-mono">Semester *</span>
-			<select class="modal-input" bind:value={form.semesterId}>
-				<option value="">Select semester…</option>
-				{#each semesters as sem (sem.id)}
-					<option value={sem.id}>{sem.term} {sem.year}</option>
-				{/each}
-			</select>
-		</label>
-		<label>
-			<span class="field-label font-mono">Instructor</span>
-			<input
-				type="text"
-				class="modal-input"
-				placeholder="e.g. Dr. Anil Goel"
-				bind:value={form.instructor}
-			/>
-		</label>
-		<div class="modal-row">
-			<label>
-				<span class="field-label font-mono">Credits</span>
-				<input
-					type="number"
-					class="modal-input short"
-					placeholder="3"
-					min="1"
-					max="6"
-					bind:value={form.credits}
-				/>
-			</label>
-			<label>
-				<span class="field-label font-mono">Tag</span>
-				<input
-					type="text"
-					class="modal-input"
-					placeholder="e.g. core"
-					list="known-tags"
-					bind:value={form.tag}
-				/>
-				<datalist id="known-tags">
-					{#each TAGS as tag (tag)}
-						<option value={tag}></option>
-					{/each}
-				</datalist>
-			</label>
-		</div>
-
-		<div class="color-picker">
-			<span class="field-label font-mono">Color</span>
-			<div class="color-swatches">
-				<button
-					type="button"
-					class="color-swatch"
-					class:selected={form.color === ''}
-					onclick={() => (form.color = '')}
-					aria-label="No color">—</button
-				>
-				{#each COLOR_PRESETS as color (color)}
-					<button
-						type="button"
-						class="color-swatch"
-						style="background: {color}"
-						class:selected={form.color === color}
-						onclick={() => (form.color = color)}
-						aria-label="Color {color}"
-					></button>
-				{/each}
-			</div>
-		</div>
-
-		<div class="modal-row">
-			<label>
-				<span class="field-label font-mono">Status</span>
-				<select class="modal-input" bind:value={form.status}>
-					<option value="planned">planned</option>
-					<option value="active">active</option>
-					<option value="completed">completed</option>
-					<option value="at-risk">at-risk</option>
-				</select>
-			</label>
-			{#if form.status === 'active'}
+		{#if !isEditing && lockSemester}
+			{@const selectedSemester = semesters.find((sem) => sem.id === form.semesterId)}
+			<p class="semester-context">
+				Adding to {selectedSemester
+					? `${selectedSemester.term} ${selectedSemester.year}`
+					: 'the selected semester'}
+			</p>
+		{/if}
+		<details open={isEditing}>
+			<summary>More details</summary>
+			{#if isEditing || !lockSemester}
 				<label>
-					<span class="field-label font-mono">Risk Level</span>
-					<select class="modal-input" bind:value={form.riskLevel}>
-						<option value="none">none</option>
-						<option value="low">low</option>
-						<option value="medium">medium</option>
-						<option value="high">high</option>
+					<span class="field-label font-mono">Semester *</span>
+					<select class="modal-input" bind:value={form.semesterId}>
+						<option value="">Select semester…</option>
+						{#each semesters as sem (sem.id)}<option value={sem.id}>{sem.term} {sem.year}</option
+							>{/each}
 					</select>
 				</label>
 			{/if}
-		</div>
-
-		{#if form.status === 'active'}
 			<label>
-				<span class="field-label font-mono">Current Grade</span>
+				<span class="field-label font-mono">Instructor</span>
 				<input
-					type="number"
-					class="modal-input short"
-					placeholder="e.g. 87.5"
-					min="0"
-					max="100"
-					step="0.1"
-					bind:value={form.currentGrade}
+					type="text"
+					class="modal-input"
+					placeholder="e.g. Dr. Anil Goel"
+					bind:value={form.instructor}
 				/>
 			</label>
-		{/if}
+			<div class="modal-row">
+				<label>
+					<span class="field-label font-mono">Credits</span>
+					<input
+						type="number"
+						class="modal-input short"
+						placeholder="3"
+						min="1"
+						max="6"
+						bind:value={form.credits}
+					/>
+				</label>
+				<label>
+					<span class="field-label font-mono">Tag</span>
+					<input
+						type="text"
+						class="modal-input"
+						placeholder="e.g. core"
+						list="known-tags"
+						bind:value={form.tag}
+					/>
+					<datalist id="known-tags">
+						{#each TAGS as tag (tag)}
+							<option value={tag}></option>
+						{/each}
+					</datalist>
+				</label>
+			</div>
 
-		<label>
-			<span class="field-label font-mono">Topics (comma-separated)</span>
-			<textarea
-				class="modal-input"
-				rows="2"
-				placeholder="e.g. SQL, normalization, indexing"
-				bind:value={form.topics}
-			></textarea>
-		</label>
+			<div class="color-picker">
+				<span class="field-label font-mono">Color</span>
+				<div class="color-swatches">
+					<button
+						type="button"
+						class="color-swatch"
+						class:selected={form.color === ''}
+						onclick={() => (form.color = '')}
+						aria-label="No color">—</button
+					>
+					{#each COLOR_PRESETS as color (color)}
+						<button
+							type="button"
+							class="color-swatch"
+							style="background: {color}"
+							class:selected={form.color === color}
+							onclick={() => (form.color = color)}
+							aria-label="Color {color}"
+						></button>
+					{/each}
+				</div>
+			</div>
+
+			<div class="modal-row">
+				<label>
+					<span class="field-label font-mono">Status</span>
+					<select class="modal-input" bind:value={form.status}>
+						<option value="planned">planned</option>
+						<option value="active">active</option>
+						<option value="completed">completed</option>
+						<option value="at-risk">at-risk</option>
+					</select>
+				</label>
+				{#if form.status === 'active'}
+					<label>
+						<span class="field-label font-mono">Risk Level</span>
+						<select class="modal-input" bind:value={form.riskLevel}>
+							<option value="none">none</option>
+							<option value="low">low</option>
+							<option value="medium">medium</option>
+							<option value="high">high</option>
+						</select>
+					</label>
+				{/if}
+			</div>
+
+			{#if form.status === 'active'}
+				<label>
+					<span class="field-label font-mono">Current Grade</span>
+					<input
+						type="number"
+						class="modal-input short"
+						placeholder="e.g. 87.5"
+						min="0"
+						max="100"
+						step="0.1"
+						bind:value={form.currentGrade}
+					/>
+				</label>
+			{/if}
+
+			<label>
+				<span class="field-label font-mono">Topics (comma-separated)</span>
+				<textarea
+					class="modal-input"
+					rows="2"
+					placeholder="e.g. SQL, normalization, indexing"
+					bind:value={form.topics}
+				></textarea>
+			</label>
+		</details>
 
 		{#if error}
-			<p class="modal-error font-mono">{error}</p>
+			<p class="modal-error" role="alert">{error}</p>
 		{/if}
-	</div>
+	</form>
 
 	<div class="modal-actions">
 		<button type="button" class="btn btn-ghost btn-sm" onclick={closeModal}>cancel</button>
-		<button type="button" class="btn btn-primary btn-sm" onclick={save} disabled={saving}>
+		<button type="submit" form="course-edit-form" class="btn btn-primary btn-sm" disabled={saving}>
 			{saving ? 'saving…' : isEditing ? 'save changes' : 'add course'}
 		</button>
 	</div>
@@ -362,6 +388,32 @@
 
 	.modal-input.short {
 		width: 100px;
+	}
+
+	.semester-context {
+		font-family: var(--font-body);
+		font-size: 0.82rem;
+		color: var(--ink-soft);
+		margin: -0.2rem 0 0;
+	}
+
+	details {
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+	}
+
+	summary {
+		cursor: pointer;
+		font-family: var(--font-body);
+		font-size: 0.85rem;
+		color: var(--ink-soft);
+		padding: 0.25rem 0;
+	}
+
+	summary:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
 	}
 
 	.modal-row {
@@ -419,8 +471,6 @@
 		font-size: 0.72rem;
 		color: var(--accent);
 		margin: 0;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
 	}
 
 	.modal-actions {

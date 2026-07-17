@@ -16,7 +16,7 @@ import {
 	buildSynthesisUserPrompt
 } from './prompt';
 import { validateStructuredBriefing, ValidationError } from './validation';
-import { BRIEFING_V4_JSON_SCHEMA } from './schema';
+import { SYNTHESIS_ONLY_JSON_SCHEMA } from './schema';
 import type {
 	BriefingRequest,
 	BriefingUsage,
@@ -561,7 +561,7 @@ export async function runEvidenceFirstPipeline(
 					json_schema: {
 						name: 'course_brief',
 						strict: true,
-						schema: BRIEFING_V4_JSON_SCHEMA
+						schema: SYNTHESIS_ONLY_JSON_SCHEMA
 					}
 				}
 			},
@@ -621,7 +621,7 @@ export async function runEvidenceFirstPipeline(
 						max_tokens: 6000,
 						response_format: {
 							type: 'json_schema',
-							json_schema: { name: 'course_brief', strict: true, schema: BRIEFING_V4_JSON_SCHEMA }
+							json_schema: { name: 'course_brief', strict: true, schema: SYNTHESIS_ONLY_JSON_SCHEMA }
 						}
 					},
 					false

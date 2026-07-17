@@ -223,3 +223,17 @@ export function getMaterialStreamFallback(material: MaterialRecord): Buffer {
 	const filePath = path.join(FALLBACK_DIR, `${material.id}-${material.fileName}`);
 	return fs.readFileSync(filePath);
 }
+
+export async function getMaterialBytes(
+	bucket: R2Bucket,
+	material: MaterialRecord
+): Promise<Uint8Array | null> {
+	const obj = await bucket.get(materialKey(material));
+	if (!obj) return null;
+	return new Uint8Array(await obj.arrayBuffer());
+}
+
+export function getMaterialBytesFallback(material: MaterialRecord): Uint8Array {
+	const buf = getMaterialStreamFallback(material);
+	return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+}
