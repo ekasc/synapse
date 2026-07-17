@@ -8,6 +8,9 @@
 	import { routes, isRouteActive } from '$lib/sidebar/routes';
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import Dialog from '$lib/components/ui/Dialog.svelte';
+	import { resolveTermContext } from '$lib/dashboard/priority';
 
 	let { data, children } = $props();
 	const semesters = $derived(data.semesters ?? []);
@@ -16,41 +19,116 @@
 
 	let fabOpen = $state(false);
 	let now = $state(new Date());
+	let addSemesterOpen = $state(false);
+	let savingSemester = $state(false);
+	let semesterError = $state('');
+	let newTerm = $state<'Winter' | 'Spring' | 'Summer' | 'Fall'>('Spring');
+	let newYear = $state(new Date().getFullYear());
+	let queryOpened = false;
 
-	$effect(() => {
-		if (!fabOpen) return;
-		function onClick(e: MouseEvent) {
-			const el = document.getElementById('synapse-fab');
-			if (el && !el.contains(e.target as Node)) fabOpen = false;
+	const termOrder: Record<string, number> = { Winter: 0, Spring: 1, Summer: 2, Fall: 3 };
+	const termChoices = ['Winter', 'Spring', 'Summer', 'Fall'] as const;
+	function openAddSemester() {
+		const date = new Date();
+		const month = date.getMonth() + 1;
+		newTerm = month <= 4 ? 'Winter' : month <= 6 ? 'Spring' : month <= 8 ? 'Summer' : 'Fall';
+		newYear = date.getFullYear();
+		while (
+			semesters.some(
+				(semester) =>
+					semester.term.toLowerCase() === newTerm.toLowerCase() && semester.year === newYear
+			)
+		) {
+			const index = termChoices.indexOf(newTerm);
+			if (index < termChoices.length - 1) newTerm = termChoices[index + 1];
+			else {
+				newTerm = termChoices[0];
+				newYear += 1;
+			}
 		}
-		const raf = requestAnimationFrame(() => document.addEventListener('click', onClick));
-		return () => {
-			cancelAnimationFrame(raf);
-			document.removeEventListener('click', onClick);
-		};
+		semesterError = '';
+		addSemesterOpen = true;
+	}
+	$effect(() => {
+		if ($page.url.pathname !== '/app/semesters' || $page.url.searchParams.get('new') !== '1')
+			queryOpened = false;
+		if (
+			$page.url.pathname === '/app/semesters' &&
+			$page.url.searchParams.get('new') === '1' &&
+			!queryOpened
+		) {
+			queryOpened = true;
+			openAddSemester();
+		}
 	});
+	async function saveSemester() {
+		if (!Number.isInteger(newYear) || newYear < 2000 || newYear > 2100) {
+			semesterError = 'Year must be an integer from 2000 to 2100.';
+			return;
+		}
+		if (
+			semesters.some(
+				(semester) =>
+					semester.term.toLowerCase() === newTerm.toLowerCase() && semester.year === newYear
+			)
+		) {
+			semesterError = 'That semester already exists.';
+			return;
+		}
+		savingSemester = true;
+		semesterError = '';
+		const id = crypto.randomUUID();
+		try {
+			const response = await fetch('/api/semesters', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					id,
+					term: newTerm,
+					year: newYear,
+					order: newYear * 10 + termOrder[newTerm]
+				})
+			});
+			if (!response.ok)
+				throw new Error(
+					(await response.json().catch(() => null))?.error ?? 'Could not add semester.'
+				);
+			addSemesterOpen = false;
+			await invalidateAll();
+			await goto(`/app/semesters/${encodeURIComponent(id)}`);
+		} catch (error) {
+			semesterError = error instanceof Error ? error.message : 'Could not add semester.';
+		} finally {
+			savingSemester = false;
+		}
+	}
 
-	$effect(() => {
+	function handleDocumentClick(event: MouseEvent) {
 		if (!fabOpen) return;
-		function onKey(e: KeyboardEvent) {
-			if (e.key === 'Escape') fabOpen = false;
-		}
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	});
+		const fab = document.getElementById('synapse-fab');
+		if (fab && !fab.contains(event.target as Node)) fabOpen = false;
+	}
+
+	function handleDocumentKeydown(event: KeyboardEvent) {
+		if (fabOpen && event.key === 'Escape') fabOpen = false;
+	}
 
 	// ── Activity badge state ──
 	let runningCount = $state(0);
 	let unreadCount = $state(0);
+	let activityRequestPending = false;
 
 	type ActivityJob = {
 		status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled' | 'expired';
 		completedAt: string | null;
 	};
 
-	async function checkActivity() {
+	async function checkActivity(signal?: AbortSignal) {
+		if (activityRequestPending) return;
+		activityRequestPending = true;
 		try {
-			const res = await fetch('/api/briefing/activity');
+			const res = await fetch('/api/briefing/activity', { signal });
+			if (!res.ok) return;
 			const { jobs } = (await res.json()) as { jobs?: ActivityJob[] };
 			if (!jobs) return;
 			runningCount = jobs.filter((j) => j.status === 'queued' || j.status === 'running').length;
@@ -63,16 +141,21 @@
 					new Date(j.completedAt).getTime() > lastRead
 			).length;
 		} catch (err) {
+			if (err instanceof DOMException && err.name === 'AbortError') return;
 			console.error('Failed to check activity:', err);
+		} finally {
+			activityRequestPending = false;
 		}
 	}
 
 	// Update the "today" stamp every minute
 	onMount(() => {
-		checkActivity();
-		const id = setInterval(checkActivity, 10000);
+		const activityController = new AbortController();
+		void checkActivity(activityController.signal);
+		const id = setInterval(() => void checkActivity(activityController.signal), 10000);
 		const tick = setInterval(() => (now = new Date()), 60_000);
 		return () => {
+			activityController.abort();
 			clearInterval(id);
 			clearInterval(tick);
 		};
@@ -85,6 +168,8 @@
 	function currentPageLabel(pathname: string): string {
 		const route = routes.find((r) => isRouteActive(pathname, r));
 		if (route) return route.label;
+		if (pathname.startsWith('/app/semesters/') && pathname.includes('/courses/')) return 'Course';
+		if (pathname.startsWith('/app/semesters/')) return 'Semester';
 		if (pathname.startsWith('/app/courses/')) return 'Course';
 		if (pathname.startsWith('/app/calendar')) return 'Calendar';
 		return 'Workspace';
@@ -105,10 +190,15 @@
 			.toUpperCase()
 	);
 
+	const termContext = $derived(resolveTermContext(now, semesters));
 	const currentTermLabel = $derived(
-		semesters[0] ? `${semesters[0].term} ${semesters[0].year}` : 'No term'
+		termContext
+			? `${termContext.relation === 'next' ? 'Next · ' : termContext.relation === 'latest' ? 'Latest · ' : ''}${termContext.semester.term} ${termContext.semester.year}`
+			: 'No term'
 	);
 </script>
+
+<svelte:document onclick={handleDocumentClick} onkeydown={handleDocumentKeydown} />
 
 <div class="app-grid">
 	<aside class="sidebar" aria-label="App navigation">
@@ -143,20 +233,51 @@
 			</Menu>
 		</div>
 
-		{#if semesters.length > 0}
-			<div class="sidebar-section">
-				<TermList {semesters} {countsById} />
-			</div>
-		{/if}
+		<div class="sidebar-section">
+			<TermList {semesters} {courses} {countsById} onAddSemester={openAddSemester} />
+		</div>
 	</aside>
 
 	<div class="app-content">
 		<div class="topbar">
 			<div class="crumbs">Synapse · <strong>{pageLabel}</strong></div>
 			<div class="topbar-actions">
-				<input class="topbar-search" type="text" placeholder="Search courses, briefs…" />
-				<button type="button" class="term-switcher">{currentTermLabel} ▾</button>
+				<div class="current-term">{currentTermLabel}</div>
 				<div class="today">{todayLabel}</div>
+				<div id="synapse-fab" class="mobile-nav">
+					<button
+						type="button"
+						onclick={() => (fabOpen = !fabOpen)}
+						class="fab-btn"
+						aria-label={fabOpen ? 'Close navigation' : 'Open navigation'}
+						aria-expanded={fabOpen}
+					>
+						<span class="fab-btn-icon">{fabOpen ? '✕' : '☰'}</span>
+					</button>
+					{#if fabOpen}
+						<nav class="mobile-nav-popup" aria-label="Mobile app navigation">
+							{#each routes as route (route.href)}
+								<a
+									href={resolveRoute(route.href as Exclude<typeof route.href, `/app/courses/[id]`>)}
+									class="fab-item"
+									class:fab-active={isRouteActive($page.url.pathname, route)}
+									aria-current={isRouteActive($page.url.pathname, route) ? 'page' : undefined}
+								>
+									<span class="fab-label">{route.label}</span>
+								</a>
+							{/each}
+							<div class="mobile-semesters">
+								<TermList
+									{semesters}
+									{courses}
+									{countsById}
+									onAddSemester={openAddSemester}
+									surface="paper"
+								/>
+							</div>
+						</nav>
+					{/if}
+				</div>
 			</div>
 		</div>
 
@@ -164,35 +285,39 @@
 			{@render children()}
 		</main>
 	</div>
-
-	<!-- Mobile floating nav (hidden on md+) -->
-	<div id="synapse-fab" class="fab-container">
-		{#if fabOpen}
-			<nav class="fab-popup" aria-label="Mobile app navigation">
-				{#each routes as route (route.href)}
-					<a
-						href={resolveRoute(route.href as Exclude<typeof route.href, `/app/courses/[id]`>)}
-						class="fab-item"
-						class:fab-active={isRouteActive($page.url.pathname, route)}
-						aria-current={isRouteActive($page.url.pathname, route) ? 'page' : undefined}
-					>
-						<span class="fab-label">{route.label}</span>
-					</a>
-				{/each}
-			</nav>
-		{/if}
-
-		<button
-			type="button"
-			onclick={() => (fabOpen = !fabOpen)}
-			class="fab-btn"
-			aria-label={fabOpen ? 'Close navigation' : 'Open navigation'}
-			aria-expanded={fabOpen}
-		>
-			<span class="fab-btn-icon">{fabOpen ? '✕' : '☰'}</span>
-		</button>
-	</div>
 </div>
+
+{#if addSemesterOpen}
+	<Dialog
+		bind:open={addSemesterOpen}
+		title="Add semester"
+		description="Choose a term and year to get started."
+	>
+		<form
+			class="semester-form"
+			onsubmit={(event) => {
+				event.preventDefault();
+				void saveSemester();
+			}}
+		>
+			<fieldset>
+				<legend>Term</legend>
+				<div class="term-buttons">
+					{#each termChoices as term}<button
+							type="button"
+							class:chosen={newTerm === term}
+							onclick={() => (newTerm = term as typeof newTerm)}>{term}</button
+						>{/each}
+				</div>
+			</fieldset>
+			<label>Year<input type="number" min="2000" max="2100" bind:value={newYear} /></label>
+			{#if semesterError}<p class="form-error" role="alert">{semesterError}</p>{/if}
+			<button class="btn btn-primary" type="submit" disabled={savingSemester}
+				>{savingSemester ? 'Saving…' : 'Add semester'}</button
+			>
+		</form>
+	</Dialog>
+{/if}
 
 <style>
 	.app-grid {
@@ -224,6 +349,8 @@
 		position: sticky;
 		top: 0;
 		height: 100vh;
+		overflow-x: hidden;
+		overflow-y: auto;
 	}
 
 	@media (max-width: 767px) {
@@ -373,28 +500,29 @@
 		}
 	}
 
-	/* ── Mobile Floating Nav ── */
-	.fab-container {
-		position: fixed;
-		bottom: 1.25rem;
-		right: 1.25rem;
-		z-index: var(--z-fab);
+	/* ── Mobile Nav in Topbar ── */
+	.mobile-nav {
+		display: none;
+		position: relative;
 	}
 
-	@media (min-width: 768px) {
-		.fab-container {
-			display: none;
+	@media (max-width: 767px) {
+		.mobile-nav {
+			display: block;
 		}
 	}
 
-	.fab-popup {
+	.mobile-nav-popup {
 		position: absolute;
-		bottom: calc(100% + 12px);
+		top: calc(100% + 8px);
 		right: 0;
 		min-width: 12rem;
+		max-height: calc(100vh - 5rem);
 		background: var(--surface-paper);
 		border: 1px solid var(--rule);
-		overflow: hidden;
+		overflow-x: hidden;
+		overflow-y: auto;
+		z-index: var(--z-fab);
 	}
 
 	.fab-item {
@@ -436,6 +564,50 @@
 	.fab-label {
 		font-size: 0.9rem;
 	}
+	.mobile-semesters {
+		border-top: 1px solid var(--rule);
+	}
+	.semester-form {
+		display: grid;
+		gap: 1rem;
+		margin-top: 1rem;
+	}
+	.semester-form fieldset {
+		border: 0;
+		padding: 0;
+		margin: 0;
+	}
+	.semester-form legend,
+	.semester-form label {
+		display: grid;
+		gap: 0.4rem;
+		font-size: 0.85rem;
+	}
+	.term-buttons {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.term-buttons button {
+		padding: 0.55rem 0.8rem;
+		border: 1px solid var(--rule);
+		background: var(--paper);
+		cursor: pointer;
+	}
+	.term-buttons button.chosen {
+		background: var(--ink);
+		color: var(--paper);
+	}
+	.semester-form input {
+		padding: 0.6rem;
+		border: 1px solid var(--rule);
+		background: var(--paper);
+		font: inherit;
+	}
+	.form-error {
+		margin: 0;
+		color: var(--danger, #a33);
+		font-size: 0.85rem;
+	}
 
 	.fab-btn {
 		display: flex;
@@ -461,6 +633,16 @@
 	.fab-btn-icon {
 		font-size: 1rem;
 		line-height: 1;
+	}
+
+	@media (max-width: 640px) {
+		.today {
+			display: none;
+		}
+		.current-term {
+			max-width: 8rem;
+			text-align: right;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 
 	type GradeItem = {
@@ -18,6 +19,7 @@
 
 	type CourseDigest = {
 		id: string;
+		semesterId?: string;
 		code: string;
 		name: string;
 		term: string;
@@ -114,7 +116,7 @@
 		term: '',
 		instructor: '',
 		credits: 0,
-		courseHref: '/app/courses',
+		courseHref: '/app/semesters',
 		syllabusHref: '/app/syllabus',
 		weights: [],
 		initialGrades: [],
@@ -317,8 +319,15 @@
 				term: semester ? `${semester.term} ${semester.year}` : 'Imported term',
 				instructor: course.instructor ?? 'Instructor TBD',
 				credits: course.credits ?? 3,
-				courseHref: `/app/courses/${course.id}`,
-				syllabusHref: '/app/syllabus',
+				semesterId: course.semesterId,
+				courseHref: resolve('/app/semesters/[semesterId]/courses/[courseId]', {
+					semesterId: course.semesterId,
+					courseId: course.id
+				}),
+				syllabusHref: resolve('/app/semesters/[semesterId]/courses/[courseId]/syllabus', {
+					semesterId: course.semesterId,
+					courseId: course.id
+				}),
 				weights: defaultWeights,
 				initialGrades: [],
 				transcript: {

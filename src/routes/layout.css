@@ -9,13 +9,13 @@
 @import '@fontsource/jetbrains-mono/500.css';
 
 :root {
-	--paper: #f5ecd9;
-	--paper-2: #ede2c6;
-	--paper-edge: #e8dcc1;
-	--paper-shelf: #ebe0c8;
+	--paper: #f6f1e2;
+	--paper-2: #efe8d4;
+	--paper-edge: #eae2ca;
+	--paper-shelf: #ede5cf;
 	--ink: #1a1814;
 	--ink-soft: #4a4538;
-	--ink-faint: #8a8270;
+	--ink-faint: #6b5d48;
 	--rule: #d8c8a4;
 	--rule-soft: #e8d8b4;
 	--rule-strong: #1a1814;
@@ -25,7 +25,7 @@
 	--highlight: #d8ff5c;
 	--highlight-soft: #e6ff8a;
 	--pen-red: #c2362a;
-	--tape: rgba(232, 220, 193, 0.85);
+	--tape: rgba(234, 226, 202, 0.85);
 	--shadow-ink: rgba(26, 26, 23, 0.12);
 	--surface-paper: #fbf8f0;
 	--border-faint: rgba(26, 26, 23, 0.18);
@@ -36,7 +36,7 @@
 	--sidebar-bg: #1a1814;
 	--sidebar-bg-soft: #2a2620;
 	--sidebar-fg: #f5ecd9;
-	--sidebar-fg-soft: #8a8270;
+	--sidebar-fg-soft: #9e927a;
 	--sidebar-rule: #3a3528;
 	--subject-comp: #4a6fa5;
 	--subject-math: #5a7a4a;
@@ -753,28 +753,10 @@ body {
 	align-items: center;
 }
 
-.topbar-search {
-	font-family: var(--font-body);
-	font-size: 0.82rem;
-	padding: 0.45rem 0.75rem;
-	border: 1px solid var(--rule);
-	background: var(--paper);
-	width: 220px;
-	color: var(--ink);
-}
-
-.topbar-search:focus {
-	outline: none;
-	border-color: var(--ink);
-}
-
-.term-switcher {
+.current-term {
 	font-family: var(--font-mono);
 	font-size: 0.69rem;
-	padding: 0.45rem 0.65rem;
-	border: 1px solid var(--ink);
-	background: var(--ink);
-	color: var(--paper);
+	color: var(--ink-soft);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 }
