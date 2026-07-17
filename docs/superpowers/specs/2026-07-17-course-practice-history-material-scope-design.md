@@ -1,7 +1,7 @@
 # Course Practice History and Material Scope
 
-**Date:** 2026-07-17  
-**Owner:** Ekas — Exam Prep (RAG)  
+**Date:** 2026-07-17
+**Owner:** Ekas — Exam Prep (RAG)
 **Status:** Approved in conversation
 
 ## Goal

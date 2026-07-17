@@ -1,7 +1,7 @@
 # Practice Material Indexing and Topic Retrieval
 
-**Date:** 2026-07-16  
-**Owner:** Ekas — Exam Prep (RAG)  
+**Date:** 2026-07-16
+**Owner:** Ekas — Exam Prep (RAG)
 **Status:** Approved in conversation; implementation pending
 
 ## Goal
