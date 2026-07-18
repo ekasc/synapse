@@ -341,3 +341,24 @@ export const practiceSessions = sqliteTable(
 		index('practice_sessions_course_id_updated_at_idx').on(table.courseId, table.updatedAt)
 	]
 );
+
+// — Study timer —
+
+export const focusPreferences = sqliteTable('focus_preferences', {
+	id: text('id').primaryKey(),
+	allowedSites: text('allowed_sites').notNull(),
+	blockedSites: text('blocked_sites').notNull(),
+	updatedAt: text('updated_at').notNull()
+});
+
+export const studySessions = sqliteTable('study_sessions', {
+	id: text('id').primaryKey(),
+	courseId: text('course_id'),
+	intention: text('intention').notNull(),
+	plannedSeconds: integer('planned_seconds').notNull(),
+	completedSeconds: integer('completed_seconds').notNull(),
+	distractionCount: integer('distraction_count').notNull(),
+	focusScore: integer('focus_score').notNull(),
+	startedAt: text('started_at').notNull(),
+	completedAt: text('completed_at').notNull()
+});

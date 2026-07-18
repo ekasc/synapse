@@ -17,9 +17,8 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 	let material;
 	if (bucket) {
 		material = await getMaterialRecord(bucket, params.materialId);
-	} else {
-		material = getMaterialRecordFallback(params.materialId);
 	}
+	material ??= getMaterialRecordFallback(params.materialId);
 
 	if (!material) error(404, 'Material not found');
 	if (material.courseId !== params.id) error(404, 'Material not found');
@@ -28,15 +27,15 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 
 	if (bucket) {
 		const stream = await getMaterialStream(bucket, material);
-		if (!stream) error(404, 'Material content not found');
-		return new Response(stream, {
-			headers: {
-				'Content-Type': material.mimeType,
-				'Content-Disposition': disposition,
-				'Content-Length': String(material.size),
-				'Cache-Control': 'private, max-age=3600'
-			}
-		});
+		if (stream)
+			return new Response(stream, {
+				headers: {
+					'Content-Type': material.mimeType,
+					'Content-Disposition': disposition,
+					'Content-Length': String(material.size),
+					'Cache-Control': 'private, max-age=3600'
+				}
+			});
 	}
 
 	// Fallback: read from local filesystem

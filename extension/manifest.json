@@ -1,0 +1,27 @@
+{
+	"manifest_version": 3,
+	"name": "Synapse Focus Guard",
+	"version": "0.1.5",
+	"description": "Blocks distracting websites while a Synapse study session is active.",
+	"permissions": ["alarms", "declarativeNetRequest", "storage"],
+	"host_permissions": ["<all_urls>"],
+	"background": {
+		"service_worker": "service-worker.js"
+	},
+	"content_scripts": [
+		{
+			"matches": ["http://127.0.0.1/*", "http://localhost/*", "https://*.trycloudflare.com/*"],
+			"js": ["synapse-bridge.js"],
+			"run_at": "document_start"
+		}
+	],
+	"action": {
+		"default_title": "Synapse Focus Guard"
+	},
+	"web_accessible_resources": [
+		{
+			"resources": ["blocked.html", "blocked.css", "blocked.js"],
+			"matches": ["<all_urls>"]
+		}
+	]
+}

@@ -13,9 +13,10 @@ export async function load({ params, platform }: RequestEvent) {
 	);
 	if (!course) error(404, 'Course not found in this semester');
 
-	const materials = platform?.env?.MATERIALS
+	const boundMaterials = platform?.env?.MATERIALS
 		? await listMaterials(platform.env.MATERIALS, course.id)
-		: await listMaterialsFallback(course.id);
+		: [];
+	const materials = boundMaterials.length > 0 ? boundMaterials : listMaterialsFallback(course.id);
 	materials.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 	const indexedMaterials = await attachMaterialIndexes(
 		materials,
