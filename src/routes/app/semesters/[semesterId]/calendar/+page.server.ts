@@ -11,12 +11,12 @@ export async function load({ params, platform }: RequestEvent) {
 	}
 
 	const semesterCourses = courses.filter((course) => course.semesterId === params.semesterId);
-	const courseCodes = new Set(semesterCourses.map((course) => course.code));
+	const courseIds = new Set(semesterCourses.map((course) => course.id));
 	let events: CalendarEventRow[] = [];
 	if (platform) {
 		try {
-			events = (await createDb(platform.env.BRIEF_DB).getCalendarEvents()).filter((event) =>
-				courseCodes.has(event.courseCode)
+			events = (await createDb(platform.env.BRIEF_DB).getCalendarEvents()).filter(
+				(event) => event.courseId !== null && courseIds.has(event.courseId)
 			);
 		} catch (cause) {
 			console.error('Failed to load semester calendar events:', cause);
@@ -26,6 +26,7 @@ export async function load({ params, platform }: RequestEvent) {
 	return {
 		events,
 		courseColors: semesterCourses.map((course) => ({
+			id: course.id,
 			code: course.code,
 			color: course.color ?? '#1a1814',
 			name: course.name
