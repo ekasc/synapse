@@ -123,6 +123,51 @@
 		completedAt: string | null;
 	};
 
+	type AcademicDigestJob = {
+		id: string;
+		fileName: string;
+		status: 'queued' | 'processing' | 'completed' | 'failed';
+		error: string | null;
+	};
+
+	let academicDigestJob = $state<AcademicDigestJob | null>(null);
+	let digestRequestPending = false;
+	let refreshedDigestJobId = '';
+
+	function showAcademicDigestJob(job: AcademicDigestJob | null) {
+		if (!job) return;
+		const dismissedId = sessionStorage.getItem('dismissed_academic_digest_job');
+		if ((job.status === 'completed' || job.status === 'failed') && dismissedId === job.id) return;
+		academicDigestJob = job;
+	}
+
+	function dismissAcademicDigestJob() {
+		if (academicDigestJob) {
+			sessionStorage.setItem('dismissed_academic_digest_job', academicDigestJob.id);
+		}
+		academicDigestJob = null;
+	}
+
+	async function checkAcademicDigestJob(signal?: AbortSignal) {
+		if (digestRequestPending) return;
+		digestRequestPending = true;
+		try {
+			const response = await fetch('/api/digest/jobs', { signal });
+			if (!response.ok) return;
+			const result = (await response.json()) as { job?: AcademicDigestJob | null };
+			showAcademicDigestJob(result.job ?? null);
+			if (result.job?.status === 'completed' && refreshedDigestJobId !== result.job.id) {
+				refreshedDigestJobId = result.job.id;
+				await invalidateAll();
+			}
+		} catch (error) {
+			if (error instanceof DOMException && error.name === 'AbortError') return;
+			console.error('Failed to check transcript digestion:', error);
+		} finally {
+			digestRequestPending = false;
+		}
+	}
+
 	async function checkActivity(signal?: AbortSignal) {
 		if (activityRequestPending) return;
 		activityRequestPending = true;
@@ -151,13 +196,26 @@
 	// Update the "today" stamp every minute
 	onMount(() => {
 		const activityController = new AbortController();
+		const handleDigestStarted = (event: Event) => {
+			const job = (event as CustomEvent<AcademicDigestJob>).detail;
+			sessionStorage.removeItem('dismissed_academic_digest_job');
+			academicDigestJob = job;
+		};
+		window.addEventListener('academic-digest-job-started', handleDigestStarted);
 		void checkActivity(activityController.signal);
+		void checkAcademicDigestJob(activityController.signal);
 		const id = setInterval(() => void checkActivity(activityController.signal), 10000);
+		const digestId = setInterval(
+			() => void checkAcademicDigestJob(activityController.signal),
+			2500
+		);
 		const tick = setInterval(() => (now = new Date()), 60_000);
 		return () => {
 			activityController.abort();
 			clearInterval(id);
+			clearInterval(digestId);
 			clearInterval(tick);
+			window.removeEventListener('academic-digest-job-started', handleDigestStarted);
 		};
 	});
 
@@ -280,6 +338,36 @@
 				</div>
 			</div>
 		</div>
+
+		{#if academicDigestJob}
+			<div
+				class="digest-job-banner"
+				class:failed={academicDigestJob.status === 'failed'}
+				class:completed={academicDigestJob.status === 'completed'}
+				role={academicDigestJob.status === 'failed' ? 'alert' : 'status'}
+			>
+				<div>
+					<span class="digest-job-pulse" aria-hidden="true"></span>
+					<strong>
+						{academicDigestJob.status === 'completed'
+							? 'Transcript ready'
+							: academicDigestJob.status === 'failed'
+								? 'Transcript digestion failed'
+								: 'Digesting transcript'}
+					</strong>
+					<span>{academicDigestJob.fileName}</span>
+					{#if academicDigestJob.error}<span>{academicDigestJob.error}</span>{/if}
+				</div>
+				<a href={resolveRoute('/app/digest')}>Grade analytics</a>
+				{#if academicDigestJob.status === 'completed' || academicDigestJob.status === 'failed'}
+					<button
+						type="button"
+						aria-label="Dismiss transcript status"
+						onclick={dismissAcademicDigestJob}>x</button
+					>
+				{/if}
+			</div>
+		{/if}
 
 		<main class="app-main" class:canvas-main={$page.url.pathname === '/app/courses'}>
 			{@render children()}
@@ -481,6 +569,77 @@
 		min-width: 0;
 		position: relative;
 		background: var(--paper);
+	}
+
+	.digest-job-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.8rem;
+		border-bottom: 1px solid var(--ink);
+		background: var(--highlight-soft);
+		padding: 0.6rem 1rem;
+		color: var(--ink);
+	}
+
+	.digest-job-banner > div {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.digest-job-banner span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 0.78rem;
+	}
+
+	.digest-job-banner a,
+	.digest-job-banner button {
+		color: inherit;
+		font: inherit;
+		font-size: 0.76rem;
+		font-weight: 600;
+	}
+
+	.digest-job-banner button {
+		border: 0;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.digest-job-banner.completed {
+		background: color-mix(in srgb, var(--ok) 18%, var(--paper));
+	}
+
+	.digest-job-banner.failed {
+		background: color-mix(in srgb, var(--accent) 16%, var(--paper));
+	}
+
+	.digest-job-pulse {
+		width: 0.55rem;
+		height: 0.55rem;
+		flex: 0 0 auto;
+		background: var(--warn);
+		animation: digest-pulse 1.2s ease-in-out infinite;
+	}
+
+	.completed .digest-job-pulse {
+		background: var(--ok);
+		animation: none;
+	}
+
+	.failed .digest-job-pulse {
+		background: var(--accent);
+		animation: none;
+	}
+
+	@keyframes digest-pulse {
+		50% {
+			opacity: 0.3;
+		}
 	}
 
 	.app-main > :global(*) {

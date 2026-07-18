@@ -97,6 +97,8 @@
 		updatedAt: string;
 	};
 
+	type GpaScale = 'douglas-4.33' | 'standard-4.0';
+
 	let {
 		data
 	}: { data: { courses: SetupCourse[]; digest: AcademicDigest; semesters: SetupSemester[] } } =
@@ -297,6 +299,7 @@
 	let gradeMax = $state('100');
 	let targetGrade = $state(85);
 	let targetGpa = $state(3.5);
+	let gpaScale = $state<GpaScale>('douglas-4.33');
 	let activeDigestTab = $state<'gpa' | 'term'>('gpa');
 	let selectedPerformanceTerm = $state('');
 	let performanceTermTouched = $state(false);
@@ -363,9 +366,9 @@
 				? `${importedCourseDigests.length} setup courses`
 				: 'empty'
 	);
-	const performanceTrendSource = $derived(activeBackendDigest.trend ?? []);
+	const backendPerformanceTrend = $derived(activeBackendDigest.trend ?? []);
 	const latestPerformanceTerm = $derived(
-		performanceTrendSource[performanceTrendSource.length - 1]?.term ?? ''
+		backendPerformanceTrend[backendPerformanceTrend.length - 1]?.term ?? ''
 	);
 
 	const activeCourse = $derived(
@@ -470,10 +473,36 @@
 		...dashboardFinishedCourses
 	]);
 	const hasAcademicProgressData = $derived(dashboardTranscriptCourses.length > 0);
-	const totalGpa = $derived(weightedGpa(transcriptCourses, 'currentPercent'));
 	const projectedGpa = $derived(weightedGpa(transcriptCourses, 'projectedPercent'));
-	const dashboardTotalGpa = $derived(activeBackendDigest.totalGpa ?? totalGpa);
-	const dashboardProjectedGpa = $derived(activeBackendDigest.projectedGpa ?? projectedGpa);
+	const gpaScaleMaximum = $derived(gpaScale === 'douglas-4.33' ? 4.33 : 4);
+	const calculatedDashboardTotalGpa = $derived(
+		weightedGpa(dashboardTranscriptCourses, 'currentPercent')
+	);
+	const dashboardTotalGpa = $derived(
+		gpaScale === 'douglas-4.33' && activeBackendDigest.source === 'transcript-upload'
+			? activeBackendDigest.totalGpa
+			: calculatedDashboardTotalGpa
+	);
+	const dashboardProjectedGpa = $derived(
+		weightedGpa(dashboardTranscriptCourses, 'projectedPercent')
+	);
+	const performanceTrendSource = $derived.by(() => {
+		let cumulativeCourses: TranscriptCourse[] = [];
+		return backendPerformanceTrend.map((item, index) => {
+			cumulativeCourses = [
+				...cumulativeCourses,
+				...dashboardTranscriptCourses.filter((course) => course.term === item.term)
+			];
+			const isLatest = index === backendPerformanceTrend.length - 1;
+			return {
+				...item,
+				gpa:
+					isLatest && gpaScale === 'douglas-4.33'
+						? dashboardTotalGpa
+						: weightedGpa(cumulativeCourses, 'currentPercent')
+			};
+		});
+	});
 	const currentGpaBeforeSelectedProjection = $derived.by(() => {
 		const baselineCourses = transcriptCourses.map((course) =>
 			course.id === selectedCourseId
@@ -533,6 +562,10 @@
 		selectedPerformanceTerm = latestPerformanceTerm;
 	});
 
+	$effect(() => {
+		if (targetGpa > gpaScaleMaximum) targetGpa = gpaScaleMaximum;
+	});
+
 	function changeCourse(event: Event) {
 		const nextCourseId = (event.currentTarget as HTMLSelectElement).value;
 		const nextCourse = courses.find((course) => course.id === nextCourseId) ?? courses[0];
@@ -552,21 +585,40 @@
 		};
 	}
 
+	function letterToGpa(letter: string) {
+		const standard: Record<string, number> = {
+			'A+': 4,
+			A: 4,
+			'A-': 3.7,
+			'B+': 3.3,
+			B: 3,
+			'B-': 2.7,
+			'C+': 2.3,
+			C: 2,
+			'C-': 1.7,
+			'D+': 1.3,
+			D: 1,
+			F: 0
+		};
+		const douglas: Record<string, number> = {
+			...standard,
+			'A+': 4.33,
+			'A-': 3.67,
+			'B+': 3.33,
+			'B-': 2.67,
+			'C+': 2.33,
+			'C-': 1.67,
+			'D+': 1.33
+		};
+		return (gpaScale === 'douglas-4.33' ? douglas : standard)[letter.toUpperCase()] ?? null;
+	}
+
 	function percentToGpa(percent: number) {
-		if (percent >= 93) return 4;
-		if (percent >= 90) return 3.7;
-		if (percent >= 87) return 3.3;
-		if (percent >= 83) return 3;
-		if (percent >= 80) return 2.7;
-		if (percent >= 77) return 2.3;
-		if (percent >= 73) return 2;
-		if (percent >= 70) return 1.7;
-		if (percent >= 67) return 1.3;
-		if (percent >= 60) return 1;
-		return 0;
+		return letterToGpa(percentToLetter(percent)) ?? 0;
 	}
 
 	function percentToLetter(percent: number) {
+		if (percent >= 97) return 'A+';
 		if (percent >= 93) return 'A';
 		if (percent >= 90) return 'A-';
 		if (percent >= 87) return 'B+';
@@ -581,12 +633,25 @@
 	}
 
 	function weightedGpa(
-		items: Array<{ credits: number; currentPercent: number; projectedPercent: number }>,
+		items: Array<{
+			credits: number;
+			currentPercent: number;
+			projectedPercent: number;
+			status?: 'current' | 'finished';
+			letter?: string;
+		}>,
 		key: 'currentPercent' | 'projectedPercent'
 	) {
-		const credits = items.reduce((sum, item) => sum + item.credits, 0);
+		const gradedItems = items.flatMap((item) => {
+			const gradePoints =
+				item.status === 'finished' && item.letter
+					? letterToGpa(item.letter)
+					: percentToGpa(item[key]);
+			return gradePoints === null ? [] : [{ ...item, gradePoints }];
+		});
+		const credits = gradedItems.reduce((sum, item) => sum + item.credits, 0);
 		if (credits === 0) return 0;
-		const points = items.reduce((sum, item) => sum + percentToGpa(item[key]) * item.credits, 0);
+		const points = gradedItems.reduce((sum, item) => sum + item.gradePoints * item.credits, 0);
 		return points / credits;
 	}
 
@@ -640,20 +705,23 @@
 				method: 'POST',
 				body: form
 			});
-			const result = (await response.json()) as {
+			const result = (await response.json().catch(() => ({
+				ok: false,
+				error: `Transcript upload failed with status ${response.status}.`
+			}))) as {
 				ok?: boolean;
-				digest?: AcademicDigest;
+				job?: {
+					id: string;
+					fileName: string;
+					status: 'queued' | 'processing' | 'completed' | 'failed';
+					error: string | null;
+				};
 				error?: string;
 			};
-			if (!response.ok || !result.ok || !result.digest) {
+			if (!response.ok || !result.ok || !result.job) {
 				throw new Error(result.error ?? 'Could not digest transcript');
 			}
-			backendDigest = result.digest;
-			performanceTermTouched = false;
-			selectedPerformanceTerm =
-				result.digest.trend[result.digest.trend.length - 1]?.term ??
-				result.digest.courses[result.digest.courses.length - 1]?.term ??
-				selectedPerformanceTerm;
+			window.dispatchEvent(new CustomEvent('academic-digest-job-started', { detail: result.job }));
 			activeDigestTab = 'gpa';
 		} catch (error) {
 			transcriptUploadError =
@@ -756,6 +824,13 @@
 					</p>
 				</div>
 				<div class="transcript-upload-actions">
+					<label class="gpa-scale-control">
+						<span class="font-mono">GPA scale</span>
+						<select bind:value={gpaScale} aria-label="GPA scale">
+							<option value="douglas-4.33">Douglas 4.33</option>
+							<option value="standard-4.0">Standard 4.0</option>
+						</select>
+					</label>
 					<label class="btn btn-primary upload-transcript">
 						<input
 							type="file"
@@ -783,7 +858,9 @@
 
 			<div class="gpa-metrics">
 				<div class="gpa-card total-card">
-					<span class="index-label">Total GPA</span>
+					<span class="index-label">
+						Total GPA ({gpaScale === 'douglas-4.33' ? '4.33' : '4.0'} scale)
+					</span>
 					<strong>{hasAcademicProgressData ? dashboardTotalGpa.toFixed(2) : '--'}</strong>
 					<span class="index-sub"
 						>{activeBackendDigest.currentCredits + activeBackendDigest.finishedCredits} credits tracked</span
@@ -824,6 +901,7 @@
 								<div class:active={course.id === selectedCourseId} class="gpa-course-row current">
 									<span class="font-mono">{course.code}</span>
 									<span>{course.term}</span>
+									<span>{percentToGpa(course.currentPercent).toFixed(2)} GPA</span>
 								</div>
 							{/each}
 						{:else}
@@ -848,7 +926,10 @@
 								>
 									<span class="font-mono">{course.code}</span>
 									<span>{course.term}</span>
-									<span>{course.letter} - {course.currentPercent.toFixed(0)}%</span>
+									<span>
+										{course.letter} - {course.currentPercent.toFixed(0)}% -
+										{letterToGpa(course.letter)?.toFixed(2) ?? '--'} GPA
+									</span>
 									<span class="history-open-label font-mono">
 										{course.historyGrades?.length ? 'open gradebook' : 'view transcript note'}
 									</span>
@@ -882,7 +963,8 @@
 						{#each performanceTrendWithDelta as item (item.term)}
 							<div class="term-bar">
 								<div class="term-bar-track">
-									<span class={item.direction} style="height: {(item.gpa / 4) * 100}%"></span>
+									<span class={item.direction} style="height: {(item.gpa / gpaScaleMaximum) * 100}%"
+									></span>
 								</div>
 								<strong class={`trend-value ${item.direction}`}>
 									{item.gpa.toFixed(2)}
@@ -939,7 +1021,12 @@
 							<div class="term-course-bar">
 								<div>
 									<span class="font-mono">{course.code}</span>
-									<strong>{course.status === 'finished' ? course.letter : 'In progress'}</strong>
+									<strong>
+										{course.status === 'finished' ? course.letter : 'In progress'} -
+										{course.status === 'finished'
+											? (letterToGpa(course.letter)?.toFixed(2) ?? '--')
+											: percentToGpa(course.currentPercent).toFixed(2)} GPA
+									</strong>
 								</div>
 								<div class="course-bar-track">
 									<span style="width: {Math.min(100, course.currentPercent)}%"></span>
@@ -1088,7 +1175,14 @@
 				<div class="target-gpa-box">
 					<label class="target-label font-mono" for="target-gpa">Target GPA</label>
 					<div class="target-control">
-						<input id="target-gpa" type="range" min="2" max="4" step="0.1" bind:value={targetGpa} />
+						<input
+							id="target-gpa"
+							type="range"
+							min="2"
+							max={gpaScaleMaximum}
+							step="0.1"
+							bind:value={targetGpa}
+						/>
 						<span class="target-value font-display">{targetGpa.toFixed(1)}</span>
 					</div>
 				</div>
@@ -1101,9 +1195,11 @@
 					</p>
 					<div class="projection-scale compact" aria-label="GPA projection scale">
 						<div class="scale-line">
-							<span style="left: {Math.min(100, (dashboardTotalGpa / 4) * 100)}%"></span>
-							<b style="left: {Math.min(100, (dashboardProjectedGpa / 4) * 100)}%"></b>
-							<i style="left: {Math.min(100, (targetGpa / 4) * 100)}%"></i>
+							<span style="left: {Math.min(100, (dashboardTotalGpa / gpaScaleMaximum) * 100)}%"
+							></span>
+							<b style="left: {Math.min(100, (dashboardProjectedGpa / gpaScaleMaximum) * 100)}%"
+							></b>
+							<i style="left: {Math.min(100, (targetGpa / gpaScaleMaximum) * 100)}%"></i>
 						</div>
 						<div class="scale-labels font-mono">
 							<span>total {dashboardTotalGpa.toFixed(2)}</span>
@@ -1273,7 +1369,10 @@
 				<div class="history-modal-meta">
 					<span>{selectedHistoryCourse.term}</span>
 					<span>{selectedHistoryCourse.credits} credits</span>
-					<strong>{selectedHistoryCourse.letter}</strong>
+					<strong>
+						{selectedHistoryCourse.letter} -
+						{letterToGpa(selectedHistoryCourse.letter)?.toFixed(2) ?? '--'} GPA
+					</strong>
 				</div>
 				<button
 					type="button"
@@ -1874,6 +1973,31 @@
 		flex-wrap: wrap;
 		gap: 0.55rem;
 		align-items: center;
+	}
+
+	.gpa-scale-control {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		border: 1px solid var(--rule);
+		background: var(--paper-shelf);
+		padding: 0.35rem 0.45rem;
+	}
+
+	.gpa-scale-control span {
+		color: var(--ink-faint);
+		font-size: 0.65rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	.gpa-scale-control select {
+		border: 0;
+		background: transparent;
+		color: var(--ink);
+		font: inherit;
+		font-size: 0.78rem;
+		cursor: pointer;
 	}
 
 	.upload-transcript {

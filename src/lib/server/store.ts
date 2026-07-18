@@ -281,6 +281,16 @@ export type AcademicDigestAnalysis = {
 	extractionSource: AcademicDigest['extractionSource'];
 };
 
+export type AcademicDigestJob = {
+	id: string;
+	fileName: string;
+	status: 'queued' | 'processing' | 'completed' | 'failed';
+	error: string | null;
+	createdAt: string;
+	updatedAt: string;
+	completedAt: string | null;
+};
+
 const MOCK_SYLLABUS_DATA: SyllabusExtractedData = {
 	professor: {
 		name: 'Prof. Anika Sharma',
@@ -858,6 +868,96 @@ export async function clearAcademicDigest(): Promise<AcademicDigest> {
 	}
 	write('academic-digest', []);
 	return buildAcademicDigest();
+}
+
+export async function createAcademicDigestJob(fileName: string): Promise<AcademicDigestJob> {
+	const now = new Date().toISOString();
+	const job: AcademicDigestJob = {
+		id: crypto.randomUUID(),
+		fileName,
+		status: 'queued',
+		error: null,
+		createdAt: now,
+		updatedAt: now,
+		completedAt: null
+	};
+	if (_d1) {
+		await d1Run(
+			`INSERT INTO academic_digest_jobs
+			 (id, file_name, status, error, created_at, updated_at, completed_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			job.id,
+			job.fileName,
+			job.status,
+			job.error,
+			job.createdAt,
+			job.updatedAt,
+			job.completedAt
+		);
+		return job;
+	}
+	const jobs = read<AcademicDigestJob>('academic-digest-jobs');
+	write('academic-digest-jobs', [...jobs, job].slice(-20));
+	return job;
+}
+
+export async function updateAcademicDigestJob(
+	id: string,
+	update: Pick<AcademicDigestJob, 'status'> & { error?: string | null }
+): Promise<AcademicDigestJob | null> {
+	const now = new Date().toISOString();
+	const completedAt = update.status === 'completed' || update.status === 'failed' ? now : null;
+	if (_d1) {
+		await d1Run(
+			`UPDATE academic_digest_jobs
+			 SET status = ?, error = ?, updated_at = ?, completed_at = ?
+			 WHERE id = ?`,
+			update.status,
+			update.error ?? null,
+			now,
+			completedAt,
+			id
+		);
+		const row = await d1First<Record<string, unknown>>(
+			'SELECT * FROM academic_digest_jobs WHERE id = ?',
+			id
+		);
+		return row ? rowToAcademicDigestJob(row) : null;
+	}
+	const jobs = read<AcademicDigestJob>('academic-digest-jobs');
+	const index = jobs.findIndex((job) => job.id === id);
+	if (index < 0) return null;
+	jobs[index] = {
+		...jobs[index],
+		status: update.status,
+		error: update.error ?? null,
+		updatedAt: now,
+		completedAt
+	};
+	write('academic-digest-jobs', jobs);
+	return jobs[index];
+}
+
+export async function getLatestAcademicDigestJob(): Promise<AcademicDigestJob | null> {
+	if (_d1) {
+		const row = await d1First<Record<string, unknown>>(
+			'SELECT * FROM academic_digest_jobs ORDER BY created_at DESC LIMIT 1'
+		);
+		return row ? rowToAcademicDigestJob(row) : null;
+	}
+	return read<AcademicDigestJob>('academic-digest-jobs').at(-1) ?? null;
+}
+
+function rowToAcademicDigestJob(row: Record<string, unknown>): AcademicDigestJob {
+	return {
+		id: String(row.id),
+		fileName: String(row.file_name),
+		status: String(row.status) as AcademicDigestJob['status'],
+		error: row.error ? String(row.error) : null,
+		createdAt: String(row.created_at),
+		updatedAt: String(row.updated_at),
+		completedAt: row.completed_at ? String(row.completed_at) : null
+	};
 }
 
 function rowToDigest(row: Record<string, unknown>): AcademicDigest {
