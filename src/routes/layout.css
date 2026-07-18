@@ -8,6 +8,10 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
 
+/* Utility layer only: preserve the existing global reset and base styles. */
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+
 :root {
 	--paper: #f6f1e2;
 	--paper-2: #efe8d4;
