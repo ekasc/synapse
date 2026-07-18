@@ -241,6 +241,16 @@ export const academicDigest = sqliteTable('academic_digest', {
 	updatedAt: text('updated_at').notNull()
 });
 
+export const academicDigestJobs = sqliteTable('academic_digest_jobs', {
+	id: text('id').primaryKey(),
+	fileName: text('file_name').notNull(),
+	status: text('status').notNull(),
+	error: text('error'),
+	createdAt: text('created_at').notNull(),
+	updatedAt: text('updated_at').notNull(),
+	completedAt: text('completed_at')
+});
+
 export const calendarEvents = sqliteTable('calendar_events', {
 	id: text('id').primaryKey(),
 	courseId: text('course_id'),

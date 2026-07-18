@@ -12,6 +12,8 @@ import type {
 type ExtractedTranscript = {
 	courses?: Partial<AcademicTranscriptCourse>[];
 	insights?: string[];
+	cumulativeGpa?: number | null;
+	earnedCredits?: number | null;
 };
 
 export type TranscriptAnalysis = AcademicDigestAnalysis;
@@ -30,6 +32,41 @@ function percentToGpa(percent: number): number {
 	if (percent >= 67) return 1.3;
 	if (percent >= 60) return 1;
 	return 0;
+}
+
+function letterToGpa(letter: string): number | null {
+	const points: Record<string, number> = {
+		'A+': 4.33,
+		A: 4,
+		'A-': 3.67,
+		'B+': 3.33,
+		B: 3,
+		'B-': 2.67,
+		'C+': 2.33,
+		C: 2,
+		'C-': 1.67,
+		'D+': 1.33,
+		D: 1,
+		F: 0
+	};
+	return points[letter.trim().toUpperCase()] ?? null;
+}
+
+function letterToPercent(letter: string): number | null {
+	const points = letterToGpa(letter);
+	if (points === null) return null;
+	if (points >= 4.33) return 97;
+	if (points >= 4) return 95;
+	if (points >= 3.67) return 91;
+	if (points >= 3.33) return 88;
+	if (points >= 3) return 85;
+	if (points >= 2.67) return 81;
+	if (points >= 2.33) return 78;
+	if (points >= 2) return 75;
+	if (points >= 1.67) return 71;
+	if (points >= 1.33) return 68;
+	if (points >= 1) return 63;
+	return 50;
 }
 
 function percentToLetter(percent: number): string {
@@ -58,7 +95,10 @@ function weightedGpa(
 	const totals = courses.reduce(
 		(acc, course) => {
 			const credits = course.credits || 3;
-			acc.points += percentToGpa(course[field]) * credits;
+			const gradePoints =
+				course.status === 'finished' ? letterToGpa(course.letter) : percentToGpa(course[field]);
+			if (gradePoints === null) return acc;
+			acc.points += gradePoints * credits;
 			acc.credits += credits;
 			return acc;
 		},
@@ -88,17 +128,16 @@ function normalizeCourse(value: Partial<AcademicTranscriptCourse>, index: number
 	const letter = value.letter?.trim() || '';
 	const currentRaw = Number(value.currentPercent);
 	const projectedRaw = Number(value.projectedPercent);
+	const letterPercent = letterToPercent(letter);
 	const missingCurrent =
 		!Number.isFinite(currentRaw) || (currentRaw <= 0 && letter.toUpperCase() !== 'F');
 	const missingProjected =
 		!Number.isFinite(projectedRaw) || (projectedRaw <= 0 && letter.toUpperCase() !== 'F');
 	const currentPercent = missingCurrent
-		? status === 'current'
-			? 88
-			: clampPercent(projectedRaw, 88)
+		? (letterPercent ?? (status === 'current' ? 88 : clampPercent(projectedRaw, 0)))
 		: clampPercent(currentRaw, 88);
 	const projectedPercent = missingProjected
-		? currentPercent
+		? (letterPercent ?? currentPercent)
 		: clampPercent(projectedRaw, currentPercent);
 
 	return {
@@ -161,7 +200,8 @@ function buildTrend(courses: AcademicTranscriptCourse[]): AcademicDigestTrend[] 
 function buildAnalysis(
 	courses: AcademicTranscriptCourse[],
 	insights: string[],
-	extractionSource: TranscriptAnalysis['extractionSource']
+	extractionSource: TranscriptAnalysis['extractionSource'],
+	officialTotals?: Pick<ExtractedTranscript, 'cumulativeGpa' | 'earnedCredits'>
 ): TranscriptAnalysis {
 	const currentCourses = courses.filter((course) => course.status === 'current');
 	const finishedCourses = courses.filter((course) => course.status === 'finished');
@@ -170,12 +210,18 @@ function buildAnalysis(
 		courses,
 		trend: buildTrend(courses),
 		insights,
-		totalGpa: weightedGpa(courses, 'currentPercent'),
+		totalGpa:
+			Number.isFinite(officialTotals?.cumulativeGpa) && Number(officialTotals?.cumulativeGpa) >= 0
+				? Number(officialTotals?.cumulativeGpa)
+				: weightedGpa(courses, 'currentPercent'),
 		projectedGpa: weightedGpa(courses, 'projectedPercent'),
 		currentCourseCount: currentCourses.length,
 		finishedCourseCount: finishedCourses.length,
 		currentCredits: currentCourses.reduce((sum, course) => sum + course.credits, 0),
-		finishedCredits: finishedCourses.reduce((sum, course) => sum + course.credits, 0),
+		finishedCredits:
+			Number.isFinite(officialTotals?.earnedCredits) && Number(officialTotals?.earnedCredits) >= 0
+				? Number(officialTotals?.earnedCredits)
+				: finishedCourses.reduce((sum, course) => sum + course.credits, 0),
 		extractionSource
 	};
 }
@@ -250,7 +296,7 @@ async function extractWithOpenRouter(file: File): Promise<ExtractedTranscript> {
 			{
 				role: 'system',
 				content:
-					'You are an academic transcript extraction agent. Return only facts visible in the transcript. Use current for in-progress courses and finished for courses with final grades. Convert letter grades to reasonable percent estimates only when no numeric percent is present.'
+					'You are an academic transcript extraction agent. Return only facts visible in the transcript. Ignore non-transcript pages such as confirmation letters. Use current for in-progress courses and finished for courses with final grades. Preserve letter grades exactly. If the transcript has an official cumulative totals row, return its cumulative GPA and earned credits; do not calculate or infer them. Use null when an official total is not visible.'
 			},
 			{
 				role: 'user',
@@ -265,7 +311,7 @@ async function extractWithOpenRouter(file: File): Promise<ExtractedTranscript> {
 				schema: {
 					type: 'object',
 					additionalProperties: false,
-					required: ['courses', 'insights'],
+					required: ['courses', 'insights', 'cumulativeGpa', 'earnedCredits'],
 					properties: {
 						courses: {
 							type: 'array',
@@ -294,7 +340,9 @@ async function extractWithOpenRouter(file: File): Promise<ExtractedTranscript> {
 								}
 							}
 						},
-						insights: { type: 'array', items: { type: 'string' } }
+						insights: { type: 'array', items: { type: 'string' } },
+						cumulativeGpa: { type: ['number', 'null'] },
+						earnedCredits: { type: ['number', 'null'] }
 					}
 				}
 			}
@@ -340,7 +388,8 @@ export async function analyzeTranscriptFile(
 		return buildAnalysis(
 			extractedCourses,
 			extracted.insights?.filter(Boolean) ?? ['Transcript was extracted with OpenRouter.'],
-			'openrouter'
+			'openrouter',
+			extracted
 		);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'unknown error';
