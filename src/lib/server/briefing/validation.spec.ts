@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	normalizeSynthesisCandidate,
 	validateCachedBriefingIdentity,
 	validateStructuredBriefing,
 	ValidationError
@@ -131,6 +132,37 @@ describe('structured briefing validation', () => {
 				metadata
 			).instructor.requestedName
 		).toBe('Ada'));
+	it('normalizes an official instructor status backed by a current official schedule', () => {
+		const candidate = value();
+		candidate.instructor = {
+			requestedName: 'Ada',
+			name: 'Ada Lovelace',
+			status: 'official',
+			sourceIds: ['schedule']
+		};
+		const sources = [
+			source(),
+			source({
+				id: 'schedule',
+				category: 'schedule',
+				title: 'CSIS 3375 current schedule',
+				excerpt: 'CSIS 3375 instructor Ada Lovelace'
+			})
+		];
+		const request = { courseCode: 'CSIS 3375', professorName: 'Ada' };
+		const normalized = normalizeSynthesisCandidate(candidate, sources, request, {
+			institution: 'Douglas College',
+			courseCode: 'CSIS 3375',
+			canonicalTitle: 'Software Engineering',
+			canonicalUrl: 'https://www.douglascollege.ca/course',
+			sourceId: 'src_01',
+			status: 'verified',
+			candidates: []
+		});
+		const result = validateStructuredBriefing(normalized, sources, request, metadata);
+		expect(result.instructor.status).toBe('verified_current_official');
+	});
+
 	it('rejects invented source IDs', () => {
 		const v = value();
 		v.summary.sourceIds = ['invented'];
@@ -170,10 +202,33 @@ describe('structured briefing validation', () => {
 			claimsSupported: []
 		});
 		const v = value();
-		v.instructor = { requestedName: 'Gabriel Vitus', name: 'Bambang Sarif', status: 'contradicted', sourceIds: ['src_schedule_01'] };
-		v.claims[0] = { id: 'c1', text: 'Gabriel Vitus was requested, but the official schedule assigns Bambang Sarif as instructor.', status: 'contradicted', sourceIds: ['src_schedule_01'], asOf: null, explanation: null };
-		v.contradictions = { text: 'Instructor assignment conflict', sourceIds: ['src_schedule_01'], claimIds: ['c1'] };
-		expect(validateStructuredBriefing(v, [source(), schedule], { courseCode: 'CSIS 3375', professorName: 'Gabriel Vitus', institution: 'Douglas College' }, metadata)).toBeTruthy();
+		v.instructor = {
+			requestedName: 'Gabriel Vitus',
+			name: 'Bambang Sarif',
+			status: 'contradicted',
+			sourceIds: ['src_schedule_01']
+		};
+		v.claims[0] = {
+			id: 'c1',
+			text: 'Gabriel Vitus was requested, but the official schedule assigns Bambang Sarif as instructor.',
+			status: 'contradicted',
+			sourceIds: ['src_schedule_01'],
+			asOf: null,
+			explanation: null
+		};
+		v.contradictions = {
+			text: 'Instructor assignment conflict',
+			sourceIds: ['src_schedule_01'],
+			claimIds: ['c1']
+		};
+		expect(
+			validateStructuredBriefing(
+				v,
+				[source(), schedule],
+				{ courseCode: 'CSIS 3375', professorName: 'Gabriel Vitus', institution: 'Douglas College' },
+				metadata
+			)
+		).toBeTruthy();
 		const unconfirmedInstructor = { ...v };
 		unconfirmedInstructor.instructor = {
 			requestedName: 'Gabriel Vitus',
