@@ -37,7 +37,7 @@ export async function POST({ request }: RequestEvent) {
 		transcript instanceof File
 			? await analyzeTranscriptFile(transcript, await getCourses(), await getSemesters())
 			: undefined;
-	const digest = saveAcademicDigest({
+	const digest = await saveAcademicDigest({
 		fileName,
 		source: 'transcript-upload',
 		analysis
