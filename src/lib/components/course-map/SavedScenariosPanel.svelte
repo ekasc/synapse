@@ -100,10 +100,10 @@
 			await refresh();
 			operationState = completeScenarioOperation(
 				operation,
-				operation === 'duplicate' ? 'Scenario duplicated' : 'Scenario saved'
+				operation === 'duplicate' ? 'Draft plan duplicated' : 'Draft plan saved'
 			);
 		} catch (error) {
-			recordFailure(operation, source, `Could not ${operation} scenario.`, error);
+			recordFailure(operation, source, `Could not ${operation} draft plan.`, error);
 		}
 	}
 
@@ -130,9 +130,9 @@
 			});
 			onassociationchange(associateSavedScenario(body.scenario));
 			await refresh();
-			operationState = completeScenarioOperation('update', 'Scenario changes saved');
+			operationState = completeScenarioOperation('update', 'Draft plan changes saved');
 		} catch (error) {
-			recordFailure('update', target, 'Could not save scenario changes.', error);
+			recordFailure('update', target, 'Could not save draft plan changes.', error);
 		}
 	}
 
@@ -153,10 +153,10 @@
 			loadIssues = onloadscenario(body.scenario);
 			operationState = completeScenarioOperation(
 				operation,
-				operation === 'recovery' ? 'Saved version restored' : 'Scenario loaded'
+				operation === 'recovery' ? 'Saved version restored' : 'Draft plan loaded'
 			);
 		} catch (error) {
-			recordFailure(operation, stored, 'Could not load scenario.', error);
+			recordFailure(operation, stored, 'Could not load draft plan.', error);
 		}
 	}
 
@@ -173,9 +173,9 @@
 			if (association?.id === stored.id) onassociationchange(associateSavedScenario(body.scenario));
 			renameId = null;
 			await refresh();
-			operationState = completeScenarioOperation('rename', 'Scenario renamed');
+			operationState = completeScenarioOperation('rename', 'Draft plan renamed');
 		} catch (error) {
-			recordFailure('rename', stored, 'Could not rename scenario.', error);
+			recordFailure('rename', stored, 'Could not rename draft plan.', error);
 		}
 	}
 
@@ -186,7 +186,7 @@
 			const copyName = `${body.scenario.name} — Copy`.slice(0, 80);
 			await createSaved(copyName, body.scenario.moves, false, 'duplicate', stored);
 		} catch (error) {
-			recordFailure('duplicate', stored, 'Could not duplicate scenario.', error);
+			recordFailure('duplicate', stored, 'Could not duplicate draft plan.', error);
 		}
 	}
 
@@ -201,9 +201,9 @@
 			if (association?.id === stored.id) onassociationchange(null);
 			deleteId = null;
 			await refresh();
-			operationState = completeScenarioOperation('delete', 'Scenario deleted');
+			operationState = completeScenarioOperation('delete', 'Draft plan deleted');
 		} catch (error) {
-			recordFailure('delete', stored, 'Could not delete scenario.', error);
+			recordFailure('delete', stored, 'Could not delete draft plan.', error);
 		}
 	}
 
@@ -224,11 +224,11 @@
 <section class="saved" aria-labelledby="saved-title">
 	<div class="saved-heading">
 		<div>
-			<p class="eyebrow font-mono">Saved scenarios</p>
-			<h3 id="saved-title">Planning library</h3>
+			<p class="eyebrow font-mono">Saved draft plans</p>
+			<h3 id="saved-title">Draft plan library</h3>
 		</div>
 		{#if moves.length > 0 && !association}
-			<button type="button" onclick={openSave}>Save scenario</button>
+			<button type="button" onclick={openSave}>Save draft plan</button>
 		{:else if association && dirty}
 			<button type="button" onclick={saveChanges} disabled={busyOperation !== null}
 				>Save changes</button
@@ -242,7 +242,7 @@
 				: ''}
 		</p>{/if}
 	{#if loadIssues && loadIssues.skippedCount > 0}<div class="replace">
-			<strong>Saved scenario compatibility issues</strong>
+			<strong>Saved draft plan compatibility issues</strong>
 			<p>
 				{loadIssues.appliedCount} moves applied · {loadIssues.skippedCount} moves skipped because courses
 				or semesters are unavailable.
@@ -254,7 +254,7 @@
 				createSaved();
 			}}
 		>
-			<label for="scenario-name">Scenario name</label><input
+			<label for="scenario-name">Draft plan name</label><input
 				id="scenario-name"
 				bind:value={name}
 				maxlength="80"
@@ -274,7 +274,7 @@
 		>
 			<strong
 				>{operationState.conflict
-					? `${operationState.scenario?.name ?? 'This scenario'} changed elsewhere.`
+					? `${operationState.scenario?.name ?? 'This draft plan'} changed elsewhere.`
 					: operationState.message}</strong
 			>
 			{#if operationState.operation !== 'list'}<p>
@@ -303,19 +303,19 @@
 					>{/if}{/if}
 		</div>{/if}
 	{#if pendingLoad}<div class="replace">
-			<strong>Replace the current scenario?</strong>
+			<strong>Replace the current draft plan?</strong>
 			<p>Your unsaved planning changes will be discarded.</p>
 			<button type="button" onclick={() => load(pendingLoad!, true)}>Replace</button><button
 				type="button"
 				onclick={() => (pendingLoad = null)}>Cancel</button
 			>
 		</div>{/if}
-	{#if status === 'loading'}<p aria-live="polite">Loading saved scenarios…</p>
+	{#if status === 'loading'}<p aria-live="polite">Loading saved draft plans…</p>
 	{:else if status === 'error'}{:else if scenarios.length === 0}<p>
-			No saved scenarios yet.<br />Create a planning scenario, then save it here.
+			No saved draft plans yet.<br />Make a course move, then save the draft here.
 		</p>
 	{:else}<details open>
-			<summary>{scenarios.length} saved scenario{scenarios.length === 1 ? '' : 's'}</summary>
+			<summary>{scenarios.length} saved draft plan{scenarios.length === 1 ? '' : 's'}</summary>
 			<ul>
 				{#each scenarios as stored (stored.id)}<li>
 						<div>
@@ -331,7 +331,7 @@
 									rename(stored);
 								}}
 							>
-								<label for={`rename-${stored.id}`}>Scenario name</label><input
+								<label for={`rename-${stored.id}`}>Draft plan name</label><input
 									id={`rename-${stored.id}`}
 									bind:value={renameName}
 									maxlength="80"
@@ -342,7 +342,7 @@
 						{:else if deleteId === stored.id}<div class="delete-confirm">
 								<strong>Delete “{stored.name}”?</strong>
 								<p>
-									This removes the saved scenario. Your current on-screen plan will remain open.
+									This removes the saved draft plan. Your current on-screen plan will remain open.
 								</p>
 								<button type="button" onclick={() => remove(stored)}>Delete</button><button
 									type="button"

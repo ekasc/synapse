@@ -318,25 +318,21 @@ export async function _processJob(binding: D1Database, jobId: string) {
 			delivery: result.briefing.delivery.text,
 			assessments: result.briefing.assessments.text
 		};
-		const supportedFields = SUPPORTED_FIELD_LABELS.filter(
-			({ key }) => supportedFieldValues[key]?.trim()
+		const supportedFields = SUPPORTED_FIELD_LABELS.filter(({ key }) =>
+			supportedFieldValues[key]?.trim()
 		).length;
-		if (result.briefing.modelUsed === 'synthesis-unavailable' || supportedFields === 0) {
-			const missing =
-				result.briefing.modelUsed === 'synthesis-unavailable'
-					? 'all core fields'
-					: SUPPORTED_FIELD_LABELS.filter(
-							({ key }) => !supportedFieldValues[key]?.trim()
-						)
-							.map((f) => f.label)
-							.join(', ');
-			const suggestion = result.briefing.modelUsed === 'synthesis-unavailable'
-				? 'Try again, or refine the search with a professor name or institution.'
-				: `Missing: ${missing}. Try adding a professor name or institution to narrow the search.`;
+		// The pipeline only creates synthesis-unavailable after verifying the exact course against
+		// an admissible official source. Publish that sparse result so users retain the verified
+		// identity and an explicit missing-evidence state when provider JSON cannot be consumed.
+		// A nominal synthesis with no supported fields is still rejected as malformed output.
+		if (supportedFields === 0 && result.briefing.modelUsed !== 'synthesis-unavailable') {
+			const missing = SUPPORTED_FIELD_LABELS.filter(({ key }) => !supportedFieldValues[key]?.trim())
+				.map((field) => field.label)
+				.join(', ');
 			await runner.failJob(
 				jobId,
 				'INSUFFICIENT_EVIDENCE',
-				`Research did not produce supported course details. ${suggestion} Your existing briefing was kept unchanged.`,
+				`Research did not produce supported course details. Missing: ${missing}. Try adding a professor name or institution to narrow the search. Your existing briefing was kept unchanged.`,
 				leaseToken
 			);
 			return;

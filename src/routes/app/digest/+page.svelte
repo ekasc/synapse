@@ -648,11 +648,17 @@
 			if (!response.ok || !result.ok || !result.digest) {
 				throw new Error(result.error ?? 'Could not digest transcript');
 			}
-			backendDigest = result.digest;
+			const importedDigest: AcademicDigest = {
+				...result.digest,
+				courses: Array.isArray(result.digest.courses) ? result.digest.courses : [],
+				trend: Array.isArray(result.digest.trend) ? result.digest.trend : [],
+				insights: Array.isArray(result.digest.insights) ? result.digest.insights : []
+			};
+			backendDigest = importedDigest;
 			performanceTermTouched = false;
 			selectedPerformanceTerm =
-				result.digest.trend[result.digest.trend.length - 1]?.term ??
-				result.digest.courses[result.digest.courses.length - 1]?.term ??
+				importedDigest.trend.at(-1)?.term ??
+				importedDigest.courses.at(-1)?.term ??
 				selectedPerformanceTerm;
 			activeDigestTab = 'gpa';
 		} catch (error) {
@@ -677,9 +683,15 @@
 			if (!response.ok || !result.ok || !result.digest) {
 				throw new Error(result.error ?? 'Could not reset academic progress import');
 			}
-			backendDigest = result.digest;
+			const resetDigest: AcademicDigest = {
+				...result.digest,
+				courses: Array.isArray(result.digest.courses) ? result.digest.courses : [],
+				trend: Array.isArray(result.digest.trend) ? result.digest.trend : [],
+				insights: Array.isArray(result.digest.insights) ? result.digest.insights : []
+			};
+			backendDigest = resetDigest;
 			performanceTermTouched = false;
-			selectedPerformanceTerm = result.digest.trend[result.digest.trend.length - 1]?.term ?? '';
+			selectedPerformanceTerm = resetDigest.trend.at(-1)?.term ?? '';
 			selectedHistoryCourseId = null;
 			activeDigestTab = 'gpa';
 		} catch (error) {

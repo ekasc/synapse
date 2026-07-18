@@ -523,12 +523,31 @@ export function evaluateCourseIdentity(
 			code: 'CONFLICTING_CANONICAL_TITLES',
 			candidates: resolved.candidates
 		};
-	const hasCode = official.some((source) =>
+	const codeSource = official.find((source) =>
 		courseCodePattern(request.courseCode).test(`${source.title} ${source.excerpt}`)
 	);
+	// A search result from the verified institution that names the exact course code is enough
+	// to publish a sparse briefing when page hydration or title extraction fails. We keep all
+	// optional fields missing and use the requested name only as a display fallback.
+	if (codeSource) {
+		const normalizedCode = normalizeCourseCode(request.courseCode);
+		const requestedName = request.courseName?.trim();
+		return {
+			status: 'verified',
+			course: {
+				institution: institution.name,
+				courseCode: normalizedCode,
+				canonicalTitle: requestedName ? `${normalizedCode} ${requestedName}` : normalizedCode,
+				canonicalUrl: codeSource.url,
+				sourceId: codeSource.id,
+				status: 'verified',
+				candidates: resolved.candidates
+			}
+		};
+	}
 	return {
 		status: 'rejected',
-		code: hasCode ? 'CANONICAL_TITLE_NOT_FOUND' : 'EXACT_COURSE_CODE_NOT_FOUND',
+		code: codeSource ? 'CANONICAL_TITLE_NOT_FOUND' : 'EXACT_COURSE_CODE_NOT_FOUND',
 		candidates: resolved.candidates
 	};
 }

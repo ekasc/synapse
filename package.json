@@ -37,6 +37,7 @@
 		"@sveltejs/adapter-cloudflare": "^7.2.9",
 		"@sveltejs/kit": "^2.66.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^24.13.2",
 		"@vitest/browser-playwright": "^4.1.9",
 		"drizzle-kit": "^0.31.10",
@@ -51,6 +52,7 @@
 		"prettier-plugin-tailwindcss": "^0.7.4",
 		"svelte": "^5.56.3",
 		"svelte-check": "^4.6.0",
+		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.61.1",
 		"vite": "^8.0.16",
@@ -64,10 +66,12 @@
 		"@fontsource/kalam": "^5.2.8",
 		"@fontsource/source-serif-4": "^5.2.9",
 		"bits-ui": "^2.18.1",
+		"clsx": "^2.1.1",
 		"jszip": "^3.10.1",
 		"mammoth": "^1.12.0",
 		"openai": "^6.44.0",
 		"pdf-parse": "^2.4.5",
-		"pdfjs-dist": "^6.0.227"
+		"pdfjs-dist": "^6.0.227",
+		"tailwind-merge": "^3.6.0"
 	}
 }

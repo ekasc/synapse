@@ -3,7 +3,7 @@ import { createDb } from '$lib/server/db/d1';
 import type { CalendarEventRow } from '$lib/server/db/d1';
 import type { RequestEvent } from './$types';
 
-type CourseColor = { code: string; color: string; name: string };
+type CourseColor = { id: string; code: string; color: string; name: string };
 
 export async function load(event: RequestEvent) {
 	const courses = await getCourses();
@@ -19,6 +19,7 @@ export async function load(event: RequestEvent) {
 	}
 
 	const courseColors: CourseColor[] = courses.map((c) => ({
+		id: c.id,
 		code: c.code,
 		color: c.color ?? '#1a1814',
 		name: c.name

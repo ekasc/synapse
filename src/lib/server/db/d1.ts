@@ -72,6 +72,7 @@ export type Briefing = {
 
 export type CalendarEventRow = {
 	id: string;
+	courseId: string | null;
 	courseCode: string;
 	title: string;
 	type: string;
@@ -326,6 +327,7 @@ export function createDb(binding: D1Database) {
 			const rows = await db.select().from(ce).all();
 			return rows.map((r: Record<string, unknown>) => ({
 				id: String(r.id),
+				courseId: r.courseId ? String(r.courseId) : null,
 				courseCode: String(r.courseCode),
 				title: String(r.title),
 				type: String(r.type),
@@ -347,6 +349,7 @@ export function createDb(binding: D1Database) {
 			const now = new Date().toISOString();
 			await db.insert(ce).values({
 				id: ev.id,
+				courseId: ev.courseId ?? null,
 				courseCode: ev.courseCode,
 				title: ev.title,
 				type: ev.type,

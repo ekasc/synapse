@@ -44,9 +44,9 @@
 			class="inspect-button font-mono"
 			onclick={() => oninspect(course.id)}
 			aria-pressed={selected}
-			aria-label={`${selected ? 'Clear inspection for' : 'Inspect'} ${course.code}`}
+			aria-label={`${selected ? 'Close plan details for' : 'Check plan for'} ${course.code}`}
 		>
-			{selected ? 'Selected' : 'View'}
+			{selected ? 'Close' : 'Check'}
 		</button>
 	</div>
 </article>

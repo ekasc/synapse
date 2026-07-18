@@ -373,6 +373,18 @@ export const BRIEFING_V4_JSON_SCHEMA = {
 				sourceIds: { type: 'array', items: { type: 'string' }, maxItems: 12 }
 			}
 		},
+		studentSentiment: {
+			type: 'object',
+			additionalProperties: false,
+			required: ['positives', 'concerns', 'sampleSize', 'courseSpecific', 'sourceIds'],
+			properties: {
+				positives: { type: 'array', items: { type: 'string' }, maxItems: 30 },
+				concerns: { type: 'array', items: { type: 'string' }, maxItems: 30 },
+				sampleSize: { type: ['integer', 'null'] },
+				courseSpecific: { type: 'boolean' },
+				sourceIds: { type: 'array', items: { type: 'string' }, maxItems: 12 }
+			}
+		},
 		contradictions: sectionSchema,
 		missing: sectionSchema,
 		summary: sectionSchema,

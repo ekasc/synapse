@@ -27,14 +27,20 @@
 	const blocking = $derived(getBlockingPrerequisites(course.id, courses, semesters, relations));
 	const blockingById = $derived(new Map(blocking.map((item) => [item.courseId, item.reason])));
 	const semester = $derived(semestersById.get(course.semesterId));
-	const status = $derived(cycle ? 'Invalid graph' : blocking.length > 0 ? 'Blocked' : 'Ready');
+	const status = $derived(
+		cycle
+			? 'Circular prerequisite'
+			: blocking.length > 0
+				? 'Needs rescheduling'
+				: 'Fits current plan'
+	);
 	const eligibility = $derived(
 		getEarliestEligibleSemester(course.id, courses, semesters, relations)
 	);
 
 	function prerequisiteState(courseId: string) {
 		const reason = blockingById.get(courseId);
-		if (!reason) return 'completed earlier';
+		if (!reason) return 'scheduled earlier';
 		const labels: Record<BlockingReason, string> = {
 			missing: 'course record missing',
 			unplaced: 'not assigned to a semester',
@@ -49,9 +55,9 @@
 	}
 
 	function scheduleStatusLabel(scheduleStatus: string) {
-		if (scheduleStatus === 'too-early') return 'Scheduled too early';
-		if (scheduleStatus === 'valid') return 'Schedule valid';
-		if (scheduleStatus === 'later-than-necessary') return 'Eligible earlier';
+		if (scheduleStatus === 'too-early') return 'Before a prerequisite';
+		if (scheduleStatus === 'valid') return 'Fits current plan';
+		if (scheduleStatus === 'later-than-necessary') return 'Could be scheduled earlier';
 		return 'Not currently scheduled';
 	}
 </script>
@@ -66,7 +72,8 @@
 	</header>
 
 	<section>
-		<h3>Prerequisites</h3>
+		<h3>Requires</h3>
+		<p class="section-help">Courses that must be scheduled before this course.</p>
 		{#if prerequisites.length > 0}
 			<ul>
 				{#each prerequisites as courseId (courseId)}
@@ -79,12 +86,13 @@
 				{/each}
 			</ul>
 		{:else}
-			<p>No prerequisites</p>
+			<p>No prerequisite relationships</p>
 		{/if}
 	</section>
 
 	<section>
-		<h3>Unlocks</h3>
+		<h3>Required for</h3>
+		<p class="section-help">Courses that require this course first.</p>
 		{#if dependants.length > 0}
 			<ul>
 				{#each dependants as courseId (courseId)}
@@ -92,27 +100,29 @@
 				{/each}
 			</ul>
 		{:else}
-			<p>No downstream courses</p>
+			<p>No courses currently require this course</p>
 		{/if}
 	</section>
 
 	<section class:invalid={Boolean(cycle)} class:blocked={blocking.length > 0 && !cycle}>
-		<h3>Status</h3>
+		<h3>Plan check</h3>
 		<strong>{status}</strong>
 		{#if cycle}
-			<p>Invalid prerequisite cycle: {cycle.map(courseLabel).join(' -> ')}</p>
+			<p>Circular relationship: {cycle.map(courseLabel).join(' → ')}</p>
 		{:else if blocking.length > 0}
-			<p>Blocked by {blocking.length} prerequisite{blocking.length === 1 ? '' : 's'}</p>
+			<p>
+				{blocking.length} required course{blocking.length === 1 ? ' is' : 's are'} not scheduled earlier.
+			</p>
 		{:else}
-			<p>Every accepted prerequisite is scheduled earlier.</p>
+			<p>Every confirmed prerequisite is scheduled earlier.</p>
 		{/if}
 	</section>
 
 	<section class="eligibility" class:invalid={eligibility.status === 'cycle'}>
-		<h3>Earliest eligible semester</h3>
+		<h3>Earliest valid placement</h3>
 		{#if eligibility.status === 'already-eligible'}
-			<strong>Already eligible</strong>
-			<p>This course has no accepted prerequisites.</p>
+			<strong>No prerequisite constraint</strong>
+			<p>This course has no confirmed prerequisites in the map.</p>
 		{:else if eligibility.status === 'eligible'}
 			<strong class="eligibility-term">{eligibility.semesterLabel}</strong>
 			<p>
@@ -127,17 +137,17 @@
 				{#if eligibility.currentSemesterLabel}
 					<p>Current: {eligibility.currentSemesterLabel}</p>
 				{/if}
-				<p>Earliest valid: {eligibility.semesterLabel}</p>
+				<p>Earliest placement: {eligibility.semesterLabel}</p>
 			</div>
 		{:else if eligibility.status === 'outside-plan'}
-			<strong>No eligible semester in the current plan</strong>
+			<strong>No valid placement in the current plan</strong>
 			<p>Add a semester after {eligibility.latestPrerequisiteSemesterLabel}.</p>
 		{:else if eligibility.status === 'unknown'}
-			<strong>Unable to calculate</strong>
-			<p>A prerequisite course is missing or unplaced.</p>
+			<strong>Cannot determine placement</strong>
+			<p>A prerequisite course is missing or not scheduled.</p>
 		{:else}
-			<strong>Invalid prerequisite graph</strong>
-			<p>A prerequisite cycle prevents calculation.</p>
+			<strong>Circular prerequisite relationship</strong>
+			<p>The cycle must be corrected before placement can be checked.</p>
 		{/if}
 	</section>
 
@@ -201,6 +211,11 @@
 	.scheduled {
 		margin-top: 0.4rem;
 		color: var(--ink-soft);
+	}
+
+	.section-help {
+		margin-bottom: 0.45rem;
+		color: var(--ink-faint);
 	}
 
 	.secondary {

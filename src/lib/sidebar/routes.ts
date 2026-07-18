@@ -5,9 +5,8 @@ type SidebarHref =
 	| '/app/calendar'
 	| '/app/timer'
 	| '/app/chat'
-	| '/app/brief'
 	| '/app/digest'
-	| '/app/syllabus'
+	| '/app/brief'
 	| '/app/activity';
 
 export interface SidebarRoute {
@@ -32,8 +31,7 @@ export const routes: SidebarRoute[] = [
 	{ href: '/app/calendar', label: 'Calendar' },
 	{ href: '/app/timer', label: 'Study Timer' },
 	{ href: '/app/chat', label: 'Assistant' },
-	{ href: '/app/digest', label: 'Grade analytics' },
-	{ href: '/app/syllabus', label: 'Syllabus parser' },
+	{ href: '/app/digest', label: 'Weekly Digest' },
 	{ href: '/app/brief', label: 'Research' },
 	{ href: '/app/activity', label: 'Activity' }
 ];

@@ -3,6 +3,14 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
+	import {
+		gradeWeightByCourse,
+		isEventOverdue,
+		shiftCalendarDate,
+		upcomingEvents,
+		weekDates,
+		type CalendarDate
+	} from '$lib/calendar/domain';
 	import type { CalendarEventRow } from '$lib/server/db/d1';
 
 	type CalendarEvent = CalendarEventRow & { course?: string; type: string };
@@ -14,7 +22,7 @@
 	}: {
 		data: {
 			events?: CalendarEvent[];
-			courseColors?: { code: string; color: string; name: string }[];
+			courseColors?: { id: string; code: string; color: string; name: string }[];
 		};
 	} = $props();
 	const courseColors = $derived(data.courseColors ?? []);
@@ -23,6 +31,7 @@
 	const today = now.getDate();
 	const currentMonthIdx = now.getMonth();
 	const currentYear = now.getFullYear();
+	const currentDate: CalendarDate = { year: currentYear, month: currentMonthIdx, date: today };
 
 	let viewYear = $state(currentYear);
 	let viewMonth = $state(currentMonthIdx);
@@ -61,7 +70,6 @@
 			addingEvent = true;
 		}
 	});
-	let showCourseFilter = $state(false);
 	let filterCourses = $state<string[]>([]);
 	let transitioning = $state(false);
 
@@ -168,17 +176,7 @@
 	const selectedDayEvents = $derived(selectedDay ? eventsForDay(selectedDay) : []);
 
 	// ── Intelligence: crunch, stakes, gaps ──
-	const upcoming = $derived(
-		filteredEvents
-			.filter((e) => {
-				if (e.year > currentYear) return true;
-				if (e.year < currentYear) return false;
-				if (e.month > currentMonthIdx) return true;
-				if (e.month < currentMonthIdx) return false;
-				return e.date >= today;
-			})
-			.sort((a, b) => a.year - b.year || a.month - b.month || a.date - b.date)
-	);
+	const upcoming = $derived(upcomingEvents(filteredEvents, currentDate));
 
 	const crunchPeriods = $derived.by(() => {
 		const periods: {
@@ -241,20 +239,18 @@
 	});
 
 	const gradeStakes = $derived(upcoming.filter((e) => e.gradeWeight != null && e.gradeWeight > 0));
-	const totalWeight = $derived(gradeStakes.reduce((s, e) => s + (e.gradeWeight ?? 0), 0));
-	const atRiskCount = $derived(events.filter((e) => e.status === 'at_risk').length);
+	const gradeStakesByCourse = $derived(gradeWeightByCourse(gradeStakes));
+	const atRiskCount = $derived(filteredEvents.filter((e) => e.status === 'at_risk').length);
 	const overdueCount = $derived(
-		filteredEvents.filter((e) => {
-			if (e.year > currentYear) return false;
-			if (e.year < currentYear) return true;
-			if (e.month > currentMonthIdx) return false;
-			if (e.month < currentMonthIdx) return true;
-			return e.date < today;
-		}).length
+		filteredEvents.filter((e) => isEventOverdue(e, currentDate)).length
 	);
 
-	function isOverdue(day: number) {
-		return isCurrentMonth && day < today;
+	function eventIsOverdue(event: CalendarEvent) {
+		return isEventOverdue(event, currentDate);
+	}
+
+	function dayHasOverdueEvent(day: number) {
+		return eventsForDay(day).some(eventIsOverdue);
 	}
 	function isSelectedDay(day: number) {
 		return selectedDay === day;
@@ -266,16 +262,24 @@
 	}
 
 	// ── Week view ──
-	const weekStart = $derived(
-		Math.max(1, (focusedDay ?? today) - new Date(viewYear, viewMonth, focusedDay ?? today).getDay())
-	);
 	const weekDays = $derived(
-		Array.from({ length: 7 }, (_, i) => Math.min(weekStart + i, daysInMonth))
+		weekDates({ year: viewYear, month: viewMonth, date: focusedDay ?? today })
 	);
-	function weekEvents(day: number): CalendarEvent[] {
+	function weekEvents(day: CalendarDate): CalendarEvent[] {
 		return filteredEvents.filter(
-			(e) => e.month === viewMonth && e.year === viewYear && e.date === day
+			(e) => e.month === day.month && e.year === day.year && e.date === day.date
 		);
+	}
+
+	function shiftWeek(days: -7 | 7) {
+		const target = shiftCalendarDate(
+			{ year: viewYear, month: viewMonth, date: focusedDay ?? today },
+			days
+		);
+		viewYear = target.year;
+		viewMonth = target.month;
+		focusedDay = target.date;
+		selectedDay = target.date;
 	}
 
 	// ── Day view ──
@@ -341,60 +345,124 @@
 	// ── CRUD ──
 	let addingEvent = $state(false);
 	let addFormTitle = $state('');
+	let addFormCourseId = $state('');
 	let addFormCourse = $state('');
 	let addFormType = $state('assignment');
 	let addFormTime = $state('');
 	let addFormWeight = $state('');
+	let editingEventId = $state<string | null>(null);
+	let mutationError = $state<string | null>(null);
+	let savingEvent = $state(false);
+
+	function resetEventForm() {
+		addFormTitle = '';
+		addFormCourseId = '';
+		addFormCourse = '';
+		addFormType = 'assignment';
+		addFormTime = '';
+		addFormWeight = '';
+		editingEventId = null;
+		addingEvent = false;
+	}
+
+	function openAddEvent(day = focusedDay ?? today) {
+		selectedDay = day;
+		focusedDay = day;
+		editingEventId = null;
+		mutationError = null;
+		addingEvent = true;
+	}
+
+	function openEditEvent(event: CalendarEvent) {
+		viewYear = event.year;
+		viewMonth = event.month;
+		selectedDay = event.date;
+		focusedDay = event.date;
+		editingEventId = event.id;
+		addFormTitle = event.title;
+		addFormCourseId = event.courseId ?? '';
+		addFormCourse = event.courseCode;
+		addFormType = event.type;
+		addFormTime = event.time ?? '';
+		addFormWeight = event.gradeWeight == null ? '' : String(event.gradeWeight);
+		mutationError = null;
+		addingEvent = true;
+	}
 
 	async function addEventSubmit() {
-		if (!addFormTitle.trim() || !addFormCourse.trim() || selectedDay === null) return;
+		if (!addFormTitle.trim() || !addFormCourse.trim() || selectedDay === null || savingEvent)
+			return;
+		savingEvent = true;
+		mutationError = null;
 		try {
-			const res = await fetch('/api/calendar/events', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					courseCode: addFormCourse.trim(),
-					title: addFormTitle.trim(),
-					type: addFormType,
-					date: selectedDay,
-					month: viewMonth,
-					year: viewYear,
-					time: addFormTime.trim() || undefined,
-					gradeWeight: addFormWeight.trim() ? parseInt(addFormWeight.trim()) : undefined
-				})
-			});
-			if (res.ok) {
-				addFormTitle = '';
-				addFormCourse = '';
-				addFormTime = '';
-				addFormWeight = '';
-				addingEvent = false;
-				await invalidateAll();
+			const res = await fetch(
+				editingEventId
+					? `/api/calendar/events/${encodeURIComponent(editingEventId)}`
+					: '/api/calendar/events',
+				{
+					method: editingEventId ? 'PUT' : 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						courseId: addFormCourseId,
+						courseCode: addFormCourse.trim(),
+						title: addFormTitle.trim(),
+						type: addFormType,
+						date: selectedDay,
+						month: viewMonth,
+						year: viewYear,
+						time: addFormTime.trim() || undefined,
+						gradeWeight: addFormWeight.trim() ? parseInt(addFormWeight.trim()) : undefined
+					})
+				}
+			);
+			if (!res.ok) {
+				const body = (await res.json().catch(() => null)) as { error?: string } | null;
+				mutationError = body?.error ?? 'Could not save this event.';
+				return;
 			}
-		} catch (err) {
-			console.error('Failed to add event:', err);
+			resetEventForm();
+			await invalidateAll();
+		} catch {
+			mutationError = 'Network error. Is the server running?';
+		} finally {
+			savingEvent = false;
 		}
 	}
 
 	async function updateEventStatus(id: string, status: string) {
+		mutationError = null;
 		try {
-			await fetch(`/api/calendar/events/${encodeURIComponent(id)}`, {
+			const response = await fetch(`/api/calendar/events/${encodeURIComponent(id)}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ status })
 			});
+			if (!response.ok) {
+				const body = (await response.json().catch(() => null)) as { error?: string } | null;
+				mutationError = body?.error ?? 'Could not update this event.';
+				return;
+			}
 			await invalidateAll();
-		} catch (err) {
-			console.error('Failed to update event:', err);
+		} catch {
+			mutationError = 'Network error. Is the server running?';
 		}
 	}
 
 	async function deleteCalendarEvent(id: string) {
+		if (!confirm('Delete this calendar event?')) return;
+		mutationError = null;
 		try {
-			await fetch(`/api/calendar/events/${encodeURIComponent(id)}`, { method: 'DELETE' });
+			const response = await fetch(`/api/calendar/events/${encodeURIComponent(id)}`, {
+				method: 'DELETE'
+			});
+			if (!response.ok) {
+				const body = (await response.json().catch(() => null)) as { error?: string } | null;
+				mutationError = body?.error ?? 'Could not delete this event.';
+				return;
+			}
 			await invalidateAll();
-		} catch (err) {
-			console.error('Failed to delete event:', err);
+		} catch {
+			mutationError = 'Network error. Is the server running?';
 		}
 	}
 
@@ -461,41 +529,90 @@
 		</div>
 	</div>
 
-	<!-- Filter chips -->
-	{#if allCourseCodes.length > 1}
-		<div class="filter-bar">
-			<button
-				class="filter-toggle font-mono"
-				onclick={() => (showCourseFilter = !showCourseFilter)}
-				aria-label="Toggle course filter"
-			>
-				{hasActiveFilter ? `${filterCourses.length} filtered` : 'All courses'}
-				{showCourseFilter ? '▲' : '▼'}
-			</button>
-			{#if hasActiveFilter}<button class="filter-clear font-mono" onclick={clearFilters}
-					>clear</button
-				>{/if}
-		</div>
-		{#if showCourseFilter}
-			<div class="filter-chips">
-				<button
-					class="filter-chip font-mono"
-					class:filter-chip-active={!hasActiveFilter}
-					onclick={clearFilters}>All</button
-				>
-				{#each allCourseCodes as code (code)}
-					<button
-						class="filter-chip font-mono"
-						class:filter-chip-active={filterCourses.includes(code)}
-						onclick={() => toggleCourseFilter(code)}>{code}</button
-					>
-				{/each}
-			</div>
-		{/if}
-	{/if}
-
 	<div class="cal-layout">
 		<div class="cal-main" class:cal-fade={transitioning}>
+			{#if mutationError}
+				<p class="calendar-error font-mono" role="alert">{mutationError}</p>
+			{/if}
+
+			{#if addingEvent && selectedDay !== null}
+				<section class="calendar-editor surface-polaroid" aria-labelledby="calendar-editor-title">
+					<div class="calendar-editor-head">
+						<div>
+							<p class="font-mono">{editingEventId ? 'Edit event' : 'Add event'}</p>
+							<h2 id="calendar-editor-title">
+								{new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('en-US', {
+									weekday: 'long',
+									month: 'long',
+									day: 'numeric',
+									year: 'numeric'
+								})}
+							</h2>
+						</div>
+						<button
+							type="button"
+							class="cal-popover-close"
+							onclick={resetEventForm}
+							aria-label="Close event editor">×</button
+						>
+					</div>
+					<div class="cal-popover-form">
+						<select
+							class="cal-popover-select"
+							bind:value={addFormCourseId}
+							onchange={() => {
+								addFormCourse =
+									courseColors.find((course) => course.id === addFormCourseId)?.code ?? '';
+							}}
+							required
+						>
+							<option value="">Choose a course</option>
+							{#each courseColors as course (course.id)}
+								<option value={course.id}>{course.code} · {course.name}</option>
+							{/each}
+						</select>
+						<input
+							type="text"
+							class="cal-popover-input"
+							placeholder="Event title"
+							bind:value={addFormTitle}
+							maxlength="160"
+						/>
+						<div class="cal-popover-form-row">
+							<select class="cal-popover-select" bind:value={addFormType}>
+								<option value="assignment">Assignment</option>
+								<option value="midterm">Midterm</option>
+								<option value="final">Final</option>
+								<option value="quiz">Quiz</option>
+								<option value="lecture">Lecture</option>
+								<option value="study_session">Study session</option>
+							</select>
+							<input type="time" class="cal-popover-input" bind:value={addFormTime} />
+							<input
+								type="number"
+								class="cal-popover-input"
+								placeholder="Weight %"
+								bind:value={addFormWeight}
+								min="0"
+								max="100"
+							/>
+						</div>
+						<div class="calendar-editor-actions">
+							<button
+								class="cal-popover-form-btn"
+								onclick={addEventSubmit}
+								disabled={savingEvent || !addFormCourseId || !addFormTitle.trim()}
+							>
+								{savingEvent ? 'Saving…' : editingEventId ? 'Save changes' : 'Add event'}
+							</button>
+							<button type="button" class="cal-popover-add font-mono" onclick={resetEventForm}
+								>Cancel</button
+							>
+						</div>
+					</div>
+				</section>
+			{/if}
+
 			{#if viewMode === 'month'}
 				<div class="cal-grid surface-polaroid">
 					<div class="cal-header">
@@ -579,7 +696,7 @@
 									<button
 										class="cal-day"
 										class:cal-today={isCurrentMonth && day === today}
-										class:cal-overdue={isOverdue(day)}
+										class:cal-overdue={dayHasOverdueEvent(day)}
 										class:cal-day-selected={isSelectedDay(day)}
 										class:cal-day-focused={focusedDay === day}
 										role="gridcell"
@@ -642,10 +759,7 @@
 							</div>
 							<div class="cal-popover-list">
 								{#each selectedDayEvents as ev (ev.id)}
-									<div
-										class="cal-popover-item"
-										class:cal-popover-item-overdue={isOverdue(selectedDay!)}
-									>
+									<div class="cal-popover-item" class:cal-popover-item-overdue={eventIsOverdue(ev)}>
 										<span class="cal-popover-dot" style="background: {courseColor(ev.courseCode)}"
 										></span>
 										<div class="cal-popover-item-body">
@@ -655,6 +769,11 @@
 													<span class="cal-popover-type font-mono">{typeBadge(ev.type)}</span>
 												</span>
 												<div class="cal-popover-item-actions">
+													<button
+														class="cal-popover-action-btn"
+														onclick={() => openEditEvent(ev)}
+														title="Edit event">edit</button
+													>
 													{#if ev.status !== 'completed'}
 														<button
 															class="cal-popover-action-btn"
@@ -699,52 +818,11 @@
 							<div class="cal-popover-actions">
 								<button
 									class="cal-popover-add font-mono"
-									onclick={() => (addingEvent = !addingEvent)}
+									onclick={() => openAddEvent(selectedDay!)}
 								>
-									{addingEvent ? 'cancel' : '+ add event'}
+									+ add event
 								</button>
 							</div>
-							{#if addingEvent}
-								<div class="cal-popover-form">
-									<input
-										type="text"
-										class="cal-popover-input"
-										placeholder="Course code (e.g. CSIS 3375)"
-										bind:value={addFormCourse}
-									/>
-									<input
-										type="text"
-										class="cal-popover-input"
-										placeholder="Event title"
-										bind:value={addFormTitle}
-									/>
-									<div class="cal-popover-form-row">
-										<select class="cal-popover-select" bind:value={addFormType}>
-											<option value="assignment">Assignment</option>
-											<option value="midterm">Midterm</option>
-											<option value="final">Final</option>
-											<option value="quiz">Quiz</option>
-											<option value="lecture">Lecture</option>
-											<option value="study_session">Study Session</option>
-										</select>
-										<input
-											type="text"
-											class="cal-popover-input"
-											placeholder="Time"
-											bind:value={addFormTime}
-										/>
-										<input
-											type="number"
-											class="cal-popover-input"
-											placeholder="Weight %"
-											bind:value={addFormWeight}
-											min="0"
-											max="100"
-										/>
-									</div>
-									<button class="cal-popover-form-btn" onclick={addEventSubmit}>Add</button>
-								</div>
-							{/if}
 						</div>
 					{/if}
 				</div>
@@ -754,12 +832,18 @@
 				<div class="surface-polaroid" style="padding: 1.5rem">
 					<div class="cal-header" style="margin-bottom: 0.75rem">
 						<div class="cal-month-nav">
-							<button class="cal-nav-btn font-mono" onclick={prevMonth} aria-label="Previous month"
-								>←</button
+							<button
+								class="cal-nav-btn font-mono"
+								onclick={() => shiftWeek(-7)}
+								aria-label="Previous week">←</button
 							>
-							<span class="cal-month-label font-display" style="cursor: default">{monthName}</span>
-							<button class="cal-nav-btn font-mono" onclick={nextMonth} aria-label="Next month"
-								>→</button
+							<span class="cal-month-label font-display" style="cursor: default"
+								>Week of {MONTHS[weekDays[0].month]} {weekDays[0].date}</span
+							>
+							<button
+								class="cal-nav-btn font-mono"
+								onclick={() => shiftWeek(7)}
+								aria-label="Next week">→</button
 							>
 							<button class="cal-today-btn font-mono" onclick={goToday}>today</button>
 							<button
@@ -776,21 +860,28 @@
 						{#each DAYS_SHORT as day, i (i)}<span class="cal-weekday font-mono">{day}</span>{/each}
 					</div>
 					<div class="cal-week-grid">
-						{#each weekDays as day (day)}
+						{#each weekDays as day (`${day.year}-${day.month}-${day.date}`)}
 							{@const evts = weekEvents(day)}
 							<button
 								class="cal-week-cell"
-								class:cal-today={isCurrentMonth && day === today}
+								class:cal-today={day.year === currentYear &&
+									day.month === currentMonthIdx &&
+									day.date === today}
 								class:cal-week-cell-empty={evts.length === 0}
 								onclick={() => {
+									viewYear = day.year;
+									viewMonth = day.month;
+									focusedDay = day.date;
 									viewMode = 'month';
-									selectDay(day);
+									selectDay(day.date);
 								}}
 							>
 								<div class="cal-week-cell-head">
 									<span class="cal-week-cell-day font-mono"
-										>{DAYS_SHORT[new Date(viewYear, viewMonth, day).getDay()]}</span
-									><span class="cal-week-cell-date font-mono">{day}</span>
+										>{DAYS_SHORT[new Date(day.year, day.month, day.date).getDay()]}</span
+									><span class="cal-week-cell-date font-mono"
+										>{MONTHS[day.month].slice(0, 3)} {day.date}</span
+									>
 								</div>
 								<div class="cal-week-cell-events">
 									{#each evts.slice(0, 2) as ev (ev.id)}
@@ -861,6 +952,9 @@
 									</div>
 									<span class="cal-day-view-item-title">{ev.title}</span>
 									<div class="cal-day-view-item-actions">
+										<button class="cal-day-view-action" onclick={() => openEditEvent(ev)}
+											>edit</button
+										>
 										{#if ev.status !== 'completed'}
 											<button
 												class="cal-day-view-action"
@@ -922,8 +1016,14 @@
 								<span class="crunch-dates font-mono">{cp.start} – {cp.end}</span>
 								<span class="crunch-density">{cp.events.length} events</span>
 							</div>
-							{#if cp.weight > 0}
-								<div class="crunch-weight font-mono">{cp.weight}% of grade at stake</div>
+							{#if cp.weight > 0 && cp.courses.length === 1}
+								<div class="crunch-weight font-mono">
+									{cp.weight}% of {cp.courses[0]} coursework
+								</div>
+							{:else}
+								<div class="crunch-weight font-mono">
+									{cp.events.length} deadlines across {cp.courses.length} courses
+								</div>
 							{/if}
 							<div class="crunch-courses">
 								{#each cp.courses as code (code)}
@@ -942,23 +1042,25 @@
 				</div>
 			{/if}
 
-			<!-- Weight summary -->
-			{#if gradeStakes.length > 0}
-				<SectionHead title="Grade stakes" eyebrow={`${totalWeight}% total`} />
+			<!-- Remaining graded work, kept separate by course because percentages have different denominators. -->
+			{#if gradeStakesByCourse.length > 0}
+				<SectionHead
+					title="Remaining grade stakes"
+					eyebrow={`${gradeStakesByCourse.length} courses`}
+				/>
 				<div class="weight-list">
-					{#each gradeStakes.slice(0, 5) as ev (ev.id)}
+					{#each gradeStakesByCourse.slice(0, 5) as group (group.courseCode)}
 						<div class="weight-item">
 							<div class="weight-bar-track">
 								<div
 									class="weight-bar-fill"
-									style="transform: scaleX({ev.gradeWeight / 100}); background: {courseColor(
-										ev.courseCode
-									)}"
+									style="transform: scaleX({Math.min(group.weight, 100) /
+										100}); background: {courseColor(group.courseCode)}"
 								></div>
 							</div>
 							<div class="weight-info">
-								<span class="weight-title">{ev.title}</span>
-								<span class="weight-meta font-mono">{ev.courseCode} · {ev.gradeWeight}%</span>
+								<span class="weight-title">{group.courseCode}</span>
+								<span class="weight-meta font-mono">{group.weight}% upcoming</span>
 							</div>
 						</div>
 					{/each}
@@ -973,7 +1075,7 @@
 				/>
 				<div class="upcoming-mini-list">
 					{#each upcoming.slice(0, 7) as ev (ev.id)}
-						<div class="upcoming-mini-item" class:upcoming-mini-overdue={isOverdue(ev.date)}>
+						<div class="upcoming-mini-item" class:upcoming-mini-overdue={eventIsOverdue(ev)}>
 							<span class="upcoming-mini-dot" style="background: {courseColor(ev.courseCode)}"
 							></span>
 							<div class="upcoming-mini-body">
@@ -1033,60 +1135,54 @@
 	}
 
 	/* ── Filter ── */
-	.filter-bar {
+	.calendar-error {
+		margin: 0 0 0.75rem;
+		padding: 0.65rem 0.75rem;
+		border-left: 3px solid var(--accent);
+		background: var(--paper-shelf);
+		color: var(--accent);
+		font-size: 0.75rem;
+	}
+
+	.calendar-editor {
+		margin-bottom: 1rem;
+		padding: 1rem;
+	}
+
+	.calendar-editor-head,
+	.calendar-editor-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.calendar-editor-head {
 		margin-bottom: 0.75rem;
 	}
-	.filter-toggle {
-		padding: 0.25rem 0.5rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink-soft);
-		cursor: pointer;
-		font-size: 0.7rem;
+
+	.calendar-editor-head p,
+	.calendar-editor-head h2 {
+		margin: 0;
 	}
-	.filter-toggle:hover {
-		border-color: var(--ink);
-		color: var(--ink);
-	}
-	.filter-clear {
-		padding: 0.25rem 0.5rem;
-		border: none;
-		background: none;
-		color: var(--accent);
-		cursor: pointer;
-		font-size: 0.7rem;
-	}
-	.filter-chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.3rem;
-		margin-bottom: 0.75rem;
-		padding: 0.5rem 0.65rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-	}
-	.filter-chip {
-		padding: 0.2rem 0.5rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink-soft);
-		cursor: pointer;
+
+	.calendar-editor-head p {
+		color: var(--ink-faint);
 		font-size: 0.65rem;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
 	}
-	.filter-chip:hover {
-		border-color: var(--ink);
-		color: var(--ink);
+
+	.calendar-editor-head h2 {
+		margin-top: 0.2rem;
+		font-family: var(--font-display);
+		font-size: 1.05rem;
 	}
-	.filter-chip-active {
-		background: var(--highlight) !important;
-		border-color: var(--ink) !important;
-		color: var(--ink) !important;
-		font-weight: 500;
+
+	.calendar-editor-actions {
+		justify-content: flex-start;
 	}
+
 	.filter-bar-sidebar {
 		display: flex;
 		flex-wrap: wrap;

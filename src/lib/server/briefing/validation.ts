@@ -45,12 +45,169 @@ function isOfficialInstitutionSource(source: EvidenceSource, request: BriefingRe
 function fail(message: string): never {
 	throw new ValidationError(message);
 }
+function sourceMentionsPerson(source: EvidenceSource, name: string): boolean {
+	const haystack = `${source.title} ${source.excerpt}`.toLocaleLowerCase();
+	const tokens = name
+		.toLocaleLowerCase()
+		.split(/[^\p{L}\p{N}]+/u)
+		.filter((token) => token.length > 1);
+	return tokens.length > 0 && tokens.every((token) => haystack.includes(token));
+}
+
 function sourceMentionsCourse(source: EvidenceSource, courseCode: string): boolean {
 	const [subject, number] = normalizeCourseCode(courseCode).split(' ');
 	return new RegExp(`\\b${subject}\\s*[- ]?\\s*${number}\\b`, 'i').test(
 		`${source.title} ${source.excerpt}`
 	);
 }
+function candidateIds(value: unknown, known: Set<string>): string[] {
+	return Array.isArray(value) ? [...new Set(value.map(String).filter((id) => known.has(id)))] : [];
+}
+
+/** Canonicalizes model output from authoritative evidence before strict admission. */
+export function normalizeSynthesisCandidate(
+	value: Record<string, unknown>,
+	sources: EvidenceSource[],
+	request: BriefingRequest,
+	identity: ResolvedCourse
+): Record<string, unknown> {
+	const candidate = structuredClone(value);
+	const sourceById = new Map(sources.map((source) => [source.id, source]));
+	const known = new Set(sourceById.keys());
+	const catalog = sourceById.get(identity.sourceId)!;
+	const rawIdentity =
+		candidate.identity && typeof candidate.identity === 'object'
+			? (candidate.identity as Record<string, unknown>)
+			: {};
+	candidate.identity = {
+		...rawIdentity,
+		code: identity.courseCode,
+		name: identity.canonicalTitle,
+		institution: identity.institution,
+		officialDomain: catalog.domain,
+		catalogSourceId: identity.sourceId,
+		candidates: identity.candidates,
+		confidence: 'high',
+		verifiedAt:
+			typeof rawIdentity.verifiedAt === 'string' ? rawIdentity.verifiedAt : new Date().toISOString()
+	};
+
+	const rawClaims = Array.isArray(candidate.claims)
+		? (candidate.claims as Array<Record<string, unknown>>)
+		: [];
+	const seenClaims = new Set<string>();
+	candidate.claims = rawClaims.filter((claim) => {
+		const id = String(claim.id ?? '');
+		if (!id || seenClaims.has(id)) return false;
+		seenClaims.add(id);
+		const sourceIds = candidateIds(claim.sourceIds, known);
+		claim.sourceIds = sourceIds;
+		const cited = sourceIds.map((sourceId) => sourceById.get(sourceId)!);
+		if (!cited.length) claim.status = 'unknown';
+		else if (claim.status === 'inferred') {
+			claim.explanation =
+				typeof claim.explanation === 'string' && claim.explanation.trim()
+					? claim.explanation
+					: 'Synthesized from cited evidence.';
+		} else if (cited.every((source) => source.sourceType !== 'official'))
+			claim.status = 'supported_non_official';
+		else if (cited.every((source) => source.currentness === 'historical'))
+			claim.status = 'verified_historical';
+		else if (
+			cited.every((source) => source.sourceType === 'official' && source.currentness === 'current')
+		)
+			claim.status = 'verified_current';
+		else {
+			claim.status = 'inferred';
+			claim.explanation = 'Synthesized from cited evidence with mixed provenance.';
+		}
+		return true;
+	});
+
+	for (const name of SECTIONS) {
+		const section = candidate[name];
+		if (!section || typeof section !== 'object' || Array.isArray(section)) {
+			candidate[name] = { text: '', sourceIds: [], claimIds: [] };
+			continue;
+		}
+		const normalized = section as Record<string, unknown>;
+		normalized.sourceIds = candidateIds(normalized.sourceIds, known);
+		normalized.claimIds = Array.isArray(normalized.claimIds)
+			? [...new Set(normalized.claimIds.map(String).filter((id) => seenClaims.has(id)))]
+			: [];
+		if (
+			name !== 'missing' &&
+			typeof normalized.text === 'string' &&
+			normalized.text.trim() &&
+			!(normalized.sourceIds as string[]).length
+		)
+			normalized.text = '';
+	}
+
+	const rawInstructor =
+		candidate.instructor && typeof candidate.instructor === 'object'
+			? (candidate.instructor as Record<string, unknown>)
+			: {};
+	const requestedName = request.professorName ?? null;
+	const extractedName =
+		typeof rawInstructor.name === 'string' && rawInstructor.name.trim()
+			? rawInstructor.name.trim()
+			: null;
+	const instructorIds = candidateIds(rawInstructor.sourceIds, known).filter((id) => {
+		if (!extractedName) return false;
+		const source = sourceById.get(id)!;
+		return sourceMentionsPerson(source, extractedName);
+	});
+	const instructorSources = instructorIds.map((id) => sourceById.get(id)!);
+	let instructorStatus: Briefing['instructor']['status'] = requestedName
+		? 'requested_by_user'
+		: 'not_requested';
+	if (
+		extractedName &&
+		instructorSources.length &&
+		instructorSources.every(
+			(source) =>
+				isOfficialInstitutionSource(source, request) &&
+				source.category === 'schedule' &&
+				source.currentness === 'current'
+		)
+	)
+		instructorStatus = 'verified_current_official';
+	else if (
+		extractedName &&
+		instructorSources.length &&
+		instructorSources.every(
+			(source) => source.sourceType !== 'official' && source.currentness === 'current'
+		)
+	)
+		instructorStatus = 'supported_current_non_official';
+	else if (
+		extractedName &&
+		instructorSources.length &&
+		instructorSources.every((source) => source.currentness === 'historical')
+	)
+		instructorStatus = 'verified_historical';
+	const supportedInstructor =
+		instructorStatus !== 'requested_by_user' && instructorStatus !== 'not_requested';
+	candidate.instructor = {
+		requestedName,
+		name: supportedInstructor ? extractedName : null,
+		status: instructorStatus,
+		sourceIds: supportedInstructor ? instructorIds : []
+	};
+
+	for (const field of ['rmpProfile', 'studentSentiment'] as const) {
+		const optional = candidate[field];
+		if (!optional || typeof optional !== 'object' || Array.isArray(optional)) continue;
+		const record = optional as Record<string, unknown>;
+		record.sourceIds = candidateIds(record.sourceIds, known).filter(
+			(id) => sourceById.get(id)?.sourceType === 'rmp'
+		);
+		if (!(record.sourceIds as string[]).length) delete candidate[field];
+	}
+	return candidate;
+}
+
 function ids(value: unknown, known: Set<string>, field: string): string[] {
 	if (!Array.isArray(value)) fail(`${field} sourceIds must be an array`);
 	const result = value.map(String);
@@ -241,17 +398,21 @@ export function validateStructuredBriefing(
 				instructorIds[0] === claimSources[0] &&
 				(() => {
 					const source = sourceById.get(claimSources[0]);
-					return !!source &&
+					return (
+						!!source &&
 						source.category === 'schedule' &&
 						source.currentness === 'current' &&
 						isOfficialInstitutionSource(source, request) &&
 						`${source.title} ${source.excerpt}`
 							.toLocaleLowerCase()
-							.includes(String(instructor.name).toLocaleLowerCase());
+							.includes(String(instructor.name).toLocaleLowerCase())
+					);
 				})();
 			const linkedFromContradictions =
 				Array.isArray((value.contradictions as Record<string, unknown> | undefined)?.claimIds) &&
-					((value.contradictions as Record<string, unknown>).claimIds as unknown[]).map(String).includes(id);
+				((value.contradictions as Record<string, unknown>).claimIds as unknown[])
+					.map(String)
+					.includes(id);
 			const describesConflict =
 				String(claim.text ?? '').includes(String(instructor.requestedName)) &&
 				String(claim.text ?? '').includes(String(instructor.name)) &&
