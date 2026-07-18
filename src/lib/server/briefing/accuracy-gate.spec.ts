@@ -324,6 +324,27 @@ describe('evaluateCourseIdentity', () => {
 		).toMatchObject({ status: 'rejected', code: 'CONFLICTING_CANONICAL_TITLES' });
 	});
 
+	it('admits a sparse identity when an official catalog result has the exact code but no parseable title', () => {
+		expect(
+			evaluateCourseIdentity(
+				[
+					source({
+						title: 'Douglas College Course Page',
+						excerpt: 'CSIS 4495 is a 3-credit course at Douglas College.',
+						retrievalStatus: 'failed'
+					})
+				],
+				request()
+			)
+		).toMatchObject({
+			status: 'verified',
+			course: {
+				courseCode: 'CSIS 4495',
+				canonicalTitle: 'CSIS 4495 Applied Research Project'
+			}
+		});
+	});
+
 	it('requires an identity-admissible official source', () => {
 		expect(
 			evaluateCourseIdentity(

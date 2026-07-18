@@ -1,8 +1,55 @@
 import { describe, expect, it, vi } from 'vitest';
-import { buildDeterministicBriefing, runEvidenceFirstPipeline } from './pipeline';
+import {
+	buildDeterministicBriefing,
+	parseProviderResponseBody,
+	runEvidenceFirstPipeline
+} from './pipeline';
 import { isCleanCourseField } from './field-quality';
 import { validateStructuredBriefing } from './validation';
+import { SYNTHESIS_ONLY_JSON_SCHEMA } from './schema';
 import type { BriefingRequest, BriefingUsage, EvidenceBundle, EvidenceSource } from './schema';
+
+describe('synthesis contract', () => {
+	it('declares optional student sentiment without requiring it', () => {
+		expect(SYNTHESIS_ONLY_JSON_SCHEMA.properties).toHaveProperty('studentSentiment');
+		expect(SYNTHESIS_ONLY_JSON_SCHEMA.required).not.toContain('studentSentiment');
+	});
+});
+
+describe('provider response parsing', () => {
+	it('parses a standard OpenRouter response envelope', () => {
+		expect(
+			parseProviderResponseBody(
+				JSON.stringify({ choices: [{ message: { content: '{"identity":{}}' } }] }),
+				'synthesis'
+			).choices?.[0]?.message?.content
+		).toBe('{"identity":{}}');
+	});
+
+	it('wraps a direct structured response as assistant content', () => {
+		expect(
+			parseProviderResponseBody(JSON.stringify({ identity: { code: 'CSIS 3200' } }), 'synthesis')
+				.choices?.[0]?.message?.content
+		).toBe('{"identity":{"code":"CSIS 3200"}}');
+	});
+
+	it('uses the final parseable SSE response', () => {
+		const body = [
+			'data: {"choices":[{"message":{"content":"first"}}]}',
+			'data: {"choices":[{"message":{"content":"final"}}]}',
+			'data: [DONE]'
+		].join('\n');
+		expect(parseProviderResponseBody(body, 'synthesis').choices?.[0]?.message?.content).toBe(
+			'final'
+		);
+	});
+
+	it('rejects malformed transport payloads for retry', () => {
+		expect(() => parseProviderResponseBody('<html>bad gateway</html>', 'synthesis')).toThrow(
+			'malformed JSON'
+		);
+	});
+});
 
 const request: BriefingRequest = { courseCode: 'CSIS 4280', institution: 'Douglas College' };
 const usage: BriefingUsage = {
@@ -197,7 +244,7 @@ describe('Course Brief extraction boundary', () => {
 		const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
 			if (!init?.body) return new Response(page, { headers: { 'content-type': 'text/html' } });
 			const body = JSON.parse(String(init.body));
-			const isSynthesis = Boolean(body.response_format);
+			const isSynthesis = body.model === 'deepseek/deepseek-v4-pro';
 			const sources = [source(), source({ id: 'src_outline_01', category: 'outline' })];
 			const content = isSynthesis
 				? candidate(sources)
@@ -255,12 +302,10 @@ describe('Course Brief extraction boundary', () => {
 		expect(result.briefing.assessments.text).toBe('Assignments 30%; project 40%; final exam 30%.');
 		const synthesisBodies = fetchImpl.mock.calls
 			.map(([, init]) => (init?.body ? JSON.parse(String(init.body)) : null))
-			.filter((body) => body?.response_format);
+			.filter((body) => body?.model === 'deepseek/deepseek-v4-pro');
 		expect(synthesisBodies).toHaveLength(1);
-		for (const body of synthesisBodies) {
-			expect(body.response_format.json_schema.schema.required).not.toContain('sources');
-			expect(body.response_format.json_schema.schema.properties).not.toHaveProperty('sources');
-		}
+		expect(synthesisBodies[0]).not.toHaveProperty('response_format');
+		expect(synthesisBodies[0]).not.toHaveProperty('max_tokens');
 	});
 
 	it('rejects a polluted synthesized field while retaining the valid fixture shape', () => {
@@ -283,11 +328,12 @@ describe('Course Brief extraction boundary', () => {
 		const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
 			if (!init?.body) return new Response(page, { headers: { 'content-type': 'text/html' } });
 			const body = JSON.parse(String(init.body));
-			const content = body.response_format ? {} : { sources: [] };
+			const isSynthesis = body.model === 'deepseek/deepseek-v4-pro';
+			const content = isSynthesis ? {} : { sources: [] };
 			return new Response(
 				JSON.stringify({
 					id: crypto.randomUUID(),
-					model: body.response_format ? 'deepseek/deepseek-v4-pro' : 'deepseek/deepseek-v4-flash',
+					model: isSynthesis ? 'deepseek/deepseek-v4-pro' : 'deepseek/deepseek-v4-flash',
 					choices: [{ message: { content: JSON.stringify(content) } }],
 					usage: {
 						prompt_tokens: 1,
@@ -323,7 +369,8 @@ describe('Course Brief extraction boundary', () => {
 					{ headers: { 'content-type': 'text/html' } }
 				);
 			const body = JSON.parse(String(init.body));
-			const content = body.response_format
+			const isSynthesis = body.model === 'deepseek/deepseek-v4-pro';
+			const content = isSynthesis
 				? { malformed: true }
 				: {
 						sources: [
@@ -337,7 +384,7 @@ describe('Course Brief extraction boundary', () => {
 			return new Response(
 				JSON.stringify({
 					id: crypto.randomUUID(),
-					model: body.response_format ? 'deepseek/deepseek-v4-pro' : 'deepseek/deepseek-v4-flash',
+					model: isSynthesis ? 'deepseek/deepseek-v4-pro' : 'deepseek/deepseek-v4-flash',
 					choices: [
 						{
 							message: {
@@ -369,12 +416,9 @@ describe('Course Brief extraction boundary', () => {
 		expect(result.briefing.assessments.text).toBe('');
 		const synthesisBodies = fetchImpl.mock.calls
 			.map(([, init]) => (init?.body ? JSON.parse(String(init.body)) : null))
-			.filter((body) => body?.response_format);
+			.filter((body) => body?.model === 'deepseek/deepseek-v4-pro');
 		expect(synthesisBodies.length).toBeGreaterThanOrEqual(1);
-		for (const body of synthesisBodies) {
-			expect(body.response_format.json_schema.schema.required).not.toContain('sources');
-			expect(body.response_format.json_schema.schema.properties).not.toHaveProperty('sources');
-		}
+		for (const body of synthesisBodies) expect(body).not.toHaveProperty('response_format');
 	});
 
 	it('does not retain the former deterministic excerpt fallback', () => {

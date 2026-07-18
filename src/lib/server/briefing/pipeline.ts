@@ -15,8 +15,11 @@ import {
 	buildEvidenceUserPrompt,
 	buildSynthesisUserPrompt
 } from './prompt';
-import { validateStructuredBriefing, ValidationError } from './validation';
-import { SYNTHESIS_ONLY_JSON_SCHEMA } from './schema';
+import {
+	normalizeSynthesisCandidate,
+	validateStructuredBriefing,
+	ValidationError
+} from './validation';
 import type {
 	BriefingRequest,
 	BriefingUsage,
@@ -39,12 +42,22 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+function sourceMentionsExactCourse(source: EvidenceSource, courseCode: string): boolean {
+	const match = normalizeCourseCode(courseCode).match(/^([A-Z]+)\s*(\d+[A-Z]?)$/);
+	if (!match)
+		return `${source.title} ${source.excerpt}`.toUpperCase().includes(courseCode.toUpperCase());
+	return new RegExp(`\\b${match[1]}\\s*[- ]?\\s*${match[2]}\\b`, 'i').test(
+		`${source.title} ${source.excerpt}`
+	);
+}
+
 const GENERATION_URL = 'https://openrouter.ai/api/v1/generation';
 
 export const MAX_CATEGORY_CONCURRENCY = 3,
 	MAX_SEARCH_REQUESTS = 8,
 	MAX_STAGE_ATTEMPTS = 2,
-	PIPELINE_TIMEOUT_MS = 150_000;
+	PIPELINE_TIMEOUT_MS = 600_000;
 
 export const CATEGORY_CACHE_TTL_MS: Record<EvidenceCategory, number> = {
 	catalog: 7 * 86_400_000,
@@ -56,11 +69,12 @@ export const CATEGORY_CACHE_TTL_MS: Record<EvidenceCategory, number> = {
 	'rate-my-professors': 24 * 3_600_000
 };
 
-type ProviderResponse = {
+export type ProviderResponse = {
 	id?: string;
 	model?: string;
 	provider?: string;
 	choices?: Array<{
+		finish_reason?: string | null;
 		message?: {
 			content?: string;
 			annotations?: Array<{ type?: string; url_citation?: { url?: string } }>;
@@ -153,6 +167,31 @@ const emptyUsage = (): BriefingUsage => ({
 	searchRequests: 0,
 	costMicrodollars: 0
 });
+
+export function parseProviderResponseBody(raw: string, stage: string): ProviderResponse {
+	const trimmed = raw.trim();
+	if (!trimmed) throw new PipelineError('UPSTREAM_ERROR', `${stage} returned an empty response`);
+	const candidates = [trimmed];
+	const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1];
+	if (fenced) candidates.push(fenced);
+	const sse = trimmed
+		.split(/\r?\n/)
+		.filter((line) => line.startsWith('data:') && line.slice(5).trim() !== '[DONE]')
+		.map((line) => line.slice(5).trim());
+	candidates.push(...sse.reverse());
+	for (const candidate of candidates) {
+		try {
+			const parsed = JSON.parse(candidate) as Record<string, unknown>;
+			if (Array.isArray(parsed.choices)) return parsed as ProviderResponse;
+			if (parsed.identity || parsed.sources) {
+				return { choices: [{ message: { content: JSON.stringify(parsed) } }] };
+			}
+		} catch {
+			// Try the next supported transport shape.
+		}
+	}
+	throw new PipelineError('UPSTREAM_ERROR', `${stage} returned malformed JSON`);
+}
 
 function responseUsage(r: ProviderResponse, model: string): BriefingUsage {
 	const i = Math.max(0, r.usage?.prompt_tokens ?? 0),
@@ -330,6 +369,7 @@ export async function runEvidenceFirstPipeline(
 		query: string | null = null
 	): Promise<ProviderResponse> {
 		let last: unknown;
+		let retryCompact = false;
 		for (let attempt = 1; attempt <= MAX_STAGE_ATTEMPTS; attempt++) {
 			await cancelled();
 			if (isSearch) {
@@ -341,25 +381,41 @@ export async function runEvidenceFirstPipeline(
 			const began = now();
 			let status = 0;
 			try {
+				const requestBody =
+					retryCompact && !isSearch && Array.isArray(body.messages)
+						? {
+								...body,
+								messages: [
+									...body.messages,
+									{
+										role: 'user',
+										content:
+											'Return the complete JSON again. Be concise, avoid repeating prose across sections and claims, and close every object and array.'
+									}
+								]
+							}
+						: body;
 				const response = await fetchImpl(CHAT_URL, {
 					method: 'POST',
 					headers: {
 						'content-type': 'application/json',
 						authorization: `Bearer ${options.apiKey}`
 					},
-					body: JSON.stringify(body),
+					body: JSON.stringify(requestBody),
 					signal: AbortSignal.timeout(
-						Math.min(isSearch ? 45_000 : 90_000, options.timeoutMs ?? PIPELINE_TIMEOUT_MS)
+						Math.min(isSearch ? 45_000 : 300_000, options.timeoutMs ?? PIPELINE_TIMEOUT_MS)
 					)
 				});
 				status = response.status;
-				const data = (await response.json().catch(() => ({}))) as ProviderResponse;
+				const rawResponse = await response.text();
+				const data = parseProviderResponseBody(rawResponse, stage);
 				let u = responseUsage(data, model);
 				if (data.id && data.usage?.cost == null) {
 					const reconciled = await reconcileGenerationCost(data.id, options.apiKey, fetchImpl);
 					if (reconciled != null) u = { ...u, costMicrodollars: reconciled };
 				}
 				usages.push(u);
+				const truncated = !isSearch && data.choices?.[0]?.finish_reason === 'length';
 				await hooks.onAttempt?.({
 					stage,
 					attempt,
@@ -372,10 +428,17 @@ export async function runEvidenceFirstPipeline(
 					usage: u,
 					elapsedMs: now() - began,
 					status,
-					retry: !response.ok && attempt < 2
+					retry: (!response.ok || truncated) && attempt < MAX_STAGE_ATTEMPTS
 				});
 				if (!response.ok)
 					throw new PipelineError('UPSTREAM_ERROR', 'Provider unavailable', response.status);
+				if (truncated) {
+					retryCompact = true;
+					throw new PipelineError(
+						'INVALID_MODEL_OUTPUT',
+						'Synthesis response was truncated before completing its JSON'
+					);
+				}
 				if (data.model && data.model !== model && !data.model.startsWith(`${model}-`))
 					throw new PipelineError('UPSTREAM_ERROR', 'Provider served an unapproved model');
 				return data;
@@ -478,7 +541,10 @@ export async function runEvidenceFirstPipeline(
 		if (!sources.length) sources = derivedCatalogPatternSources(category, request);
 		const hydrated = await hydrateOfficialSources(sources, fetchImpl);
 		const usable = hydrated.filter((source) =>
-			source.sourceType === 'official' ? source.retrievalStatus === 'retrieved' : true
+			source.sourceType === 'official'
+				? source.retrievalStatus === 'retrieved' ||
+					(category === 'catalog' && sourceMentionsExactCourse(source, request.courseCode))
+				: true
 		);
 		if (usable.length)
 			await options.categoryCache?.set(category, usable, CATEGORY_CACHE_TTL_MS[category]);
@@ -508,7 +574,8 @@ export async function runEvidenceFirstPipeline(
 	}
 	const resolvedIdentity = identity.course;
 	const categories = evidenceCategories(request).filter(
-		(category) => category !== 'catalog' && category !== 'professor-profile'
+		(category) =>
+			category !== 'catalog' && category !== 'professor-profile' && category !== 'professor-course'
 	);
 	const result: Partial<Record<EvidenceCategory, ReturnType<typeof makeEvidenceSources>>> = {
 		catalog
@@ -554,22 +621,18 @@ export async function runEvidenceFirstPipeline(
 					{ role: 'system', content: SYNTHESIS_SYSTEM_PROMPT },
 					{ role: 'user', content: buildSynthesisUserPrompt(evidence, resolvedIdentity) }
 				],
-				temperature: 0,
-				max_tokens: 6000,
-				response_format: {
-					type: 'json_schema',
-					json_schema: {
-						name: 'course_brief',
-						strict: true,
-						schema: SYNTHESIS_ONLY_JSON_SCHEMA
-					}
-				}
+				temperature: 0
 			},
 			false
 		);
 		const content = synthesis.choices?.[0]?.message?.content;
 		if (!content) throw new Error('Synthesis returned no content');
-		const candidate = JSON.parse(content) as Record<string, unknown>;
+		const candidate = normalizeSynthesisCandidate(
+			JSON.parse(content) as Record<string, unknown>,
+			evidence.sources,
+			request,
+			resolvedIdentity
+		);
 		removeDuplicateCandidateFields(candidate);
 		for (let attempt = 0; attempt <= OUTLINE_FIELDS.length; attempt++) {
 			try {
@@ -617,17 +680,18 @@ export async function runEvidenceFirstPipeline(
 								content: `${buildSynthesisUserPrompt(evidence, resolvedIdentity)}\n\nReturn the complete JSON again. Fill concise Delivery and Assessments from explicitly labelled current official course or outline evidence when present.`
 							}
 						],
-						temperature: 0,
-						max_tokens: 6000,
-						response_format: {
-							type: 'json_schema',
-							json_schema: { name: 'course_brief', strict: true, schema: SYNTHESIS_ONLY_JSON_SCHEMA }
-						}
+						temperature: 0
 					},
 					false
 				);
-				const repaired = validateStructuredBriefing(
+				const repairedCandidate = normalizeSynthesisCandidate(
 					JSON.parse(repair.choices?.[0]?.message?.content ?? ''),
+					evidence.sources,
+					request,
+					resolvedIdentity
+				);
+				const repaired = validateStructuredBriefing(
+					repairedCandidate,
 					evidence.sources,
 					request,
 					{
@@ -660,7 +724,12 @@ export async function runEvidenceFirstPipeline(
 		);
 		if (admission.status !== 'accepted' && admission.status !== 'partial')
 			throw new Error('Synthesis did not meet admission requirements');
-	} catch {
+	} catch (error) {
+		if (
+			error instanceof PipelineError &&
+			['INVALID_MODEL_OUTPUT', 'TIME_LIMIT_EXCEEDED', 'COST_BUDGET_EXCEEDED'].includes(error.code)
+		)
+			throw error;
 		briefing = buildUnavailableBriefing(
 			evidence,
 			resolvedIdentity,
@@ -726,7 +795,9 @@ function buildUnavailableBriefing(
 		workload: empty(),
 		rateMyProfessors: empty(),
 		contradictions: empty(),
-		missing: empty(),
+		missing: section(
+			'Detailed course evidence could not be verified or parsed. This partial briefing contains only the confirmed course identity.'
+		),
 		summary: empty(),
 		claims: [],
 		sources: evidence.sources,

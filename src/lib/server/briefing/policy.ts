@@ -21,6 +21,8 @@ export function isRetryableFailure(error: unknown): boolean {
 	return (
 		value.name === 'TimeoutError' ||
 		value.code === 'ETIMEDOUT' ||
+		value.code === 'UPSTREAM_ERROR' ||
+		value.code === 'INVALID_MODEL_OUTPUT' ||
 		(typeof value.status === 'number' && (value.status === 429 || value.status >= 500))
 	);
 }

@@ -253,6 +253,7 @@ export const academicDigestJobs = sqliteTable('academic_digest_jobs', {
 
 export const calendarEvents = sqliteTable('calendar_events', {
 	id: text('id').primaryKey(),
+	courseId: text('course_id'),
 	courseCode: text('course_code').notNull(),
 	title: text('title').notNull(),
 	type: text('type').notNull().default('assignment'), // assignment | midterm | final | quiz | lecture | study_session

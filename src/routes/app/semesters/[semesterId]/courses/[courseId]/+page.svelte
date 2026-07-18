@@ -2,7 +2,10 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { resolveRoute } from '$app/paths';
+	import { cn } from '$lib/utils';
 	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
+	import { AlertDialog } from '$lib/components/ui';
+	import { Combobox } from 'bits-ui';
 
 	type CourseStatus = 'planned' | 'active' | 'completed' | 'at-risk';
 	type RiskLevel = 'none' | 'low' | 'medium' | 'high';
@@ -60,6 +63,11 @@
 	const semesters = $derived(data.semesters);
 	const incoming = $derived(data.incoming);
 	const outgoing = $derived(data.outgoing);
+	const prerequisites = $derived(incoming.filter((edge) => edge.type === 'prereq'));
+	const requiredFor = $derived(outgoing.filter((edge) => edge.type === 'prereq'));
+	const otherRelationships = $derived(
+		[...incoming, ...outgoing].filter((edge) => edge.type !== 'prereq')
+	);
 	const coursesById = $derived(new Map(data.courses.map((c) => [c.id, c])));
 
 	const headerTerm = $derived(semester ? `${semester.term} ${semester.year}` : 'No term');
@@ -90,6 +98,9 @@
 	);
 
 	const topics = $derived(course.signals?.topics ?? []);
+	const availableConnectionCourses = $derived(
+		data.courses.filter((candidate) => candidate.id !== course.id)
+	);
 
 	function edgeLabel(edge: Edge): string {
 		return edge.type?.replaceAll('-', ' ') ?? edge.label ?? 'related';
@@ -107,10 +118,15 @@
 	}
 
 	let showEditModal = $state(false);
+	let showDeleteModal = $state(false);
+	let deletingCourse = $state(false);
+	let deleteCourseError = $state<string | null>(null);
 
+	let showConnForm = $state(false);
 	let edgeFormTarget = $state<string>('');
+	let edgeTargetQuery = $state('');
+	let edgeTargetOpen = $state(false);
 	let edgeFormDirection = $state<'incoming' | 'outgoing'>('incoming');
-	let edgeFormType = $state<string>('prereq');
 	let edgeFormSubmitting = $state(false);
 	let edgeFormError = $state<string | null>(null);
 
@@ -119,6 +135,56 @@
 	let edgeMutationError = $state<string | null>(null);
 
 	const isEdgeMutating = $derived(patchingEdgeId !== null || deletingEdgeId !== null);
+	const selectedConnectionCourse = $derived(
+		availableConnectionCourses.find((candidate) => candidate.id === edgeFormTarget)
+	);
+	const filteredConnectionCourses = $derived(
+		availableConnectionCourses.filter((candidate) => {
+			const query = edgeTargetQuery.trim().toLowerCase();
+			return !query || `${candidate.code} ${candidate.name}`.toLowerCase().includes(query);
+		})
+	);
+
+	// Sync input display when a course is selected (covers both mouse AND keyboard)
+	$effect(() => {
+		const id = edgeFormTarget;
+		if (!id) return;
+		const course = availableConnectionCourses.find((c) => c.id === id);
+		if (course) {
+			edgeTargetQuery = `${course.code} · ${course.name}`;
+		}
+	});
+
+	function clearEdgeSelection() {
+		edgeFormTarget = '';
+		edgeTargetQuery = '';
+	}
+
+	async function removeCourse() {
+		if (deletingCourse) return;
+		deletingCourse = true;
+		deleteCourseError = null;
+		try {
+			const response = await fetch('/api/courses', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id: course.id })
+			});
+			if (!response.ok) {
+				const body = (await response.json().catch(() => null)) as { error?: string } | null;
+				deleteCourseError = body?.error ?? 'Could not delete course.';
+				return;
+			}
+			await goto(resolveRoute(`/app/semesters/${encodeURIComponent(course.semesterId)}`), {
+				invalidateAll: true,
+				replaceState: true
+			});
+		} catch {
+			deleteCourseError = 'Network error. Is the server running?';
+		} finally {
+			deletingCourse = false;
+		}
+	}
 
 	async function addEdge() {
 		if (!edgeFormTarget || edgeFormSubmitting) return;
@@ -130,44 +196,22 @@
 			const res = await fetch('/api/graph/edge', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ source, target, type: edgeFormType, reviewStatus: 'accepted' })
+				body: JSON.stringify({ source, target, type: 'prereq', reviewStatus: 'accepted' })
 			});
 			if (!res.ok) {
 				const body = (await res.json().catch(() => null)) as { error?: string } | null;
-				edgeFormError = body?.error ?? 'Failed to add connection';
+				edgeFormError = body?.error ?? 'Failed to add prerequisite';
 				return;
 			}
 			await invalidateAll();
 			edgeFormTarget = '';
+			edgeTargetQuery = '';
+			edgeTargetOpen = false;
 			edgeFormDirection = 'incoming';
-			edgeFormType = 'prereq';
 		} catch {
-			edgeFormError = 'Failed to add connection. Is the server running?';
+			edgeFormError = 'Failed to add prerequisite. Is the server running?';
 		} finally {
 			edgeFormSubmitting = false;
-		}
-	}
-
-	async function updateEdgeType(edge: Edge, type: string) {
-		if (!edge.id || patchingEdgeId) return;
-		patchingEdgeId = edge.id;
-		edgeMutationError = null;
-		try {
-			const res = await fetch('/api/graph/edge', {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ id: edge.id, type })
-			});
-			if (!res.ok) {
-				const body = (await res.json().catch(() => null)) as { error?: string } | null;
-				edgeMutationError = body?.error ?? 'Failed to update type';
-				return;
-			}
-			await invalidateAll();
-		} catch {
-			edgeMutationError = 'Failed to update type. Is the server running?';
-		} finally {
-			patchingEdgeId = null;
 		}
 	}
 
@@ -248,7 +292,13 @@
 					</div>
 				{/if}
 			</div>
-			<button class="btn btn-secondary btn-sm" onclick={() => (showEditModal = true)}>edit</button>
+			<div class="cover-actions">
+				<button class="btn btn-secondary btn-sm" onclick={() => (showEditModal = true)}>edit</button
+				>
+				<button class="btn btn-ghost btn-sm danger" onclick={() => (showDeleteModal = true)}
+					>delete</button
+				>
+			</div>
 		</div>
 
 		<div class="state-strip" aria-label="Course state">
@@ -299,83 +349,169 @@
 			<span class="block-meta font-mono">{incoming.length + outgoing.length}</span>
 		</header>
 
-		<div class="conn-form">
-			<label for="edge-target" class="sr-only">Target course</label>
-			<select
-				id="edge-target"
-				class="conn-select"
-				bind:value={edgeFormTarget}
-				disabled={edgeFormSubmitting}
-			>
-				<option value="">Choose course…</option>
-				{#each data.courses as c (c.id)}
-					<option value={c.id}>{c.code} · {c.name}</option>
-				{/each}
-			</select>
-			<label for="edge-direction" class="sr-only">Direction</label>
-			<select
-				id="edge-direction"
-				class="conn-select"
-				bind:value={edgeFormDirection}
-				disabled={edgeFormSubmitting}
-			>
-				<option value="incoming">feeds into this</option>
-				<option value="outgoing">unlocked by this</option>
-			</select>
-			<label for="edge-form-type" class="sr-only">Relation type</label>
-			<select
-				id="edge-form-type"
-				class="conn-select"
-				bind:value={edgeFormType}
-				disabled={edgeFormSubmitting}
-			>
-				<option value="prereq">prereq</option>
-				<option value="coreq">coreq</option>
-				<option value="unlocks">unlocks</option>
-				<option value="related">related</option>
-			</select>
-			<button
-				class="btn btn-secondary btn-sm"
-				disabled={!edgeFormTarget || edgeFormSubmitting}
-				onclick={addEdge}
-				aria-label="Add connection"
-			>
-				{edgeFormSubmitting ? '…' : 'add'}
-			</button>
-		</div>
+		<button
+			class={cn(
+				'mb-3.5 inline-flex items-center gap-1.5 border border-[var(--rule)] bg-transparent px-2.5 py-1.5 text-[0.72rem] font-[var(--font-mono)] tracking-[0.12em] text-[var(--ink-soft)] uppercase transition-colors hover:border-[var(--ink)] hover:bg-[var(--paper-2)] hover:text-[var(--ink)]'
+			)}
+			onclick={() => {
+				showConnForm = !showConnForm;
+			}}
+			aria-expanded={showConnForm}
+		>
+			<span class="text-[0.85rem] leading-none">{showConnForm ? '▾' : '+'}</span>
+			add prerequisite
+		</button>
 
-		{#if edgeFormError}
-			<p class="conn-error font-mono">{edgeFormError}</p>
+		{#if showConnForm}
+			<div
+				class="mb-3.5 flex flex-col gap-2.5 border border-[var(--rule)] bg-[var(--paper-shelf)] p-3.5"
+			>
+				<Combobox.Root
+					type="single"
+					bind:value={edgeFormTarget}
+					inputValue={edgeTargetQuery}
+					bind:open={edgeTargetOpen}
+					disabled={edgeFormSubmitting}
+				>
+					<label for="conn-search" class="sr-only">Search for a course to connect</label>
+					<div
+						class="relative min-w-0 border border-[var(--ink)] bg-[var(--paper)] focus-within:shadow-[2px_2px_0_var(--ink)]"
+					>
+						<Combobox.Input
+							id="conn-search"
+							class={cn(
+								'w-full min-w-0 border-0 bg-transparent py-2 pr-[3.8rem] pl-2.5 text-[0.82rem] font-[var(--font-body)] text-[var(--ink)] outline-none placeholder:text-[var(--ink-faint)] focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--highlight)]'
+							)}
+							placeholder="Find a course…"
+							oninput={(event) => {
+								edgeTargetQuery = event.currentTarget.value;
+								if (edgeFormTarget) edgeFormTarget = '';
+								edgeTargetOpen = true;
+							}}
+							onkeydown={(e) => {
+								if (e.key === 'Enter' && filteredConnectionCourses.length > 0) {
+									e.preventDefault();
+									const first = filteredConnectionCourses[0];
+									edgeFormTarget = first.id;
+									edgeTargetOpen = false;
+								}
+							}}
+						/>
+						{#if edgeFormTarget}
+							<button
+								class="absolute top-0 right-8 bottom-0 flex w-6 items-center justify-center border-0 bg-transparent text-[0.65rem] font-[var(--font-mono)] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+								onclick={clearEdgeSelection}
+								aria-label="Clear selected course"
+								type="button">✕</button
+							>
+						{/if}
+						<Combobox.Trigger
+							class={cn(
+								'absolute top-0 right-0 bottom-0 flex w-8 items-center justify-center border-0 bg-transparent text-[0.75rem] font-[var(--font-mono)] text-[var(--ink-faint)] transition-[color,transform] hover:text-[var(--ink)] data-[state=open]:rotate-180 data-[state=open]:text-[var(--ink)]'
+							)}
+							aria-label="Show course choices">▾</Combobox.Trigger
+						>
+					</div>
+					<Combobox.Content
+						class={cn(
+							'z-[var(--z-popover)] max-h-72 overflow-y-auto border border-[var(--ink)] bg-[var(--paper)] shadow-[4px_4px_0_rgba(31,28,20,0.12)]'
+						)}
+					>
+						<Combobox.Viewport>
+							{#if filteredConnectionCourses.length === 0}
+								<p
+									class="m-0 p-3 text-[0.72rem] font-[var(--font-mono)] tracking-[0.08em] text-[var(--ink-faint)] uppercase"
+								>
+									Nothing matches — try a different code or name
+								</p>
+							{:else}
+								{#each filteredConnectionCourses as candidate (candidate.id)}
+									<Combobox.Item
+										value={candidate.id}
+										class={cn(
+											'grid min-h-11 w-full grid-cols-[minmax(5.5rem,auto)_1fr] items-baseline gap-2.5 border-0 border-b border-dashed border-[var(--rule)] bg-transparent px-3 py-2 text-left text-[var(--ink)] last:border-b-0 hover:bg-[var(--highlight-soft)] hover:shadow-[inset_2px_0_0_var(--ink)] data-[highlighted]:bg-[var(--highlight-soft)] data-[highlighted]:shadow-[inset_2px_0_0_var(--ink)] data-[state=checked]:bg-[var(--highlight)] data-[state=checked]:shadow-[inset_2px_0_0_var(--ink)]'
+										)}
+									>
+										<span
+											class="text-[0.68rem] font-[var(--font-mono)] font-bold tracking-[0.08em]"
+										>
+											{candidate.code}
+										</span>
+										<span
+											class="overflow-hidden text-[0.82rem] leading-[1.35] text-ellipsis whitespace-nowrap text-[var(--ink-soft)]"
+										>
+											{candidate.name}
+										</span>
+									</Combobox.Item>
+								{/each}
+							{/if}
+						</Combobox.Viewport>
+					</Combobox.Content>
+				</Combobox.Root>
+
+				<div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+					<label
+						class="flex flex-col gap-1 text-[0.65rem] font-[var(--font-mono)] tracking-[0.1em] text-[var(--ink-faint)] uppercase"
+						for="edge-direction"
+					>
+						Relationship
+						<select
+							id="edge-direction"
+							class="min-h-11 border border-[var(--rule)] bg-[var(--paper)] px-2.5 text-[0.78rem] font-[var(--font-mono)] text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-45"
+							bind:value={edgeFormDirection}
+							disabled={edgeFormSubmitting}
+						>
+							<option value="incoming">This course requires…</option>
+							<option value="outgoing">Another course requires this course</option>
+						</select>
+					</label>
+					<button
+						class="btn btn-secondary btn-sm min-h-11"
+						disabled={!edgeFormTarget || edgeFormSubmitting}
+						onclick={addEdge}
+						aria-label="Add prerequisite"
+					>
+						{edgeFormSubmitting ? '…' : 'add prerequisite'}
+					</button>
+				</div>
+
+				{#if selectedConnectionCourse}
+					<p
+						class="m-0 border-l-2 border-[var(--highlight)] pl-2.5 text-[0.82rem] text-[var(--ink-soft)]"
+					>
+						Preview:
+						<strong class="text-[var(--ink)]">
+							{edgeFormDirection === 'incoming'
+								? `${course.code} requires ${selectedConnectionCourse.code}`
+								: `${selectedConnectionCourse.code} requires ${course.code}`}
+						</strong>
+					</p>
+				{/if}
+
+				{#if edgeFormError}
+					<p class="m-0 text-[0.78rem] font-[var(--font-mono)] text-[var(--accent)]">
+						{edgeFormError}
+					</p>
+				{/if}
+			</div>
 		{/if}
 
-		{#if incoming.length === 0 && outgoing.length === 0}
-			<p class="empty font-mono">No saved connections to other courses.</p>
+		{#if prerequisites.length === 0 && requiredFor.length === 0 && otherRelationships.length === 0}
+			<p class="empty font-mono">No prerequisite relationships have been added.</p>
 		{:else}
-			{#if incoming.length > 0}
+			{#if prerequisites.length > 0}
 				<div class="conn-group">
-					<div class="conn-label font-mono">Prereqs feed in</div>
+					<div class="conn-label font-mono">Prerequisites · this course requires</div>
 					<ul class="conn-list">
-						{#each incoming as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
+						{#each prerequisites as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const source = coursesById.get(edge.source)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
 								<span class="conn-source font-mono">
 									{#if source}{source.code} · {source.name}{:else}—{/if}
 								</span>
 								<span class="conn-arrow font-mono" aria-hidden="true">→</span>
-								<span class="conn-this font-mono">this course</span>
+								<span class="conn-this font-mono">required before this course</span>
 								{#if edge.id}
-									<select
-										class="conn-select"
-										value={edge.type ?? 'prereq'}
-										disabled={isEdgeMutating}
-										onchange={(e) => updateEdgeType(edge, e.currentTarget.value)}
-										aria-label="Relation type"
-									>
-										<option value="prereq">prereq</option>
-										<option value="coreq">coreq</option>
-										<option value="unlocks">unlocks</option>
-										<option value="related">related</option>
-									</select>
 									<select
 										class="conn-select"
 										value={edge.reviewStatus ?? 'accepted'}
@@ -404,11 +540,11 @@
 				</div>
 			{/if}
 
-			{#if outgoing.length > 0}
+			{#if requiredFor.length > 0}
 				<div class="conn-group">
-					<div class="conn-label font-mono">This course unlocks</div>
+					<div class="conn-label font-mono">Required for · these courses require this course</div>
 					<ul class="conn-list">
-						{#each outgoing as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
+						{#each requiredFor as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const target = coursesById.get(edge.target)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
 								<span class="conn-this font-mono">this course</span>
@@ -417,18 +553,6 @@
 									{#if target}{target.code} · {target.name}{:else}—{/if}
 								</span>
 								{#if edge.id}
-									<select
-										class="conn-select"
-										value={edge.type ?? 'prereq'}
-										disabled={isEdgeMutating}
-										onchange={(e) => updateEdgeType(edge, e.currentTarget.value)}
-										aria-label="Relation type"
-									>
-										<option value="prereq">prereq</option>
-										<option value="coreq">coreq</option>
-										<option value="unlocks">unlocks</option>
-										<option value="related">related</option>
-									</select>
 									<select
 										class="conn-select"
 										value={edge.reviewStatus ?? 'accepted'}
@@ -455,6 +579,46 @@
 						{/each}
 					</ul>
 				</div>
+			{/if}
+
+			{#if otherRelationships.length > 0}
+				<details class="conn-group">
+					<summary class="conn-label font-mono">Other relationships · legacy or imported</summary>
+					<ul class="conn-list">
+						{#each otherRelationships as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
+							{@const related = coursesById.get(
+								edge.source === course.id ? edge.target : edge.source
+							)}
+							<li class="conn-row" class:conn-row-editable={!!edge.id}>
+								<span class="conn-source font-mono">
+									{#if related}{related.code} · {related.name}{:else}—{/if}
+								</span>
+								<span class="conn-type font-mono">{edgeLabel(edge)}</span>
+								{#if edge.id}
+									<select
+										class="conn-select"
+										value={edge.reviewStatus ?? 'accepted'}
+										disabled={isEdgeMutating}
+										onchange={(e) => updateEdgeReviewStatus(edge, e.currentTarget.value)}
+										aria-label="Review status"
+									>
+										<option value="accepted">confirmed</option>
+										<option value="pending">needs review</option>
+										<option value="rejected">rejected</option>
+									</select>
+									<button
+										class="btn btn-ghost btn-sm conn-remove"
+										disabled={isEdgeMutating}
+										onclick={() => deleteEdge(edge)}
+										aria-label="Remove relationship"
+									>
+										{deletingEdgeId === edge.id ? '…' : 'remove'}
+									</button>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</details>
 			{/if}
 		{/if}
 
@@ -498,11 +662,23 @@
 	{/if}
 </div>
 
+{#if deleteCourseError}<p class="delete-error" role="alert">{deleteCourseError}</p>{/if}
+
 <CourseEditDialog
 	bind:open={showEditModal}
 	{course}
 	{semesters}
 	defaultSemesterId={course.semesterId}
+/>
+
+<AlertDialog
+	open={showDeleteModal}
+	title="Delete course?"
+	description={`Delete ${course.code}? This also removes its course-map connections. This cannot be undone.`}
+	confirmLabel="Delete course"
+	busy={deletingCourse}
+	onConfirm={removeCourse}
+	onCancel={() => (showDeleteModal = false)}
 />
 
 <style>
@@ -542,6 +718,17 @@
 		align-items: flex-start;
 		gap: 1rem;
 		margin-bottom: 1.5rem;
+	}
+
+	.cover-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.delete-error {
+		margin: 0.75rem 0 0;
+		color: var(--pen-red);
+		font-size: 0.8rem;
 	}
 
 	.cover-meta {
@@ -757,17 +944,6 @@
 		text-transform: uppercase;
 		font-size: 0.7rem;
 		letter-spacing: 0.1em;
-	}
-
-	.conn-form {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-		align-items: center;
-		padding: 0.5rem 0.75rem;
-		margin-bottom: 0.85rem;
-		background: var(--paper-shelf);
-		border: 1px solid var(--rule);
 	}
 
 	.conn-select {

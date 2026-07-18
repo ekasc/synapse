@@ -29,14 +29,14 @@
 <section class="simulator" aria-labelledby="simulator-title">
 	<div class="simulator-heading">
 		<div>
-			<p class="eyebrow font-mono">Test another semester</p>
+			<p class="eyebrow font-mono">Try a different semester</p>
 			<h3 id="simulator-title">
 				Move {course.name} from {currentSemester
 					? `${currentSemester.term} ${currentSemester.year}`
 					: 'Unplaced'} to:
 			</h3>
 		</div>
-		<p class="preview-note">Scenario only — no changes will be saved.</p>
+		<p class="preview-note">Preview only — your saved schedule will not change.</p>
 	</div>
 
 	{#if options.length === 0}
@@ -50,20 +50,20 @@
 					<option value={semester.id}>{semester.term} {semester.year}</option>
 				{/each}
 			</select>
-			<button type="button" onclick={apply} disabled={!targetSemesterId}>Apply to Scenario</button>
+			<button type="button" onclick={apply} disabled={!targetSemesterId}>Add to draft plan</button>
 		</div>
 	{/if}
 
 	{#if result && result.status !== 'valid' && result.status !== 'invalid'}
 		<div class="result-message" aria-live="polite">
 			{#if result.status === 'cycle'}
-				<strong>Invalid prerequisite graph</strong>
-				<p>This course belongs to a prerequisite cycle.</p>
+				<strong>Circular prerequisite relationship</strong>
+				<p>This course belongs to a prerequisite cycle that must be corrected.</p>
 			{:else if result.status === 'unknown'}
 				<strong>Unable to apply this move</strong>
 				<p>A prerequisite course is missing or not scheduled.</p>
 			{:else}
-				<strong>This move cannot be added to the scenario.</strong>
+				<strong>This move cannot be added to the draft plan.</strong>
 			{/if}
 		</div>
 	{/if}

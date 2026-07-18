@@ -58,15 +58,15 @@
 	<section class="planning-workspace" aria-labelledby="planning-title">
 		{#if sharedSource.status === 'invalid'}
 			<div class="shared-notice invalid-notice" role="status">
-				<strong>Invalid shared scenario link</strong>
+				<strong>Invalid shared draft plan link</strong>
 				<p>The planning data in this URL could not be read.</p>
-				<button type="button" onclick={onclearshared}>Remove invalid scenario link</button>
+				<button type="button" onclick={onclearshared}>Remove invalid draft plan link</button>
 			</div>
 		{:else if sharedSource.status === 'loaded'}
 			<div class="shared-notice" role="status">
-				<strong>Shared planning scenario</strong>
+				<strong>Shared draft plan</strong>
 				{#if sharedSource.replay.appliedCount === 0}
-					<p>This shared scenario could not be applied to the current course plan.</p>
+					<p>This shared draft plan could not be applied to the current course plan.</p>
 				{:else}
 					<p>
 						{sharedSource.replay.appliedCount} move{sharedSource.replay.appliedCount === 1
@@ -78,24 +78,24 @@
 				{/if}
 				<p class="source-label">Loaded from shared link</p>
 				{#if sharedSource.modified}<p class="modified-notice">
-						This scenario has changed since the shared link was opened. Copy a new link to share the
-						current version.
+						This draft plan has changed since the shared link was opened. Copy a new link to share
+						the current version.
 					</p>{/if}
-				<button type="button" onclick={onclearshared}>Clear shared scenario</button>
+				<button type="button" onclick={onclearshared}>Clear shared draft plan</button>
 			</div>
 		{/if}
 
 		{#if scenario.moves.length > 0}
 			<div class="summary">
-				<p class="eyebrow font-mono">Planning Summary</p>
-				<h3 id="planning-title">Scenario comparison</h3>
+				<p class="eyebrow font-mono">Draft plan summary</p>
+				<h3 id="planning-title">Changes from your saved schedule</h3>
 				<dl>
 					<div>
 						<dt>Moved courses</dt>
 						<dd>{scenario.comparison.changedCourseIds.length}</dd>
 					</div>
 					<div>
-						<dt>New conflicts</dt>
+						<dt>Plan conflicts</dt>
 						<dd>{scenario.comparison.newConflicts.length}</dd>
 					</div>
 					<div>
@@ -103,12 +103,12 @@
 						<dd>{scenario.comparison.resolvedConflicts.length}</dd>
 					</div>
 					<div>
-						<dt>Delayed courses</dt>
+						<dt>Courses moved later</dt>
 						<dd>{scenario.comparison.delayedCourseIds.length}</dd>
 					</div>
 				</dl>
 				<p class:ready={scenario.comparison.ready} class="ready-status">
-					Scenario valid: <strong>{scenario.comparison.ready ? 'Yes' : 'No'}</strong>
+					No prerequisite conflicts: <strong>{scenario.comparison.ready ? 'Yes' : 'No'}</strong>
 				</p>
 				<div class="comparison-lists">
 					{#if scenario.comparison.changedCourseIds.length > 0}
@@ -123,7 +123,7 @@
 					{/if}
 					{#if scenario.comparison.newConflicts.length > 0}
 						<div>
-							<h4>New conflicts</h4>
+							<h4>Plan conflicts</h4>
 							<p>
 								{[
 									...new Set(
@@ -151,7 +151,7 @@
 					{/if}
 					{#if scenario.comparison.delayedCourseIds.length > 0}
 						<div>
-							<h4>Courses delayed</h4>
+							<h4>Courses moved later</h4>
 							<p>
 								{scenario.comparison.delayedCourseIds
 									.map((id) => course(id)?.code ?? 'Unknown')
@@ -170,7 +170,7 @@
 
 			<details class="history" open>
 				<summary
-					>Planning Scenario · {scenario.moves.length} move{scenario.moves.length === 1
+					>Draft plan · {scenario.moves.length} change{scenario.moves.length === 1
 						? ''
 						: 's'}</summary
 				>
@@ -195,13 +195,13 @@
 					<button type="button" onclick={onundolast}>Undo last move</button><button
 						type="button"
 						class="reset"
-						onclick={onreset}>Reset Scenario</button
+						onclick={onreset}>Discard draft</button
 					>
-					<button type="button" class="copy" onclick={copyLink}>Copy Scenario Link</button>
+					<button type="button" class="copy" onclick={copyLink}>Copy draft plan link</button>
 				</div>
 				<div class="copy-feedback" aria-live="polite">
 					{#if copyResult.status === 'copied'}
-						<strong>Scenario link copied</strong>
+						<strong>Draft plan link copied</strong>
 					{:else if copyResult.status === 'failed' && copyResult.url}
 						<strong>Could not copy automatically.</strong>
 						<label for="scenario-link-fallback">Select and copy this link:</label>
