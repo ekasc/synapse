@@ -190,7 +190,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="map-shell">
-	<p class:at-end={!canScrollFurther} class="scroll-cue font-mono">Swipe to explore semesters</p>
+	<p class:at-end={!canScrollFurther} class="scroll-cue font-mono">Swipe to see later semesters</p>
 	<SavedScenariosPanel
 		moves={storedMoves}
 		association={savedAssociation}
@@ -210,10 +210,10 @@
 		onclearshared={clearSharedScenario}
 	/>
 	{#if scenario.moves.length > 0}
-		<div class="scenario-legend font-mono" aria-label="Planning scenario legend">
-			<span><i class="preview-mark"></i> Moved course</span>
-			{#if conflictIds.size > 0}<span><i class="conflict-mark"></i> New conflict</span>{/if}
-			{#if resolvedIds.size > 0}<span><i class="resolved-mark"></i> Resolved issue</span>{/if}
+		<div class="scenario-legend font-mono" aria-label="Draft plan legend">
+			<span><i class="preview-mark"></i> Changed course</span>
+			{#if conflictIds.size > 0}<span><i class="conflict-mark"></i> Plan conflict</span>{/if}
+			{#if resolvedIds.size > 0}<span><i class="resolved-mark"></i> Resolved conflict</span>{/if}
 		</div>
 	{/if}
 	<div class:at-end={!canScrollFurther} class="scroll-frame">
@@ -222,7 +222,7 @@
 			class="scroll-region"
 			role="region"
 			tabindex="0"
-			aria-label="Course prerequisite map. Scroll horizontally to see later semesters."
+			aria-label="Course prerequisite map. Arrows point from a prerequisite to the course that requires it. Scroll horizontally to see later semesters."
 			onscroll={updateScrollCue}
 		>
 			<div class="canvas" style:width={`${layout.width}px`} style:height={`${layout.height}px`}>

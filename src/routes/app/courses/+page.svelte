@@ -32,7 +32,7 @@
 	<header class="page-cover">
 		<h1 class="page-title">Course Map</h1>
 		<p class="page-tagline">
-			Follow prerequisite paths across semesters and inspect what blocks each course.
+			See which courses must come first, check your semester plan, and preview changes.
 		</p>
 	</header>
 
@@ -51,13 +51,16 @@
 			<div class="map-heading">
 				<div>
 					<p class="eyebrow font-mono">Degree sequence</p>
-					<h2 id="map-title">Prerequisite paths</h2>
+					<h2 id="map-title">Prerequisite plan</h2>
+					<p class="map-explanation">
+						Arrows point from a prerequisite to the course that requires it.
+					</p>
 				</div>
 				<div class="legend font-mono" aria-label="Course map legend">
-					<span><i class="legend-line accepted"></i> Accepted prerequisite</span>
-					<span><i class="legend-line pending"></i> Pending review</span>
-					<span><i class="legend-box upstream"></i> Prerequisite</span>
-					<span><i class="legend-box downstream"></i> Unlocked course</span>
+					<span><i class="legend-line accepted"></i> Confirmed relationship</span>
+					<span><i class="legend-line pending"></i> Needs review</span>
+					<span><i class="legend-box upstream"></i> Required before selected course</span>
+					<span><i class="legend-box downstream"></i> Requires selected course</span>
 				</div>
 			</div>
 
@@ -90,6 +93,13 @@
 	.eyebrow,
 	.map-heading h2 {
 		margin: 0;
+	}
+
+	.map-explanation {
+		max-width: 36rem;
+		margin: 0.35rem 0 0;
+		color: var(--ink-soft);
+		font-size: 0.8rem;
 	}
 
 	.eyebrow {
