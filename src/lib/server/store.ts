@@ -1053,6 +1053,31 @@ export async function mockExtractSyllabus(
 	});
 }
 
+function usableSyllabusText(value: string | undefined): string | undefined {
+	const text = value?.trim();
+	return text && !/^not found$/i.test(text) ? text : undefined;
+}
+
+async function applySyllabusDetailsToCourse(
+	courseId: string,
+	extractedData: SyllabusExtractedData
+): Promise<void> {
+	const course = (await getCourses()).find((candidate) => candidate.id === courseId);
+	if (!course) return;
+	const instructor = usableSyllabusText(extractedData.professor.name);
+	const currentInstructor = usableSyllabusText(course.instructor);
+	const topics = extractedData.keyKnowledge.topics.map((topic) => topic.trim()).filter(Boolean);
+	const firstDate = extractedData.dates.find((date) => !date.needsReview);
+	const signals: CourseSignal = { ...(course.signals ?? {}) };
+	if (!signals.topics?.length && topics.length) signals.topics = topics;
+	if (!signals.nextDeadline && firstDate)
+		signals.nextDeadline = `${firstDate.label} · ${firstDate.date}`;
+	await updateCourse(courseId, {
+		...(instructor && !currentInstructor ? { instructor } : {}),
+		...(Object.keys(signals).length ? { signals } : {})
+	});
+}
+
 export async function saveSyllabusImport(input: {
 	courseId?: string;
 	fileName: string;
@@ -1087,6 +1112,7 @@ export async function saveSyllabusImport(input: {
 			record.createdAt,
 			record.updatedAt
 		);
+		await applySyllabusDetailsToCourse(courseId, record.extractedData);
 		return record;
 	}
 
@@ -1102,6 +1128,7 @@ export async function saveSyllabusImport(input: {
 		};
 	}
 	write('syllabus-imports', [...all.filter((item) => item.courseId !== courseId), record]);
+	await applySyllabusDetailsToCourse(courseId, record.extractedData);
 	return record;
 }
 

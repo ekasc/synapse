@@ -3,6 +3,7 @@
 	import { resolveRoute } from '$app/paths';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
+	import { parseSyllabusCalendarDate } from '$lib/calendar/syllabus-sync';
 
 	type ExtractedData = {
 		professor: {
@@ -127,33 +128,6 @@
 					: 'Empty'
 	);
 
-	const MONTH_MAP: Record<string, number> = {
-		jan: 0,
-		feb: 1,
-		mar: 2,
-		apr: 3,
-		may: 4,
-		jun: 5,
-		jul: 6,
-		aug: 7,
-		sep: 8,
-		oct: 9,
-		nov: 10,
-		dec: 11
-	};
-
-	/** Parse a syllabus date string like "Oct 18" or "December 12" into { month, day }. */
-	function parseSyllabusDate(dateStr: string): { month: number; day: number } | null {
-		const trimmed = dateStr.trim();
-		const match = trimmed.match(/^([a-zA-Z]{3,9})\s+(\d{1,2})$/);
-		if (!match) return null;
-		const month = MONTH_MAP[match[1].toLowerCase().slice(0, 3)];
-		if (month === undefined) return null;
-		const day = parseInt(match[2], 10);
-		if (day < 1 || day > 31) return null;
-		return { month, day };
-	}
-
 	/** Map syllabus type + label to a calendar event type. */
 	function toCalendarType(syllabusType: string, label: string): string {
 		if (syllabusType === 'quiz') return 'quiz';
@@ -164,19 +138,6 @@
 			return 'midterm';
 		}
 		return 'assignment';
-	}
-
-	/** Derive the likely calendar year for a given month based on semester context. */
-	function inferYear(monthIdx: number): number {
-		if (activeSemester) {
-			const sy = activeSemester.year;
-			const term = activeSemester.term.toLowerCase();
-			if (term.includes('fall') || term.includes('summer')) {
-				return monthIdx >= 8 ? sy : sy + 1;
-			}
-			return sy;
-		}
-		return new Date().getFullYear();
 	}
 
 	async function syncToCalendar() {
@@ -192,12 +153,12 @@
 		let failed = 0;
 
 		for (const dateItem of dateRows) {
-			const parsed = parseSyllabusDate(dateItem.date);
+			const parsed = parseSyllabusCalendarDate(dateItem.date);
 			if (!parsed) {
 				failed++;
 				continue;
 			}
-			const year = inferYear(parsed.month);
+			const year = parsed.year ?? activeSemester?.year ?? new Date().getFullYear();
 			const calType = toCalendarType(dateItem.type, dateItem.label);
 			const gradeItem = gradingRows.find((g) =>
 				dateItem.label.toLowerCase().includes(g.label.toLowerCase())
@@ -209,6 +170,7 @@
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
+						courseId: activeCourse.id,
 						courseCode,
 						title: dateItem.label,
 						type: calType,
@@ -224,7 +186,11 @@
 						firstMonth = parsed.month;
 						firstYear = year;
 					}
-				} else failed++;
+				} else {
+					failed++;
+					const body = (await res.json().catch(() => null)) as { error?: string } | null;
+					syncError ||= body?.error ?? 'Could not sync one or more syllabus dates.';
+				}
 			} catch {
 				failed++;
 			}

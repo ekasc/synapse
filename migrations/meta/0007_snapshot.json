@@ -1,8 +1,8 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "87132f16-0e75-4458-a5e6-23333db42a5b",
-	"prevId": "be26e582-b3e8-450e-8778-b51bd7967086",
+	"id": "40c15276-c29a-4322-996b-f89ffbc5c05e",
+	"prevId": "5a438cae-55cc-4d80-a438-0d07d77c53a8",
 	"tables": {
 		"academic_digest": {
 			"name": "academic_digest",
@@ -165,6 +165,27 @@
 					"notNull": true,
 					"autoincrement": false
 				},
+				"active_key": {
+					"name": "active_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"lease_token": {
+					"name": "lease_token",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"client_ip_hash": {
+					"name": "client_ip_hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
 				"output": {
 					"name": "output",
 					"type": "text",
@@ -215,7 +236,24 @@
 					"autoincrement": false
 				}
 			},
-			"indexes": {},
+			"indexes": {
+				"briefing_jobs_active_key_unique": {
+					"name": "briefing_jobs_active_key_unique",
+					"columns": ["active_key"],
+					"isUnique": true,
+					"where": "\"briefing_jobs\".\"active_key\" IS NOT NULL"
+				},
+				"briefing_jobs_created_at_idx": {
+					"name": "briefing_jobs_created_at_idx",
+					"columns": ["created_at"],
+					"isUnique": false
+				},
+				"briefing_jobs_ip_created_at_idx": {
+					"name": "briefing_jobs_ip_created_at_idx",
+					"columns": ["client_ip_hash", "created_at"],
+					"isUnique": false
+				}
+			},
 			"foreignKeys": {},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
@@ -313,6 +351,29 @@
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true,
+					"autoincrement": false
+				},
+				"model_used": {
+					"name": "model_used",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": "'deepseek/deepseek-v4-flash'"
+				},
+				"schema_version": {
+					"name": "schema_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 1
+				},
+				"briefing_json": {
+					"name": "briefing_json",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
 					"autoincrement": false
 				}
 			},
@@ -608,6 +669,116 @@
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
 			"checkConstraints": {}
+		},
+		"planning_scenario_moves": {
+			"name": "planning_scenario_moves",
+			"columns": {
+				"scenario_id": {
+					"name": "scenario_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"move_order": {
+					"name": "move_order",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"course_id": {
+					"name": "course_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"target_semester_id": {
+					"name": "target_semester_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"planning_scenario_moves_order_idx": {
+					"name": "planning_scenario_moves_order_idx",
+					"columns": ["scenario_id", "move_order"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"planning_scenario_moves_scenario_id_planning_scenarios_id_fk": {
+					"name": "planning_scenario_moves_scenario_id_planning_scenarios_id_fk",
+					"tableFrom": "planning_scenario_moves",
+					"tableTo": "planning_scenarios",
+					"columnsFrom": ["scenario_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {
+				"planning_scenario_moves_scenario_id_move_order_pk": {
+					"columns": ["scenario_id", "move_order"],
+					"name": "planning_scenario_moves_scenario_id_move_order_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"planning_scenarios": {
+			"name": "planning_scenarios",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 1
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"planning_scenarios_revision_check": {
+					"name": "planning_scenarios_revision_check",
+					"value": "\"planning_scenarios\".\"revision\" >= 1"
+				}
+			}
 		},
 		"prompt_cache": {
 			"name": "prompt_cache",

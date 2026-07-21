@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getCourses, getGraphState, getSemesters } from '$lib/server/store';
+import { getCourses, getGraphState, getSemesters, getSyllabusImport } from '$lib/server/store';
 
 export async function load({ params }) {
 	const courses = await getCourses();
@@ -10,7 +10,11 @@ export async function load({ params }) {
 		error(404, 'Course not found in this semester');
 	}
 
-	const [semesters, graph] = await Promise.all([getSemesters(), getGraphState()]);
+	const [semesters, graph, syllabus] = await Promise.all([
+		getSemesters(),
+		getGraphState(),
+		getSyllabusImport(course.id)
+	]);
 	const semester = semesters.find((s) => s.id === course.semesterId) ?? null;
 
 	const edges = graph.edges.filter((e) => e.source === course.id || e.target === course.id);
@@ -20,6 +24,7 @@ export async function load({ params }) {
 
 	return {
 		course,
+		syllabus,
 		semester,
 		semesters,
 		edges,

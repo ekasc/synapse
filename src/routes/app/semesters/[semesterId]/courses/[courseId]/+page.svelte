@@ -36,6 +36,13 @@
 
 	type Semester = { id: string; term: string; year: number; order: number };
 
+	type SyllabusImport = {
+		extractedData: {
+			professor: { name: string; email: string; office: string; officeHours: string };
+			dates: { label: string; date: string; type: string; needsReview?: boolean }[];
+		};
+	};
+
 	type Edge = {
 		id?: string;
 		source: string;
@@ -50,6 +57,7 @@
 	}: {
 		data: {
 			course: Course;
+			syllabus: SyllabusImport | null;
 			semester: Semester | null;
 			semesters: Semester[];
 			incoming: Edge[];
@@ -59,6 +67,9 @@
 	} = $props();
 
 	const course = $derived(data.course);
+	const syllabus = $derived(data.syllabus);
+	const professor = $derived(syllabus?.extractedData.professor ?? null);
+	const importantDates = $derived(syllabus?.extractedData.dates ?? []);
 	const semester = $derived(data.semester);
 	const semesters = $derived(data.semesters);
 	const incoming = $derived(data.incoming);
@@ -328,6 +339,53 @@
 			{/if}
 		</div>
 	</div>
+
+	{#if professor || importantDates.length > 0}
+		<section class="block">
+			<header class="block-head">
+				<h2 class="block-title font-mono">Syllabus details</h2>
+				<span class="block-meta font-mono">saved to this course</span>
+			</header>
+			{#if professor}
+				<dl class="activity">
+					{#if professor.name && professor.name !== 'Not found'}
+						<div class="activity-row">
+							<dt>Instructor</dt>
+							<dd>{professor.name}</dd>
+						</div>
+					{/if}
+					{#if professor.email && professor.email !== 'Not found'}
+						<div class="activity-row">
+							<dt>Email</dt>
+							<dd><a href={`mailto:${professor.email}`}>{professor.email}</a></dd>
+						</div>
+					{/if}
+					{#if professor.office && professor.office !== 'Not found'}
+						<div class="activity-row">
+							<dt>Office</dt>
+							<dd>{professor.office}</dd>
+						</div>
+					{/if}
+					{#if professor.officeHours && professor.officeHours !== 'Not found'}
+						<div class="activity-row">
+							<dt>Office hours</dt>
+							<dd>{professor.officeHours}</dd>
+						</div>
+					{/if}
+				</dl>
+			{/if}
+			{#if importantDates.length > 0}
+				<div class="syllabus-dates">
+					{#each importantDates as item (`${item.label}-${item.date}`)}
+						<div class="syllabus-date">
+							<span>{item.label}</span>
+							<time class="font-mono">{item.date}{item.needsReview ? ' · review' : ''}</time>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</section>
+	{/if}
 
 	{#if topics.length > 0}
 		<section class="block">
@@ -1014,6 +1072,31 @@
 		color: var(--ink);
 		margin: 0;
 		font-variant-numeric: tabular-nums;
+	}
+
+	.activity-row a {
+		color: inherit;
+	}
+
+	.syllabus-dates {
+		display: grid;
+		gap: 0.4rem;
+		margin-top: 1rem;
+	}
+
+	.syllabus-date {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.5rem 0;
+		border-bottom: 1px dashed var(--rule);
+		font-size: 0.85rem;
+	}
+
+	.syllabus-date time {
+		color: var(--ink-soft);
+		font-size: 0.72rem;
+		white-space: nowrap;
 	}
 
 	@media (max-width: 640px) {
