@@ -1118,3 +1118,35 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - `pnpm check` and `pnpm lint` fail only on pre-existing baseline issues in unrelated files (verified byte-identical to clean HEAD); all new files pass prettier, eslint, and svelte-check cleanly.
 
 **Key principle:** Planning and priority ranking must come from a testable deterministic function; the model's only job is rewording already-computed facts. Anything unknown stays unknown — the UI shows "—" instead of an invented number, and pre-existing failures are reported rather than silently fixed in other features' code.
+
+---
+
+## 35. Scheduled Weekly Digest Push — Cron + Web Push Delivery (July 21)
+
+### Prompt (to Claude Code)
+
+> "do it — rename the branch and build the scheduled push. use a workflow that is token efficient. do not burn my tokens, only delegate tasks that you deem are doable by a cheaper model. no nested subagents. max agents: 3."
+
+**Context:** `FEATURES.md` describes the Weekly Digest as a push summary "generated from live graph data on a schedule." Entry 34 built the deterministic digest and the `/app/weekly` page; the scheduled delivery half did not exist (no cron, no notification code).
+
+**How AI was used:**
+
+- Claude Code did the context-heavy core itself: D1 subscriptions table + migration, subscription repository, shared digest assembler (extracted so the page and the cron plan from identical inputs), the four `/api/weekly-push/*` routes, the Worker scheduled handler, the service worker, and the Settings subscription UI.
+- Exactly one task was delegated to a cheaper model (single agent, no nesting): the RFC 8291 (aes128gcm) push-encryption and RFC 8292 (VAPID ES256) module, specified with exact function signatures and verified against the RFC 5869 HKDF test vector plus a full client-side decrypt round-trip, so validation meant running its tests rather than auditing crypto line by line.
+- The push payload is built strictly from the deterministic digest; the optional prose layer rewords it under the same no-calculation constraint as entry 34.
+
+**What changed:**
+
+- `migrations/0013_weekly_push_subscriptions.sql` + schema table; `src/lib/server/push/` now holds `encryption.ts` (delegated), `deliver.ts`, `subscriptions.ts`.
+- `src/lib/server/weekly-digest-data.ts` extracts the digest assembly from the page load for reuse.
+- Root `worker.js` wraps the SvelteKit worker and adds `scheduled()`; `wrangler.jsonc` gains a Monday 15:00 UTC cron and VAPID vars (private key and trigger secret stay in `wrangler secret` / `.dev.vars`).
+- `static/sw.js` shows the notification and focuses `/app/weekly` on click; Settings gained enable/disable push with unsupported/blocked/subscribed states.
+- `scripts/generate-vapid-keys.mjs` prints the keypair and where each value belongs.
+
+**Final verification:**
+
+- 597 Vitest tests passed (13 new push tests: RFC 5869 vector, JWT signature verification, encrypt/decrypt round-trip, delivery/pruning behavior).
+- `pnpm build` passed; new files pass prettier, eslint, and add zero svelte-check errors versus the pre-existing baseline.
+- Local cron rehearsal via `wrangler dev --test-scheduled`.
+
+**Key principle:** Delegate only what a cheaper model can verifiably do — hand it exact interfaces and public test vectors so the check is mechanical. Keep delivery a thin, secret-guarded wrapper around the deterministic digest; never let the transport layer invent content.

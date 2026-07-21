@@ -44,3 +44,6 @@ vite.config.ts.timestamp-*
 
 # Project-local state (shared via Syncthing, not Git)
 .synapse-local/**
+
+# Wrangler local secrets
+.dev.vars

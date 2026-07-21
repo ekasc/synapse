@@ -300,6 +300,10 @@ First-party calendar showing assignments, exams, quizzes, and deadlines across a
 
 AI-generated weekly summary of workload, deadlines, and study recommendations. Currently shows mock data.
 
+### Weekly Plan (`/app/weekly`)
+
+Deterministic seven-day planning view computed by a pure engine (`src/lib/dashboard/weekly.ts`) from live courses, calendar events, practice sessions, study sessions, materials, briefings, and the course graph. Shows the top three priorities with deterministic explanations, chronological deadlines, crunch windows, paused practice, study gaps, material-indexing and prerequisite warnings, plus an optional OpenRouter prose summary that degrades away without an API key. A Worker cron trigger (Mondays 15:00 UTC) pushes the digest to browsers subscribed via Web Push (RFC 8291/8292) from Settings; expired subscriptions are pruned automatically.
+
 ### Practice (`/app/practice`)
 
 Grounded multiple-choice questions and flashcards generated from uploaded PDF and text course materials. Features course selection, answer explanations, source references, missed-question review, and score tracking.
@@ -316,7 +320,7 @@ Full async job-queue based LLM briefing system:
 
 ### Settings (`/app/settings`)
 
-Reserved for future application preferences.
+Application preferences. Currently hosts the Weekly Plan push subscription: enable/disable Web Push for the Monday digest, with clear unsupported, blocked, and subscribed states.
 
 ### Semesters (`/app/semesters`)
 

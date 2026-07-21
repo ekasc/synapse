@@ -373,3 +373,13 @@ export const studySessions = sqliteTable('study_sessions', {
 	startedAt: text('started_at').notNull(),
 	completedAt: text('completed_at').notNull()
 });
+
+// — Weekly push —
+
+export const weeklyPushSubscriptions = sqliteTable('weekly_push_subscriptions', {
+	id: text('id').primaryKey(),
+	endpoint: text('endpoint').notNull().unique(),
+	p256dh: text('p256dh').notNull(),
+	auth: text('auth').notNull(),
+	createdAt: text('created_at').notNull()
+});
