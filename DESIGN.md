@@ -39,7 +39,7 @@ The interface should not feel like a generic SaaS dashboard. The product's data 
 
 ## 3. Colors
 
-All tokens defined in `src/routes/layout.css`. The `--color-*` prefixed variables are the canonical values; the unprefixed aliases (`--paper`, `--ink`, etc.) are the ones used in components.
+All tokens are defined in `src/routes/layout.css` as CSS custom properties (`--paper`, `--ink`, `--highlight`, etc.). The values documented below must stay in sync with that file — the file is the source of truth.
 
 ### Pale fills (subject / category tags)
 
@@ -60,22 +60,24 @@ All tokens defined in `src/routes/layout.css`. The `--color-*` prefixed variable
 
 - **Accent / Red** (`--accent`, `#b03a2e`): Left border on active sidebar link. Used sparingly for structural hierarchy.
 - **Pen Red** (`--pen-red`, `#c2362a`): Reviewer's red pen. Used for corrections, uncertainty, circled items, or one margin note.
-- **Warn** (`--warn`, `#c08a2e`): Warning and caution signals.
-- **Ok** (`--ok`, `#5a7a4a`): Success and good-state signals.
+- **Pen Blue** (`--pen-blue`, `#315c91`): A third pen voice for course-map annotations and in-document links. Rarer than red.
+- **Warn** (`--warn`, `#8a6114`): Warning and caution signals. Darkened from the original amber to clear WCAG 4.5:1 on paper at label sizes.
+- **Ok** (`--ok`, `#4d6a3f`): Success and good-state signals. Darkened under the same contrast constraint.
 
 ### Neutrals
 
-- **Paper** (`--paper`, `#f4ede0`): App and page background.
-- **Paper Edge** (`--paper-edge`, `#e8dcc1`): Sidebar background, tape strips, page edges, minor surfaces.
-- **Paper Shelf** (`--paper-shelf`, `#ebe0c8`): Search blocks, book spines, secondary card surfaces.
-- **Ink** (`--ink`, `#1f1c14`): Primary text and strokes.
+- **Paper** (`--paper`, `#f6f1e2`): App and page background.
+- **Paper Edge** (`--paper-edge`, `#eae2ca`): Tape strips, page edges, minor surfaces.
+- **Paper Shelf** (`--paper-shelf`, `#ede5cf`): Search blocks, book spines, secondary card surfaces.
+- **Ink** (`--ink`, `#1a1814`): Primary text and strokes.
 - **Ink Soft** (`--ink-soft`, `#4a4538`): Secondary text, subdued labels, helper copy.
-- **Ink Faint** (`--ink-faint`, `#5e5849`): Dashed borders, guide marks, nonessential metadata.
-- **Rule** (`--rule`, `#c4b494`): Borders, dividers, and separators.
-- **Rule Soft** (`--rule-soft`, `#d8c8a4`): Subtle dividers and soft borders.
-- **Rule Strong** (`--rule-strong`, `#1f1c14`): Emphasized borders (same as ink).
-- **Tape** (`--tape`, `rgba(232, 220, 193, 0.85)`): Masking-tape strips.
+- **Ink Faint** (`--ink-faint`, `#6b5d48`): Dashed borders, guide marks, nonessential metadata.
+- **Rule** (`--rule`, `#d8c8a4`): Borders, dividers, and separators.
+- **Rule Soft** (`--rule-soft`, `#e8d8b4`): Subtle dividers and soft borders.
+- **Rule Strong** (`--rule-strong`, `#1a1814`): Emphasized borders (same as ink).
+- **Tape** (`--tape`, `rgba(234, 226, 202, 0.85)`): Masking-tape strips.
 - **Shadow Ink** (`--shadow-ink`, `rgba(26, 26, 23, 0.12)`): Light paper shadows.
+- **Sidebar** (`--sidebar-bg`, `#1a1814` + soft/fg/rule companions): Dark chrome for the desktop sidebar only — see §9.
 
 ### Rules
 
@@ -237,13 +239,13 @@ The landing page is more expressive than the app; its job is to communicate the 
 
 ### Sidebar
 
-- Fixed left sidebar on desktop (220px width, `var(--paper-shelf)` background), hidden on mobile.
-- Brand mark `synapse.` uses Source Serif 4 (`--font-display`) in 1.25rem, with an accent red dot.
-- Nav section labeled "Catalog" in JetBrains Mono uppercase (0.7rem).
-- Nav items use Inter 0.9rem weight 500, with sidecar course count in mono.
-- Active nav item: bold weight, `var(--paper)` background, `var(--accent)` (red) left border.
-- Hover: subtle background shift to `var(--paper)`, ink left border.
-- Below catalog nav, a dynamic term list displays semesters and course counts.
+- Fixed left sidebar on desktop (240px width, `var(--sidebar-bg)` dark-ink surface), hidden on mobile. The sidebar is deliberate dark chrome — the desk the paper sits on — not dark mode: every content page stays on paper.
+- Brand mark `Synapse.` uses Source Serif 4 (`--font-display`) at 1.4rem — the only permitted use of the display font in the product.
+- Nav section labeled "Workspace" in JetBrains Mono uppercase (0.7rem).
+- Nav items use Inter 0.9rem weight 500.
+- Active nav item: bold weight, tinted background, `var(--accent)` (red) left border.
+- Hover: subtle background shift with an ink-tinted left border — visually distinct from the active state, never the same red.
+- Below nav, a dynamic term list displays semesters and course counts.
 - On mobile: floating action button opens a popup nav.
 
 ### Main Area
@@ -271,7 +273,7 @@ Three states:
 
 Small Kalam title, Inter subtitle, dashed chips, simple ink primary button.
 
-### Courses / Knowledge Graph (`/app/courses`)
+### Course Map (`/app/courses`)
 
 Full-screen canvas with course nodes, directed edges, pan/zoom, inspector, minimap, and floating toolbar. Most visually dense app surface.
 
@@ -300,6 +302,10 @@ First-party calendar showing assignments, exams, quizzes, and deadlines across a
 
 AI-generated weekly summary of workload, deadlines, and study recommendations. Currently shows mock data.
 
+### Weekly Plan (`/app/weekly`)
+
+Deterministic seven-day planning view computed by a pure engine (`src/lib/dashboard/weekly.ts`) from live courses, calendar events, practice sessions, study sessions, materials, briefings, and the course graph. Shows the top three priorities with deterministic explanations, chronological deadlines, crunch windows, paused practice, study gaps, material-indexing and prerequisite warnings, plus an optional OpenRouter prose summary that degrades away without an API key. A Worker cron trigger (Mondays 15:00 UTC) pushes the digest to browsers subscribed via Web Push (RFC 8291/8292) from Settings; expired subscriptions are pruned automatically.
+
 ### Practice (`/app/practice`)
 
 Grounded multiple-choice questions and flashcards generated from uploaded PDF and text course materials. Features course selection, answer explanations, source references, missed-question review, and score tracking.
@@ -316,7 +322,7 @@ Full async job-queue based LLM briefing system:
 
 ### Settings (`/app/settings`)
 
-Reserved for future application preferences.
+Application preferences. Currently hosts the Weekly Plan push subscription: enable/disable Web Push for the Monday digest, with clear unsupported, blocked, and subscribed states.
 
 ### Semesters (`/app/semesters`)
 
@@ -329,7 +335,7 @@ Onboarding flow for new users to set up semesters and courses.
 ## 11. Focus and Accessibility
 
 - Buttons and links: `outline: 2px solid var(--ink)`, offset 2-3px.
-- Inputs, textareas, selects: `outline: 2px solid var(--highlight)`, offset 1px.
+- Inputs, textareas, selects: `outline: 2px solid var(--ink)`, offset 1px. (The highlighter is ~1:1 against paper and cannot serve as a focus ring.)
 - All interactive elements have `:focus-visible` support.
 - WCAG 2.2 AA contrast maintained.
 - SVG elements with semantic meaning include title/description.
@@ -353,7 +359,7 @@ Onboarding flow for new users to set up semesters and courses.
 
 - Do not turn app pages into marketing sections.
 - Do not add unrelated decorative illustrations.
-- Do not introduce glass, gradients, glow effects, or dark mode.
+- Do not introduce glass, gradients, glow effects, or dark mode (the dark sidebar is chrome, not a theme).
 - Do not use large metric-card dashboards.
 - Do not use Kalam for dense data, navigation, or input text.
 - Do not nest cards inside cards.

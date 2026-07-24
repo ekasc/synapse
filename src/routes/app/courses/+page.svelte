@@ -26,7 +26,7 @@
 	);
 </script>
 
-<svelte:head><title>Synapse · Course Map</title></svelte:head>
+<svelte:head><title>Course Map · Synapse</title></svelte:head>
 
 <main class="courses-page">
 	<header class="page-cover">
@@ -39,12 +39,12 @@
 	{#if semesters.length === 0}
 		<section class="empty-panel" aria-labelledby="empty-title">
 			<h2 id="empty-title">Add a semester before building your course map.</h2>
-			<a class="empty-action" href={resolve('/app/semesters')}>Add semester</a>
+			<a class="btn empty-action" href={resolve('/app/semesters')}>Add semester</a>
 		</section>
 	{:else if courses.length === 0}
 		<section class="empty-panel" aria-labelledby="empty-title">
 			<h2 id="empty-title">Add courses to see your degree path.</h2>
-			<a class="empty-action" href={resolve('/app/semesters')}>Add course</a>
+			<a class="btn empty-action" href={resolve('/app/semesters')}>Add course</a>
 		</section>
 	{:else}
 		<section class="map-section" aria-labelledby="map-title">
@@ -111,31 +111,13 @@
 
 	.map-heading h2,
 	.empty-panel h2 {
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
+		font-weight: 700;
 		color: var(--ink);
 	}
 
 	.empty-action {
-		display: inline-flex;
-		align-items: center;
-		min-height: 44px;
 		margin-top: 1rem;
-		padding: 0 1rem;
-		border: 1px solid var(--ink);
-		background: var(--ink);
-		color: var(--surface-paper);
-		font-size: 0.78rem;
-		font-weight: 600;
-		text-decoration: none;
-	}
-
-	.empty-action:hover {
-		background: var(--accent);
-	}
-
-	.empty-action:focus-visible {
-		outline: 3px solid var(--accent);
-		outline-offset: 3px;
 	}
 
 	.map-heading h2 {
@@ -176,17 +158,17 @@
 	}
 
 	.legend-box.upstream {
-		border-color: var(--pen-blue, #315c91);
+		border-color: var(--pen-blue);
 	}
 
 	.legend-box.downstream {
-		border-color: var(--pen-red, #a43a32);
+		border-color: var(--pen-red);
 	}
 
 	.no-relations {
 		margin: 0 0 0.75rem;
 		padding: 0.65rem 0.8rem;
-		border-left: 3px solid var(--highlight);
+		border: 1px solid var(--rule);
 		background: var(--paper-shelf);
 		font-size: 0.82rem;
 		color: var(--ink-soft);
@@ -197,7 +179,7 @@
 		padding: clamp(1rem, 3vw, 1.5rem);
 		border: 1px solid var(--ink);
 		background: var(--surface-paper);
-		box-shadow: 6px 6px 0 rgba(31, 28, 20, 0.09);
+		box-shadow: 6px 6px 0 var(--shadow-ink);
 	}
 
 	.empty-panel h2 {

@@ -45,15 +45,14 @@ export async function POST({ request }: RequestEvent) {
 		try {
 			const rawText = await extractTextFromPdf(file);
 			const extractedData = await extractSyllabusWithAI(rawText);
-			return json(
-				saveSyllabusImport({
-					courseId: typeof courseId === 'string' ? courseId : undefined,
-					fileName: file.name,
-					rawText,
-					extractedData,
-					status: 'ready'
-				})
-			);
+			const syllabus = await saveSyllabusImport({
+				courseId: typeof courseId === 'string' ? courseId : undefined,
+				fileName: file.name,
+				rawText,
+				extractedData,
+				status: 'ready'
+			});
+			return json(syllabus);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Could not extract syllabus';
 			return json({ ok: false, error: message }, { status: 500 });

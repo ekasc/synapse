@@ -1,7 +1,15 @@
-<svelte:head><title>Synapse · Semesters</title></svelte:head>
+<script lang="ts">
+	import { resolve } from '$app/paths';
+</script>
+
+<svelte:head><title>Semesters · Synapse</title></svelte:head>
 <div class="page page-enter">
-	<h1 class="page-title font-display">Semesters</h1>
-	<p class="body-copy">Add your first semester from the sidebar.</p>
+	<h1 class="page-title">Semesters</h1>
+	<p class="body-copy">
+		No semesters yet. The setup wizard walks you through picking your terms and adding your first
+		courses.
+	</p>
+	<a class="btn setup-action" href={resolve('/app/setup')}>Set up semesters</a>
 </div>
 
 <style>
@@ -12,10 +20,10 @@
 	}
 	.page-title {
 		margin: 0 0 0.75rem;
-		color: var(--ink);
-		font-size: clamp(2.4rem, 4vw, 3rem);
 	}
 	.body-copy {
 		color: var(--ink-soft);
+		margin: 0 0 1.25rem;
+		max-width: 34rem;
 	}
 </style>

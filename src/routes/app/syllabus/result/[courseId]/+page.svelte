@@ -1,1 +1,1 @@
-<svelte:head><title>Synapse · Syllabus result</title></svelte:head>
+<svelte:head><title>Syllabus intelligence · Synapse</title></svelte:head>

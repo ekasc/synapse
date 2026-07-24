@@ -146,9 +146,13 @@
 		font: inherit;
 	}
 	.add-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 2.75rem;
+		min-height: 2.75rem;
 		font-size: 1rem;
 		line-height: 1;
-		padding: 0 0.15rem;
 		transition:
 			background 0.12s var(--ease-out-quart),
 			color 0.12s var(--ease-out-quart);

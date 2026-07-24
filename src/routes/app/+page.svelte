@@ -60,7 +60,7 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Priority brief</title></svelte:head>
+<svelte:head><title>Synapse · Today's focus</title></svelte:head>
 
 <div class="page">
 	{#if semesters.length === 0}
@@ -76,7 +76,7 @@
 		<header class="brief-header">
 			<div>
 				<div class="eyebrow">Today · {todayEyebrow}</div>
-				<h1 class="page-title font-hand">Your priority brief</h1>
+				<h1 class="page-title font-hand">Today's focus</h1>
 				<p class="page-tagline">{summary.sentence}</p>
 				<div class="term-meta">{termContextLabel ?? 'Term'} · {currentTermLabel ?? '—'}</div>
 			</div>
@@ -246,7 +246,7 @@
 		align-items: flex-start;
 		gap: 1rem;
 		padding: 1.25rem;
-		border-left: 4px solid var(--ok);
+		border: 1px solid var(--rule);
 		background: color-mix(in srgb, var(--ok) 8%, var(--paper));
 	}
 	.all-clear-mark {

@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { createDb } from '$lib/server/db/d1';
-import { getCourses } from '$lib/server/store';
+import { getCourses, getSemesters } from '$lib/server/store';
+import { normalizeSyllabusEventTitle } from '$lib/calendar/syllabus-sync';
 
 const EVENT_TYPES = new Set(['assignment', 'midterm', 'final', 'quiz', 'lecture', 'study_session']);
 
@@ -31,8 +32,8 @@ export async function POST({ request, platform }: RequestEvent) {
 	const time = typeof value.time === 'string' && value.time.trim() ? value.time.trim() : null;
 	const gradeWeight = value.gradeWeight == null ? null : value.gradeWeight;
 
-	if (!title || title.length > 160 || !courseCode || courseCode.length > 40) {
-		return json({ error: 'Course and title are required' }, { status: 400 });
+	if (!title || title.length > 160 || !courseId || !courseCode || courseCode.length > 40) {
+		return json({ error: 'Course selection and title are required' }, { status: 400 });
 	}
 	if (
 		type === '' ||
@@ -56,15 +57,39 @@ export async function POST({ request, platform }: RequestEvent) {
 	if (time && (time.length > 20 || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time))) {
 		return json({ error: 'Time must use 24-hour HH:MM format' }, { status: 400 });
 	}
-	const courses = await getCourses();
-	const course = courseId
-		? courses.find((candidate) => candidate.id === courseId && candidate.code === courseCode)
-		: courses.find((candidate) => candidate.code === courseCode);
+	const [courses, semesters] = await Promise.all([getCourses(), getSemesters()]);
+	const course = courses.find(
+		(candidate) => candidate.id === courseId && candidate.code === courseCode
+	);
 	if (!course) return json({ error: 'Select a course from Synapse' }, { status: 422 });
+	const semester = semesters.find((candidate) => candidate.id === course.semesterId);
+	if (!semester) return json({ error: 'Course semester could not be found' }, { status: 422 });
+	if (year !== semester.year) {
+		return json(
+			{ error: `Event date must be in ${semester.term} ${semester.year}` },
+			{ status: 422 }
+		);
+	}
 
+	const candidates = await platform.env.BRIEF_DB.prepare(
+		`SELECT id, title FROM calendar_events
+		 WHERE course_id = ? AND course_code = ? AND type = ?
+		   AND year = ? AND month = ? AND date = ? AND COALESCE(time, '') = ?`
+	)
+		.bind(course.id, course.code, type, year, month, date, time ?? '')
+		.all<{ id: string; title: string }>();
+	const normalizedTitle = normalizeSyllabusEventTitle(title);
+	const existing = candidates.results?.find(
+		(candidate) => normalizeSyllabusEventTitle(candidate.title) === normalizedTitle
+	);
+	if (existing) {
+		return json({ ok: true, id: existing.id, created: false, reason: 'duplicate' });
+	}
+
+	const id = crypto.randomUUID();
 	const db = createDb(platform.env.BRIEF_DB);
 	await db.createCalendarEvent({
-		id: crypto.randomUUID(),
+		id,
 		courseId: course.id,
 		courseCode: course.code,
 		title,
@@ -78,5 +103,5 @@ export async function POST({ request, platform }: RequestEvent) {
 		notes: null
 	});
 
-	return json({ ok: true });
+	return json({ ok: true, id, created: true }, { status: 201 });
 }

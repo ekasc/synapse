@@ -3,23 +3,6 @@
 
 	let { brief }: { brief: BriefingDetailViewModel } = $props();
 
-	const SUBJECT_COLORS: Record<string, string> = {
-		COMP: 'var(--subject-comp)',
-		MATH: 'var(--subject-math)',
-		CSIS: 'var(--subject-csis)',
-		STAT: 'var(--subject-stat)',
-		ECON: 'var(--subject-econ)',
-		ISYS: 'var(--subject-isys)',
-		HUMN: 'var(--subject-humn)'
-	};
-
-	function subjectColor(code: string): string {
-		const prefix = code.split(/[\s-]/)[0]?.toUpperCase() ?? '';
-		return SUBJECT_COLORS[prefix] ?? 'var(--ink-faint)';
-	}
-
-	const stripe = $derived(subjectColor(brief.courseCode));
-
 	const dateStamp = $derived.by(() => {
 		const d = new Date(brief.researchedAt);
 		if (isNaN(d.getTime())) return '';
@@ -33,9 +16,7 @@
 
 	const title = $derived.by(() => {
 		const escaped = brief.courseCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		return (
-			brief.title.replace(new RegExp(`^${escaped}\\s*[-–—:]?\\s*`, 'i'), '') || brief.title
-		);
+		return brief.title.replace(new RegExp(`^${escaped}\\s*[-–—:]?\\s*`, 'i'), '') || brief.title;
 	});
 
 	const rmpRating = $derived(brief.studentReviews?.rating);
@@ -67,7 +48,6 @@
 </script>
 
 <a class="entry" href={`/app/brief/${encodeURIComponent(brief.courseCode)}`}>
-	<span class="stripe" style:background={stripe} aria-hidden="true"></span>
 	<div class="entry-body">
 		<div class="entry-date font-mono">{dateStamp}</div>
 		<div class="entry-row">
@@ -87,7 +67,7 @@
 		gap: 0;
 		padding: 0;
 		border: 0;
-		border-bottom: 1px solid var(--rule-soft);
+		border-bottom: 1px solid var(--rule);
 		background: var(--paper);
 		color: inherit;
 		text-decoration: none;
@@ -101,11 +81,6 @@
 	.entry:focus-visible {
 		outline: 2px solid var(--ink);
 		outline-offset: -2px;
-	}
-
-	.stripe {
-		flex: 0 0 4px;
-		background: var(--ink-faint);
 	}
 
 	.entry-body {

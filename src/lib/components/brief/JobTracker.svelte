@@ -41,7 +41,7 @@
 		ranking_evidence: 'Ranking and deduplicating evidence…',
 		synthesizing: 'Synthesizing the validated evidence…',
 		validating: 'Validating every claim and citation…',
-		publishing: 'Publishing the validated briefing…',
+		publishing: 'Publishing the validated brief…',
 		resolving_course: 'Resolving course and institution…',
 		searching_official: 'Searching official course records…',
 		verifying_instructor: 'Verifying instructor evidence…',
@@ -93,15 +93,15 @@
 	);
 
 	const errorText = $derived.by(() => {
-		if (timedOut) return 'Briefing is taking longer than expected.';
+		if (timedOut) return 'The brief is taking longer than expected.';
 		if (job.errorMessage) return job.errorMessage;
 		switch (job.status) {
 			case 'failed':
-				return 'Briefing failed.';
+				return 'The brief failed.';
 			case 'conflict':
 				return 'Official course evidence conflicts. Try a different code or professor.';
 			case 'expired':
-				return 'Briefing expired. Try again.';
+				return 'The brief expired. Try again.';
 			case 'canceled':
 				return 'Research canceled. You can retry when ready.';
 			default:
@@ -126,7 +126,8 @@
 	<div class="dots" aria-hidden="true">
 		{#each STAGES as _, i (i)}
 			<span class="dot" class:filled={i <= stageIndex} class:active={i === stageIndex}></span>
-			{#if i < STAGES.length - 1}<span class="connector" class:connector-done={i < stageIndex}></span>{/if}
+			{#if i < STAGES.length - 1}<span class="connector" class:connector-done={i < stageIndex}
+				></span>{/if}
 		{/each}
 	</div>
 	<div class="line">

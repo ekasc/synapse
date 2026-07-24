@@ -3,6 +3,7 @@
 	import { resolveRoute } from '$app/paths';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
+	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 
 	type ExtractedData = {
 		professor: {
@@ -103,11 +104,6 @@
 	let isResetting = $state(false);
 	let apiError = $state('');
 
-	// Polling / progress state
-	let progressCompleted = $state(0);
-	let progressPulse = $state<'polling' | 'finalising' | ''>('');
-	let pollingTimer = $state<ReturnType<typeof setInterval> | null>(null);
-
 	let activeCourse = $derived(
 		courseOptions.find((course) => course.id === selectedCourseId) ?? courseOptions[0] ?? null
 	);
@@ -149,45 +145,6 @@
 		selectedSyllabusFileName = file.name;
 	}
 
-	function startProgressPoll() {
-		// Increment through extraction items with staggered timing
-		// to show visual progress while the backend processes
-		progressCompleted = 0;
-		progressPulse = 'polling';
-		const tick = () => {
-			progressCompleted = (prev: number) => {
-				const next = prev + 1;
-				if (next >= extractionItems.length) {
-					if (pollingTimer) clearInterval(pollingTimer);
-					pollingTimer = null;
-					progressPulse = 'finalising';
-				}
-				return Math.min(next, extractionItems.length);
-			};
-			// Use function update trick — progressCompleted is a $state so we set it
-		};
-
-		pollingTimer = setInterval(() => {
-			if (progressCompleted < extractionItems.length) {
-				progressCompleted += 1;
-				if (progressCompleted >= extractionItems.length) {
-					if (pollingTimer) clearInterval(pollingTimer);
-					pollingTimer = null;
-					progressPulse = 'finalising';
-				}
-			}
-		}, 1800);
-	}
-
-	function stopProgressPoll() {
-		if (pollingTimer) {
-			clearInterval(pollingTimer);
-			pollingTimer = null;
-		}
-		progressCompleted = extractionItems.length;
-		progressPulse = '';
-	}
-
 	async function extractSyllabus() {
 		if (!selectedSyllabusFile) {
 			apiError = 'Choose a syllabus PDF first';
@@ -200,7 +157,6 @@
 
 		isExtracting = true;
 		apiError = '';
-		startProgressPoll();
 
 		try {
 			const body = (() => {
@@ -214,15 +170,10 @@
 				body
 			});
 			if (!response.ok) throw new Error('Could not extract syllabus');
-			// Extraction succeeded — complete progress and navigate
-			stopProgressPoll();
 			syllabus = (await response.json()) as SyllabusImport;
 			selectedSyllabusFileName = syllabus.fileName;
-			// Small delay to show the final "complete" state before navigating
-			await new Promise((r) => setTimeout(r, 600));
 			await goto(resultHref);
 		} catch (error) {
-			stopProgressPoll();
 			apiError = error instanceof Error ? error.message : 'Could not extract syllabus';
 		} finally {
 			isExtracting = false;
@@ -263,12 +214,12 @@
 </script>
 
 <svelte:head>
-	<title>Syllabus Intelligence · Synapse</title>
+	<title>Syllabus intelligence · Synapse</title>
 </svelte:head>
 
 <div class="page">
 	<div class="page-cover">
-		<h1 class="page-title font-display">Syllabus Intelligence</h1>
+		<h1 class="page-title">Syllabus intelligence</h1>
 		<p class="page-tagline">Upload a course outline. Extract the details students actually need.</p>
 		<div class="page-status">
 			<StatusChip variant={statusVariant} label={statusLabel} />
@@ -314,7 +265,7 @@
 					disabled={!selectedCourseId || isExtracting || isResetting}
 					onchange={onSyllabusFileChange}
 				/>
-				<span class="drop-title font-display">Drop syllabus PDF</span>
+				<span class="drop-title font-hand">Drop syllabus PDF</span>
 				<span class="drop-subtitle font-mono">or choose a file · PDF only</span>
 			</label>
 
@@ -328,26 +279,9 @@
 			{/if}
 
 			{#if isExtracting}
-				<div class="progress-panel" role="status" aria-live="polite">
-					<div class="progress-head font-mono">
-						{progressPulse === 'finalising'
-							? 'Finalising extraction...'
-							: 'Extracting from syllabus...'}
-					</div>
-					<ul class="progress-list">
-						{#each extractionItems as item, i (i)}
-							<li
-								class="progress-item"
-								class:done={i < progressCompleted}
-								class:pending={i >= progressCompleted}
-							>
-								<span class="progress-check font-mono" aria-hidden="true">
-									{i < progressCompleted ? '✓' : '○'}
-								</span>
-								<span>{item}</span>
-							</li>
-						{/each}
-					</ul>
+				<div class="progress-panel" role="status">
+					<LoadingDots label="Extracting syllabus" />
+					<span>Extracting from your syllabus PDF.</span>
 				</div>
 			{:else}
 				<div class="extract-list">
@@ -432,15 +366,6 @@
 		padding-block: 2.5rem 4rem;
 	}
 
-	.page-title {
-		font-size: clamp(2rem, 4vw, 3.25rem);
-		font-weight: 600;
-		color: var(--ink);
-		margin: 0.25rem 0 0.5rem;
-		line-height: 1.05;
-		letter-spacing: -0.025em;
-	}
-
 	.page-tagline {
 		color: var(--ink-soft);
 		font-size: 0.92rem;
@@ -463,8 +388,7 @@
 		margin-bottom: 1.25rem;
 	}
 
-	.course-selector-label,
-	.field-label {
+	.course-selector-label {
 		display: block;
 		color: var(--ink-faint);
 		font-size: 0.72rem;
@@ -479,13 +403,14 @@
 		gap: 0.7rem;
 		margin: 0.45rem 0 0;
 		color: var(--ink);
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
+		font-weight: 700;
 		font-size: 1.4rem;
 		line-height: 1.1;
 	}
 
 	.course-code {
-		color: var(--accent);
+		color: var(--ink-soft);
 		font-size: 0.82rem;
 		letter-spacing: 0.12em;
 	}
@@ -503,66 +428,6 @@
 		color: var(--ink-soft);
 		font-size: 0.78rem;
 		padding: 0.35rem 0.5rem;
-	}
-
-	.course-select-box {
-		display: grid;
-		gap: 0.45rem;
-	}
-
-	.select-shell {
-		position: relative;
-	}
-
-	.select-shell select {
-		width: 100%;
-		min-height: 2.75rem;
-		border: 1.5px solid var(--ink);
-		background: var(--paper);
-		color: var(--ink);
-		font: inherit;
-		padding: 0.65rem 2.2rem 0.65rem 0.75rem;
-		appearance: none;
-	}
-
-	.select-shell select:disabled {
-		color: var(--ink-faint);
-		border-color: var(--rule);
-		cursor: not-allowed;
-	}
-
-	.dropdown-arrow {
-		position: absolute;
-		right: 0.65rem;
-		top: 50%;
-		display: grid;
-		place-items: center;
-		width: 1.15rem;
-		height: 1.15rem;
-		border: 1px solid var(--ink);
-		background: var(--highlight);
-		color: var(--ink);
-		font-size: 0.75rem;
-		transform: translateY(-50%);
-		pointer-events: none;
-	}
-
-	.empty-course-state {
-		margin-bottom: 1.25rem;
-		padding: 1.25rem 1.5rem;
-	}
-
-	.empty-course-state h2 {
-		margin: 0.4rem 0 0;
-		color: var(--ink);
-		font-family: var(--font-display);
-		font-size: 1.35rem;
-	}
-
-	.empty-course-state p {
-		margin: 0.45rem 0 0;
-		color: var(--ink-soft);
-		font-size: 0.9rem;
 	}
 
 	.workspace {
@@ -593,8 +458,8 @@
 		text-align: center;
 		padding: 1rem;
 		transition:
-			border-color 0.12s,
-			background 0.12s;
+			border-color 0.12s var(--ease-out-quart),
+			background 0.12s var(--ease-out-quart);
 		position: relative;
 	}
 
@@ -615,8 +480,6 @@
 		display: block;
 		color: var(--ink);
 		font-size: 1.15rem;
-		font-weight: 600;
-		letter-spacing: -0.01em;
 	}
 
 	.drop-subtitle {
@@ -664,68 +527,17 @@
 		flex-shrink: 0;
 	}
 
-	/* ── Progress panel (polling) ── */
+	/* ── Honest indeterminate extraction state ── */
 	.progress-panel {
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		padding: 1rem 1.25rem 1.15rem;
-	}
-
-	.progress-head {
-		font-size: 0.75rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		margin-bottom: 0.65rem;
-	}
-
-	.progress-list {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: grid;
-		gap: 0.4rem;
-	}
-
-	.progress-item {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
-		font-size: 0.88rem;
-		padding: 0.35rem 0;
-		border-bottom: 1px solid var(--rule);
-		color: var(--ink-faint);
-		transition: color 0.25s;
-	}
-
-	.progress-item:last-child {
-		border-bottom: none;
-	}
-
-	.progress-item.done {
-		color: var(--ink);
-	}
-
-	.progress-check {
-		display: inline-grid;
-		place-items: center;
-		min-width: 1.15rem;
-		height: 1.15rem;
-		font-size: 0.7rem;
-		flex-shrink: 0;
-	}
-
-	.progress-item.done .progress-check {
-		background: var(--ink);
-		color: var(--paper);
-	}
-
-	.progress-item.pending .progress-check {
+		gap: 0.65rem;
 		border: 1px solid var(--rule);
-		color: var(--ink-faint);
+		background: var(--paper);
+		padding: 1rem 1.25rem;
+		color: var(--ink-soft);
+		font-size: 0.88rem;
 	}
-
-	/* ── End progress panel ── */
 
 	.extract-list-head {
 		font-size: 0.75rem;
@@ -777,9 +589,9 @@
 	.api-error {
 		margin: 0;
 		padding: 0.65rem 0.85rem;
-		color: var(--accent);
-		background: rgba(176, 58, 46, 0.08);
-		border: 1px solid var(--accent);
+		color: var(--pen-red);
+		background: rgba(194, 54, 42, 0.08);
+		border: 1px solid var(--pen-red);
 		font-size: 0.8rem;
 		line-height: 1.4;
 		text-transform: uppercase;

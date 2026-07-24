@@ -1,7 +1,7 @@
 # AI Usage Log — Synapse
 
 Started: June 21, 2026
-Tools used: **Hermes Agent** (primary, via Telegram & CLI), **Codex CLI** (occasional planning), **OpenCode Go** (current provider)
+Tools used: **Hermes Agent** (primary, via Telegram & CLI), **Codex CLI** (occasional planning), **OpenCode Go** (current provider), **Claude Code** (Weekly Planning Digest, July 20)
 
 ---
 
@@ -1086,3 +1086,67 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Canonical course Practice route returned 200.
 
 **Key principle:** Generated prose needs content-sized limits, not metadata-sized limits. Practice history and source selection belong to the owning course, and every material ID must be revalidated server-side.
+
+---
+
+## 34. Weekly Planning Digest — Deterministic Engine + `/app/weekly` (July 20)
+
+### Prompt (to Claude Code)
+
+> "Implement a new **Weekly Planning Digest** feature in the existing Synapse repository. Do not rewrite unrelated features. Inspect the current codebase first and reuse existing course, calendar, practice, study-session, material, and briefing data sources. … Create a pure domain function … Inject `now`. Do not call `new Date()` inside deterministic calculation logic. … Do not use AI to calculate priority. … Do not invent missing dates, grades, weights, study activity, or course data. Unknown values must remain unknown."
+
+**Context:** The app had no "what do I do this week" surface. The existing `/app/digest` route is Grade Analytics (different feature scope) and had to stay untouched. The brief required a deterministic planning view at `/app/weekly` — top-three priorities, deadlines, overdue work, crunch windows, study gaps, paused practice, unindexed materials, brief findings, and Course Map prerequisite warnings — with deterministic explanations and direct links, built on the Field Notebook design system.
+
+**How AI was used:**
+
+- Claude Code explored the codebase first (routes, data sources, design tokens, test conventions) and reused existing code: store readers (`getCourses`, `getStudySessions`, `getGraphState`), `createDb()` (calendar events, briefs), the practice-session and material-index repositories, R2 material listing, and Course Map's own `getAcceptedRelations` + `getPlanViolations` for sequencing warnings.
+- It wrote the scoring model as an explicit, documented additive function with stable tie-breaking (score → due date → course code → record id), not as an AI judgment.
+- The only runtime AI use is an optional prose layer that receives the finished deterministic digest JSON under a prompt forbidding calculation, inference, or added claims; it returns null when `OPENROUTER_API_KEY` is absent or the call fails, and the page renders the full structured digest either way.
+- It also verified the result honestly: the repo's `pnpm check` and `pnpm lint` baselines already fail with pre-existing errors in unrelated files; a stash comparison proved the new code adds zero new violations rather than "fixing" other features' code.
+
+**What changed:**
+
+- Added `src/lib/dashboard/weekly.ts`: pure `buildWeeklyDigest()` returning the structured digest; invalid event dates become warnings, invalid `now` throws, unknown weights/times/activity stay null.
+- Added `src/lib/server/weekly-prose.ts`: optional OpenRouter summarizer constrained to preserve dates and facts.
+- Added `src/routes/app/weekly/+page.server.ts` / `+page.svelte` / `+error.svelte`: week-range header, top-3 priorities with factor breakdowns, deadlines with overdue stamps, crunch warnings, continue-learning, study gaps, material-index and brief findings sections, empty/loading/degraded/error states, mobile + desktop.
+- Added `Weekly Plan` to the sidebar routes (`src/lib/sidebar/routes.ts`); Grade Analytics at `/app/digest` untouched.
+
+**Final verification:**
+
+- 584 Vitest tests passed (38 new: empty data, overdue/upcoming, deterministic top-3, equal-score tie-breaking, crunch detection, paused practice, missing indexes, study gaps, invalid dates, missing optional fields, identical output for identical inputs, no fabricated values, prose-layer mocks).
+- `pnpm build` passed; production build served locally returned HTTP 200 on `/app/weekly` with all sections rendered from real local data and the nav link present on both surfaces.
+- `pnpm check` and `pnpm lint` fail only on pre-existing baseline issues in unrelated files (verified byte-identical to clean HEAD); all new files pass prettier, eslint, and svelte-check cleanly.
+
+**Key principle:** Planning and priority ranking must come from a testable deterministic function; the model's only job is rewording already-computed facts. Anything unknown stays unknown — the UI shows "—" instead of an invented number, and pre-existing failures are reported rather than silently fixed in other features' code.
+
+---
+
+## 35. Scheduled Weekly Digest Push — Cron + Web Push Delivery (July 21)
+
+### Prompt (to Claude Code)
+
+> "do it — rename the branch and build the scheduled push. use a workflow that is token efficient. do not burn my tokens, only delegate tasks that you deem are doable by a cheaper model. no nested subagents. max agents: 3."
+
+**Context:** `FEATURES.md` describes the Weekly Digest as a push summary "generated from live graph data on a schedule." Entry 34 built the deterministic digest and the `/app/weekly` page; the scheduled delivery half did not exist (no cron, no notification code).
+
+**How AI was used:**
+
+- Claude Code did the context-heavy core itself: D1 subscriptions table + migration, subscription repository, shared digest assembler (extracted so the page and the cron plan from identical inputs), the four `/api/weekly-push/*` routes, the Worker scheduled handler, the service worker, and the Settings subscription UI.
+- Exactly one task was delegated to a cheaper model (single agent, no nesting): the RFC 8291 (aes128gcm) push-encryption and RFC 8292 (VAPID ES256) module, specified with exact function signatures and verified against the RFC 5869 HKDF test vector plus a full client-side decrypt round-trip, so validation meant running its tests rather than auditing crypto line by line.
+- The push payload is built strictly from the deterministic digest; the optional prose layer rewords it under the same no-calculation constraint as entry 34.
+
+**What changed:**
+
+- `migrations/0013_weekly_push_subscriptions.sql` + schema table; `src/lib/server/push/` now holds `encryption.ts` (delegated), `deliver.ts`, `subscriptions.ts`.
+- `src/lib/server/weekly-digest-data.ts` extracts the digest assembly from the page load for reuse.
+- Root `worker.js` wraps the SvelteKit worker and adds `scheduled()`; `wrangler.jsonc` gains a Monday 15:00 UTC cron and VAPID vars (private key and trigger secret stay in `wrangler secret` / `.dev.vars`).
+- `static/sw.js` shows the notification and focuses `/app/weekly` on click; Settings gained enable/disable push with unsupported/blocked/subscribed states.
+- `scripts/generate-vapid-keys.mjs` prints the keypair and where each value belongs.
+
+**Final verification:**
+
+- 597 Vitest tests passed (13 new push tests: RFC 5869 vector, JWT signature verification, encrypt/decrypt round-trip, delivery/pruning behavior).
+- `pnpm build` passed; new files pass prettier, eslint, and add zero svelte-check errors versus the pre-existing baseline.
+- Local cron rehearsal via `wrangler dev --test-scheduled`.
+
+**Key principle:** Delegate only what a cheaper model can verifiably do — hand it exact interfaces and public test vectors so the check is mechanical. Keep delivery a thin, secret-guarded wrapper around the deterministic digest; never let the transport layer invent content.

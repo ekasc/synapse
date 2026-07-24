@@ -14,6 +14,11 @@
 			"bucket_name": "synapse-materials"
 		}
 	],
+	// Weekly plan generation and push: Sundays 15:00 UTC (08:00 PT during PDT).
+	// The scheduled handler calls /api/weekly-push/run with WEEKLY_PUSH_SECRET.
+	"triggers": {
+		"crons": ["0 15 * * 0"]
+	},
 	"workers_dev": true,
 	"preview_urls": true,
 	"vars": {
@@ -26,7 +31,12 @@
 		"COURSE_RESEARCH_MAX_JOBS_PER_DAY": "20",
 		"COURSE_RESEARCH_MAX_JOBS_PER_IP_PER_DAY": "20",
 		"COURSE_RESEARCH_MAX_ACTIVE_JOBS": "3",
-		"COURSE_RESEARCH_MIN_REFRESH_AGE_HOURS": "6"
+		"COURSE_RESEARCH_MIN_REFRESH_AGE_HOURS": "6",
+		// Web Push (weekly digest). VAPID_PUBLIC_KEY is public; set
+		// VAPID_PRIVATE_KEY and WEEKLY_PUSH_SECRET with `wrangler secret put`
+		// (or .dev.vars locally). Generate keys: node scripts/generate-vapid-keys.mjs
+		"VAPID_PUBLIC_KEY": "",
+		"VAPID_SUBJECT": "mailto:team@synapse.study"
 	},
 	"d1_databases": [
 		{

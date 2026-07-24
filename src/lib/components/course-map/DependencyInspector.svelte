@@ -162,7 +162,7 @@
 		padding: 1rem;
 		border: 1px solid var(--ink);
 		background: var(--surface-paper);
-		box-shadow: 5px 5px 0 rgba(31, 28, 20, 0.1);
+		box-shadow: 5px 5px 0 var(--shadow-ink);
 	}
 
 	header,
@@ -192,7 +192,7 @@
 
 	h2 {
 		margin-top: 0.25rem;
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
 		font-size: 1.35rem;
 	}
 
@@ -229,8 +229,9 @@
 
 	.blocked,
 	.invalid {
-		padding-left: 0.75rem;
-		border-left: 3px solid var(--pen-red, #a43a32);
+		padding: 0.75rem;
+		border: 1px solid var(--pen-red);
+		background: var(--paper-shelf);
 	}
 
 	.eligibility {
@@ -240,14 +241,14 @@
 
 	.eligibility-term {
 		display: block;
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
 		font-size: 1.2rem;
 	}
 
 	.schedule-comparison {
 		margin-top: 0.75rem;
 		padding: 0.65rem 0.75rem;
-		border-left: 3px solid var(--accent);
+		border: 1px solid var(--rule);
 		background: var(--paper-shelf);
 	}
 

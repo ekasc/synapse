@@ -3,11 +3,13 @@ type SidebarHref =
 	| '/app/courses'
 	| '/app/courses/manage'
 	| '/app/calendar'
+	| '/app/weekly'
 	| '/app/timer'
 	| '/app/chat'
 	| '/app/digest'
 	| '/app/brief'
-	| '/app/activity';
+	| '/app/activity'
+	| '/app/settings';
 
 export interface SidebarRoute {
 	href: SidebarHref;
@@ -27,13 +29,26 @@ export interface SidebarChildRoute {
 
 export const routes: SidebarRoute[] = [
 	{ href: '/app', label: 'Dashboard' },
-	{ href: '/app/courses', label: 'Course map' },
+	{
+		href: '/app/courses',
+		label: 'Course map',
+		match: (pathname) =>
+			pathname === '/app/courses' ||
+			(pathname.startsWith('/app/courses/') && !pathname.startsWith('/app/courses/manage'))
+	},
+	{
+		href: '/app/courses/manage',
+		label: 'Manage courses',
+		match: (pathname) => pathname.startsWith('/app/courses/manage')
+	},
 	{ href: '/app/calendar', label: 'Calendar' },
-	{ href: '/app/timer', label: 'Study Timer' },
+	{ href: '/app/weekly', label: 'Weekly plan' },
+	{ href: '/app/timer', label: 'Study timer' },
 	{ href: '/app/chat', label: 'Assistant' },
-	{ href: '/app/digest', label: 'Weekly Digest' },
-	{ href: '/app/brief', label: 'Research' },
-	{ href: '/app/activity', label: 'Activity' }
+	{ href: '/app/digest', label: 'Weekly digest' },
+	{ href: '/app/brief', label: 'Briefs' },
+	{ href: '/app/activity', label: 'Activity' },
+	{ href: '/app/settings', label: 'Settings' }
 ];
 
 export function isRouteActive(pathname: string, route: SidebarRoute): boolean {

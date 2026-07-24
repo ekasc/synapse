@@ -103,4 +103,10 @@
 		padding: 0.4rem 0.7rem;
 		font-size: 0.72rem;
 	}
+
+	@media (pointer: coarse) {
+		:global(.ui-button) {
+			min-height: 2.75rem;
+		}
+	}
 </style>

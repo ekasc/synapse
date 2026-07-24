@@ -90,10 +90,13 @@
 		return 'muted' as const;
 	}
 
+	const connectedIds = $derived(
+		selectedId ? new Set([selectedId, ...upstream, ...downstream]) : null
+	);
+
 	function edgeIsMuted(relation: MapRelation) {
-		if (!selectedId) return false;
-		const connected = new Set([selectedId, ...upstream, ...downstream]);
-		return !connected.has(relation.source) || !connected.has(relation.target);
+		if (!connectedIds) return false;
+		return !connectedIds.has(relation.source) || !connectedIds.has(relation.target);
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -309,7 +312,7 @@
 		background: linear-gradient(to right, transparent, var(--paper-shelf));
 		content: '';
 		pointer-events: none;
-		transition: opacity 0.15s ease;
+		transition: opacity 0.15s var(--ease-out-quart);
 	}
 
 	.scroll-frame.at-end::after {
@@ -372,15 +375,10 @@
 		overscroll-behavior-inline: contain;
 	}
 
-	.scroll-region:focus-visible {
-		outline: 3px solid var(--highlight);
-		outline-offset: 2px;
-	}
-
 	.canvas {
 		position: relative;
 		min-width: 100%;
-		background-image: linear-gradient(to bottom, transparent 31px, rgba(31, 28, 20, 0.06) 32px);
+		background-image: linear-gradient(to bottom, transparent 31px, var(--backdrop-faint) 32px);
 		background-size: 100% 32px;
 	}
 
@@ -406,7 +404,7 @@
 
 	.semester-heading strong {
 		margin-top: 0.15rem;
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
 		font-size: 1.1rem;
 	}
 
