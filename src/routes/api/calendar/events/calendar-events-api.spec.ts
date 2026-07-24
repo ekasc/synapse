@@ -19,9 +19,11 @@ describe('calendar event API', () => {
 		getSemesters.mockResolvedValue([{ id: 'summer-2026', term: 'Summer', year: 2026, order: 1 }]);
 	});
 
-	it('returns an existing matching event instead of creating a duplicate', async () => {
-		const first = vi.fn().mockResolvedValue({ id: 'existing-event' });
-		const statement = { bind: vi.fn().mockReturnThis(), first };
+	it('returns a normalized matching event instead of creating a duplicate', async () => {
+		const all = vi.fn().mockResolvedValue({
+			results: [{ id: 'existing-event', title: 'Project Consultation!' }]
+		});
+		const statement = { bind: vi.fn().mockReturnThis(), all };
 		const { POST } = await import('./+server');
 		const request = new Request('http://localhost/api/calendar/events', {
 			method: 'POST',
@@ -29,7 +31,7 @@ describe('calendar event API', () => {
 			body: JSON.stringify({
 				courseId: 'csis-4495-summer-2026',
 				courseCode: 'CSIS 4495',
-				title: 'Project consultation',
+				title: ' project   consultation ',
 				type: 'assignment',
 				year: 2026,
 				month: 4,
@@ -42,7 +44,39 @@ describe('calendar event API', () => {
 		} as never);
 
 		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({ ok: true, id: 'existing-event', created: false });
+		expect(await response.json()).toEqual({
+			ok: true,
+			id: 'existing-event',
+			created: false,
+			reason: 'duplicate'
+		});
+	});
+
+	it('does not consider the same title on another date a duplicate', async () => {
+		const all = vi.fn().mockResolvedValue({ results: [] });
+		const run = vi.fn().mockResolvedValue({ success: true });
+		const prepare = vi.fn((sql: string) =>
+			sql.includes('SELECT id, title')
+				? { bind: vi.fn().mockReturnThis(), all }
+				: { bind: vi.fn().mockReturnThis(), run }
+		);
+		const { POST } = await import('./+server');
+		const request = new Request('http://localhost/api/calendar/events', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({
+				courseId: 'csis-4495-summer-2026',
+				courseCode: 'CSIS 4495',
+				title: 'Quiz',
+				type: 'quiz',
+				year: 2026,
+				month: 4,
+				date: 16
+			})
+		});
+		const response = await POST({ request, platform: { env: { BRIEF_DB: { prepare } } } } as never);
+		expect(response.status).toBe(201);
+		expect((await response.json()).created).toBe(true);
 	});
 
 	it('rejects an event year outside the selected course semester', async () => {

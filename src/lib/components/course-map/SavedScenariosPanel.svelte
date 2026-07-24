@@ -34,12 +34,16 @@
 	let deleteId = $state<string | null>(null);
 	let pendingLoad = $state<StoredScenario | null>(null);
 	let loadIssues = $state<SharedScenarioReplayResult | null>(null);
+	let failedScenario = $derived(operationState.kind === 'failure' ? operationState.scenario : null);
 
-	async function request(url: string, options?: RequestInit) {
+	type ScenarioResponse = { scenario: StoredScenario };
+	type ScenarioListResponse = { scenarios: StoredScenario[] };
+
+	async function request<T>(url: string, options?: RequestInit): Promise<T> {
 		const response = await fetch(url, options);
-		const body = response.status === 204 ? null : await response.json();
+		const body: unknown = response.status === 204 ? null : await response.json();
 		if (!response.ok) throw { status: response.status, body };
-		return body;
+		return body as T;
 	}
 
 	function recordFailure(
@@ -60,7 +64,7 @@
 		operationState = beginScenarioOperation('list');
 		status = 'loading';
 		try {
-			const body = await request('/api/course-map/scenarios');
+			const body = await request<ScenarioListResponse>('/api/course-map/scenarios');
 			scenarios = body.scenarios;
 			status = 'ready';
 			operationState = clearScenarioOperation();
@@ -90,7 +94,7 @@
 		if (!trimmed || copyMoves.length === 0) return;
 		operationState = beginScenarioOperation(operation, source);
 		try {
-			const body = await request('/api/course-map/scenarios', {
+			const body = await request<ScenarioResponse>('/api/course-map/scenarios', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ name: trimmed, moves: copyMoves })
@@ -119,7 +123,7 @@
 		};
 		operationState = beginScenarioOperation('update', target);
 		try {
-			const body = await request(`/api/course-map/scenarios/${association.id}`, {
+			const body = await request<ScenarioResponse>(`/api/course-map/scenarios/${association.id}`, {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({
@@ -147,7 +151,7 @@
 		}
 		operationState = beginScenarioOperation(operation, stored);
 		try {
-			const body = await request(`/api/course-map/scenarios/${stored.id}`);
+			const body = await request<ScenarioResponse>(`/api/course-map/scenarios/${stored.id}`);
 			onassociationchange(associateSavedScenario(body.scenario));
 			pendingLoad = null;
 			loadIssues = onloadscenario(body.scenario);
@@ -165,7 +169,7 @@
 		if (!trimmed) return;
 		operationState = beginScenarioOperation('rename', stored);
 		try {
-			const body = await request(`/api/course-map/scenarios/${stored.id}`, {
+			const body = await request<ScenarioResponse>(`/api/course-map/scenarios/${stored.id}`, {
 				method: 'PATCH',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ name: trimmed, expectedRevision: stored.revision })
@@ -182,7 +186,7 @@
 	async function duplicate(stored: StoredScenario) {
 		operationState = beginScenarioOperation('duplicate', stored);
 		try {
-			const body = await request(`/api/course-map/scenarios/${stored.id}`);
+			const body = await request<ScenarioResponse>(`/api/course-map/scenarios/${stored.id}`);
 			const copyName = `${body.scenario.name} — Copy`.slice(0, 80);
 			await createSaved(copyName, body.scenario.moves, false, 'duplicate', stored);
 		} catch (error) {
@@ -226,6 +230,7 @@
 		<div>
 			<p class="eyebrow font-mono">Saved draft plans</p>
 			<h3 id="saved-title">Draft plan library</h3>
+			<p class="saved-help">Draft plans you can compare, apply, or discard.</p>
 		</div>
 		{#if moves.length > 0 && !association}
 			<button type="button" onclick={openSave}>Save draft plan</button>
@@ -288,17 +293,16 @@
 					: `Retry ${operationState.operation}`}</button
 			>{#if operationState.conflict && operationState.scenario}<button
 					type="button"
-					onclick={() => load(operationState.scenario!, true, 'recovery')}
-					>Reload exact saved record</button
+					onclick={() => load(failedScenario!, true, 'recovery')}>Reload exact saved record</button
 				>{#if operationState.operation === 'update'}<button
 						type="button"
 						onclick={() =>
 							createSaved(
-								`${association?.name ?? operationState.scenario!.name} — Copy`.slice(0, 80),
+								`${association?.name ?? failedScenario!.name} — Copy`.slice(0, 80),
 								moves,
 								true,
 								'recovery',
-								operationState.scenario
+								failedScenario
 							)}>Save current plan as new</button
 					>{/if}{/if}
 		</div>{/if}
@@ -311,7 +315,9 @@
 			>
 		</div>{/if}
 	{#if status === 'loading'}<p aria-live="polite">Loading saved draft plans…</p>
-	{:else if status === 'error'}{:else if scenarios.length === 0}<p>
+	{:else if status === 'error'}<p class="list-error" role="alert">
+			Could not load saved draft plans.
+		</p>{:else if scenarios.length === 0}<p>
 			No saved draft plans yet.<br />Make a course move, then save the draft here.
 		</p>
 	{:else}<details open>
@@ -402,7 +408,12 @@
 		color: var(--ink-soft);
 	}
 	h3 {
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
+	}
+	.saved-help {
+		margin-top: 0.2rem;
+		font-size: 0.78rem;
+		color: var(--ink-faint);
 	}
 	button,
 	input {
@@ -415,12 +426,6 @@
 	button {
 		padding: 0 0.7rem;
 		cursor: pointer;
-	}
-	button:focus-visible,
-	input:focus-visible,
-	summary:focus-visible {
-		outline: 3px solid var(--ok);
-		outline-offset: 2px;
 	}
 	.saved-state,
 	.association {
@@ -476,8 +481,13 @@
 		grid-column: 1/-1;
 	}
 	.conflict {
-		border-left: 3px solid var(--accent);
+		border: 1px solid var(--accent);
 		border-top: 2px dashed var(--ink);
+	}
+	.list-error {
+		margin-top: 0.75rem;
+		font-weight: 600;
+		color: var(--pen-red);
 	}
 	@media (max-width: 600px) {
 		.saved-heading,

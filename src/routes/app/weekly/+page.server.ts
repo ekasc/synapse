@@ -1,21 +1,53 @@
-import { assembleWeeklyDigest } from '$lib/server/weekly-digest-data';
+import { redirect } from '@sveltejs/kit';
+import { getOrAssembleWeeklyDigest, updateDigestCacheProse } from '$lib/server/weekly-digest-data';
 import { composeWeeklyProse } from '$lib/server/weekly-prose';
 
-export async function load(event) {
-	const bundle = await assembleWeeklyDigest({
+async function getWeeklyPlan(event: { platform?: App.Platform; forceRegenerate?: boolean }) {
+	const binding = event.platform?.env?.BRIEF_DB as D1Database | undefined;
+	const bucket = event.platform?.env?.MATERIALS as R2Bucket | undefined;
+	const bundle = await getOrAssembleWeeklyDigest({
 		now: new Date(),
-		binding: event.platform?.env?.BRIEF_DB as D1Database | undefined,
-		bucket: event.platform?.env?.MATERIALS as R2Bucket | undefined
+		binding,
+		bucket,
+		forceRegenerate: event.forceRegenerate
 	});
-	let prose: { prose: string; model: string } | null;
-	try {
-		prose = await composeWeeklyProse(bundle.digest);
-	} catch {
-		prose = null;
+
+	if (bundle.cached) {
+		return {
+			...bundle,
+			prose: bundle.cachedProse ?? null,
+			proseModel: bundle.cachedProseModel ?? null
+		};
 	}
+
+	let proseResult: { prose: string; model: string } | null = null;
+	try {
+		proseResult = await composeWeeklyProse(bundle.digest);
+	} catch {
+		// Prose is optional — digest is still valid without it.
+	}
+
+	await updateDigestCacheProse({
+		weekStart: bundle.weekStart,
+		binding,
+		prose: proseResult?.prose ?? null,
+		proseModel: proseResult?.model ?? null
+	});
+
 	return {
 		...bundle,
-		prose: prose?.prose ?? null,
-		proseModel: prose?.model ?? null
+		prose: proseResult?.prose ?? null,
+		proseModel: proseResult?.model ?? null
 	};
 }
+
+export async function load(event) {
+	return getWeeklyPlan(event);
+}
+
+export const actions = {
+	regenerate: async (event) => {
+		await getWeeklyPlan({ platform: event.platform, forceRegenerate: true });
+		redirect(303, '/app/weekly');
+	}
+};

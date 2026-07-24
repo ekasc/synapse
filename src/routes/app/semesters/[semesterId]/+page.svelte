@@ -35,8 +35,12 @@
 		error = $state<string | null>(null);
 	const courses = $derived(data.courses);
 	const status = (course: Course) => course.signals?.status?.replaceAll('-', ' ') ?? 'planned';
-	const message = async (res: Response, fallback: string) =>
-		(await res.json().catch(() => null))?.error ?? fallback;
+	const message = async (res: Response, fallback: string) => {
+		const body: unknown = await res.json().catch(() => null);
+		return body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
+			? body.error
+			: fallback;
+	};
 	function courseHref(id: string) {
 		return `/app/semesters/${encodeURIComponent(data.semester.id)}/courses/${encodeURIComponent(id)}`;
 	}
@@ -89,11 +93,11 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · {data.semester.term} {data.semester.year}</title></svelte:head>
+<svelte:head><title>{data.semester.term} {data.semester.year} · Synapse</title></svelte:head>
 <div class="page page-enter">
 	<header class="cover">
 		<div>
-			<h1 class="page-title font-display">{data.semester.term} {data.semester.year}</h1>
+			<h1 class="page-title">{data.semester.term} {data.semester.year}</h1>
 			<p class="meta font-mono">{courses.length} course{courses.length === 1 ? '' : 's'}</p>
 		</div>
 		<div class="actions">
@@ -124,10 +128,8 @@
 				</li>{/each}
 		</ul>{/if}
 	<div class="semester-actions">
-		<button
-			class="btn btn-ghost btn-sm danger"
-			disabled={saving}
-			onclick={() => (deleteSemester = true)}>delete semester</button
+		<button class="btn btn-danger btn-sm" disabled={saving} onclick={() => (deleteSemester = true)}
+			>delete semester</button
 		>
 	</div>
 </div>
@@ -142,7 +144,7 @@
 	open={deleteCourse !== null}
 	title="Delete course?"
 	description={deleteCourse
-		? `Delete ${deleteCourse.code}? This also removes its graph connections.`
+		? `Delete ${deleteCourse.code}? This also removes its course map connections.`
 		: ''}
 	confirmLabel="Delete"
 	onConfirm={removeCourse}
@@ -151,17 +153,18 @@
 <AlertDialog
 	open={deleteSemester}
 	title="Delete semester?"
-	description="All courses in this semester and their graph edges will be removed."
+	description="All courses in this semester and their course map connections will be removed."
 	confirmLabel="Delete semester"
 	onConfirm={removeSemester}
 	onCancel={() => (deleteSemester = false)}
 />
 
 <style>
+	/* The app shell already pads horizontally — only pad the block axis. */
 	.page {
 		max-width: var(--page-width);
 		margin: auto;
-		padding: 2rem 1rem 4rem;
+		padding-block: 2rem 4rem;
 	}
 	.cover {
 		display: flex;
@@ -173,8 +176,6 @@
 	}
 	.page-title {
 		margin: 0;
-		color: var(--ink);
-		font-size: clamp(2.2rem, 4vw, 3rem);
 	}
 	.meta {
 		color: var(--ink-faint);
@@ -218,11 +219,8 @@
 		border-top: 1px solid var(--rule);
 		padding-top: 1rem;
 	}
-	.danger {
-		color: var(--accent);
-	}
 	.form-error {
-		color: var(--accent);
+		color: var(--pen-red);
 		font-size: 0.85rem;
 	}
 	@media (max-width: 640px) {

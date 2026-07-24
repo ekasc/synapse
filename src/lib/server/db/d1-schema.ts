@@ -383,3 +383,9 @@ export const weeklyPushSubscriptions = sqliteTable('weekly_push_subscriptions', 
 	auth: text('auth').notNull(),
 	createdAt: text('created_at').notNull()
 });
+
+export const weeklyDigestCache = sqliteTable('weekly_digest_cache', {
+	weekStart: text('week_start').primaryKey(),
+	digestJson: text('digest_json').notNull(),
+	createdAt: text('created_at').notNull()
+});

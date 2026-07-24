@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 
 	type BriefingJob = {
 		id: string;
@@ -30,8 +31,18 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let syllabusError = $state(false);
+	let jobsFetchInFlight = false;
+	let syllabusFetchInFlight = false;
+	let pollInterval: number | null = null;
+
+	const hasActiveWork = $derived(
+		briefingJobs.some((job) => job.status === 'queued' || job.status === 'running') ||
+			syllabusExtractions.some((extraction) => extraction.status === 'processing')
+	);
 
 	async function loadJobs() {
+		if (jobsFetchInFlight) return;
+		jobsFetchInFlight = true;
 		const firstLoad = briefingJobs.length === 0 && syllabusExtractions.length === 0;
 		if (firstLoad) loading = true;
 		error = null;
@@ -44,11 +55,14 @@
 		} catch {
 			error = 'Failed to load activity';
 		} finally {
+			jobsFetchInFlight = false;
 			if (firstLoad) loading = false;
 		}
 	}
 
 	async function loadSyllabusActivity() {
+		if (syllabusFetchInFlight) return;
+		syllabusFetchInFlight = true;
 		// Gracefully handle if the endpoint doesn't exist yet (Demi's scope)
 		try {
 			const res = await fetch('/api/syllabus/activity');
@@ -66,6 +80,8 @@
 		} catch {
 			syllabusError = true;
 			syllabusExtractions = [];
+		} finally {
+			syllabusFetchInFlight = false;
 		}
 	}
 
@@ -83,16 +99,44 @@
 		}
 	}
 
+	function startPolling() {
+		if (pollInterval !== null) return;
+		pollInterval = window.setInterval(() => {
+			void loadJobs();
+			void loadSyllabusActivity();
+		}, 30000);
+	}
+
+	function stopPolling() {
+		if (pollInterval === null) return;
+		window.clearInterval(pollInterval);
+		pollInterval = null;
+	}
+
+	// Poll only while at least one job is non-terminal, and only while visible.
+	$effect(() => {
+		if (hasActiveWork && !document.hidden) startPolling();
+		else stopPolling();
+	});
+
 	import { onMount } from 'svelte';
 	onMount(() => {
-		loadJobs();
-		loadSyllabusActivity();
-		const id = setInterval(() => {
-			loadJobs();
-			loadSyllabusActivity();
-		}, 5000);
+		void loadJobs();
+		void loadSyllabusActivity();
+		const onVisibilityChange = () => {
+			if (document.hidden) {
+				stopPolling();
+			} else {
+				// Catch up on whatever finished while the tab was hidden.
+				void loadJobs();
+				void loadSyllabusActivity();
+				if (hasActiveWork) startPolling();
+			}
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
 		return () => {
-			clearInterval(id);
+			stopPolling();
+			document.removeEventListener('visibilitychange', onVisibilityChange);
 		};
 	});
 
@@ -107,13 +151,13 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Activity</title></svelte:head>
+<svelte:head><title>Activity · Synapse</title></svelte:head>
 
 <div class="page page-enter">
 	<div class="page-cover">
 		<div class="page-cover-row">
 			<div>
-				<h1 class="page-title font-display">Activity</h1>
+				<h1 class="page-title">Activity</h1>
 				<p class="page-tagline">
 					{(() => {
 						const briefRunning = briefingJobs.filter((j) => j.status === 'running').length;
@@ -152,17 +196,24 @@
 	{/if}
 
 	{#if loading && briefingJobs.length === 0 && syllabusExtractions.length === 0}
-		<div class="loading-state font-mono" role="status" aria-live="polite">Loading activity...</div>
-	{:else if briefingJobs.length === 0 && syllabusExtractions.length === 0 && syllabusError}
+		<div class="loading-state">
+			<LoadingDots label="Loading activity" />
+		</div>
+	{:else if briefingJobs.length === 0 && syllabusExtractions.length === 0}
 		<div class="empty-state surface-polaroid">
-			<h2 class="empty-head font-display">No activity yet</h2>
-			<p class="empty-text">AI tasks like course briefings and digests will appear here.</p>
+			<h2 class="empty-head font-hand">No activity yet</h2>
+			<p class="empty-text">AI tasks like course briefs and digests will appear here.</p>
+			{#if syllabusError}
+				<p class="empty-error font-mono" role="alert">
+					Syllabus activity could not be loaded right now.
+				</p>
+			{/if}
 		</div>
 	{:else}
 		<div class="activity-sections">
 			{#if briefingJobs.length > 0}
 				<div class="activity-section">
-					<div class="activity-section-head font-mono">Course Briefing Jobs</div>
+					<div class="activity-section-head font-mono">Course brief jobs</div>
 					<div class="activity-list">
 						{#each briefingJobs as job (job.id)}
 							<div class="activity-item">
@@ -219,7 +270,7 @@
 
 			{#if syllabusExtractions.length > 0}
 				<div class="activity-section">
-					<div class="activity-section-head font-mono">Syllabus Extractions</div>
+					<div class="activity-section-head font-mono">Syllabus jobs</div>
 					<div class="activity-list">
 						{#each syllabusExtractions as ext (ext.id)}
 							<div class="activity-item">
@@ -293,9 +344,9 @@
 	.error-banner {
 		padding: 0.5rem 0.75rem;
 		margin-bottom: 1rem;
-		border: 1px solid var(--accent);
-		background: rgba(176, 58, 46, 0.05);
-		color: var(--accent);
+		border: 1px solid var(--pen-red);
+		background: rgba(194, 54, 42, 0.05);
+		color: var(--pen-red);
 		font-size: 0.8rem;
 	}
 	.loading-state {
@@ -318,6 +369,11 @@
 		font-size: 0.9rem;
 		color: var(--ink-soft);
 		margin: 0;
+	}
+	.empty-error {
+		margin: 0.75rem 0 0;
+		color: var(--pen-red);
+		font-size: 0.72rem;
 	}
 	.activity-sections {
 		display: flex;
@@ -372,7 +428,7 @@
 		color: var(--warn);
 	}
 	.animate-pulse {
-		animation: act-pulse 1.2s ease-in-out infinite;
+		animation: act-pulse 1.2s var(--ease-out-quart) infinite;
 	}
 	@keyframes act-pulse {
 		0%,
@@ -421,7 +477,7 @@
 	}
 	.activity-error {
 		font-size: 0.72rem;
-		color: var(--accent);
+		color: var(--pen-red);
 		margin-top: 0.25rem;
 	}
 	.activity-link {
@@ -429,7 +485,7 @@
 	}
 	.activity-result-link {
 		font-size: 0.72rem;
-		color: var(--accent);
+		color: var(--ink);
 		text-decoration: underline;
 		text-underline-offset: 2px;
 	}

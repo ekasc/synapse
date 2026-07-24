@@ -5,18 +5,19 @@ import type { RequestEvent } from './$types';
 
 type CourseColor = { id: string; code: string; color: string; name: string };
 
-export async function load(event: RequestEvent) {
-	const courses = await getCourses();
-
-	let manualEvents: CalendarEventRow[] = [];
-	if (event.platform) {
-		try {
-			const db = createDb(event.platform.env.BRIEF_DB);
-			manualEvents = await db.getCalendarEvents();
-		} catch (err) {
-			console.error('Failed to load manual events:', err);
-		}
+async function loadManualEvents(event: RequestEvent): Promise<CalendarEventRow[]> {
+	if (!event.platform) return [];
+	try {
+		const db = createDb(event.platform.env.BRIEF_DB);
+		return await db.getCalendarEvents();
+	} catch (err) {
+		console.error('Failed to load manual events:', err);
+		return [];
 	}
+}
+
+export async function load(event: RequestEvent) {
+	const [courses, manualEvents] = await Promise.all([getCourses(), loadManualEvents(event)]);
 
 	const courseColors: CourseColor[] = courses.map((c) => ({
 		id: c.id,

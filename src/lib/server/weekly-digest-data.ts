@@ -11,6 +11,118 @@ export type WeeklyDigestBundle = {
 	hasCourses: boolean;
 };
 
+export type CachedWeeklyDigestBundle = WeeklyDigestBundle & {
+	cached: boolean;
+	isSunday: boolean;
+	/** Cache key (Monday of the week as YYYY-MM-DD) — used to update with prose later. */
+	weekStart: string;
+	/** Cached AI prose (only present when serving from cache). */
+	cachedProse?: string | null;
+	cachedProseModel?: string | null;
+};
+
+/** Cache payload stored in D1 — bundle + optional prose. */
+interface CachePayload {
+	bundle: WeeklyDigestBundle;
+	prose?: string | null;
+	proseModel?: string | null;
+}
+
+const dateKey = (date: Date) =>
+	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+/** Returns the local Sunday that starts the week containing `date`. */
+export function startOfWeeklyPlan(date: Date): Date {
+	const sunday = new Date(date);
+	sunday.setHours(0, 0, 0, 0);
+	sunday.setDate(sunday.getDate() - sunday.getDay());
+	return sunday;
+}
+
+export function weeklyPlanKey(date: Date): string {
+	return dateKey(startOfWeeklyPlan(date));
+}
+
+/**
+ * Assembles or retrieves a cached weekly digest. Regenerates on Sunday,
+ * on cache miss, or when `forceRegenerate` is true. Writes through to
+ * D1 when a binding is available (without prose — callers should call
+ * `updateDigestCacheProse` after generating prose separately).
+ */
+export async function getOrAssembleWeeklyDigest(input: {
+	now: Date;
+	binding?: D1Database;
+	bucket?: R2Bucket;
+	forceRegenerate?: boolean;
+}): Promise<CachedWeeklyDigestBundle> {
+	const weekStart = weeklyPlanKey(input.now);
+	const isSunday = input.now.getDay() === 0;
+	const shouldUseCache = !input.forceRegenerate && !!input.binding;
+
+	if (shouldUseCache) {
+		try {
+			const db = createDb(input.binding!);
+			const cached = await db.getWeeklyDigestCache(weekStart);
+			if (cached) {
+				const payload = JSON.parse(cached) as CachePayload;
+				return {
+					...payload.bundle,
+					cached: true,
+					isSunday,
+					weekStart,
+					cachedProse: payload.prose ?? null,
+					cachedProseModel: payload.proseModel ?? null
+				};
+			}
+		} catch {
+			// Cache read failed — fall through to fresh generation.
+		}
+	}
+
+	const bundle = await assembleWeeklyDigest({
+		now: input.now,
+		binding: input.binding,
+		bucket: input.bucket
+	});
+
+	// Write through to cache (without prose — caller adds prose later).
+	if (input.binding) {
+		try {
+			const db = createDb(input.binding);
+			const payload: CachePayload = { bundle };
+			await db.setWeeklyDigestCache(weekStart, JSON.stringify(payload));
+		} catch {
+			// Cache write failed — non-fatal, just serve fresh.
+		}
+	}
+
+	return { ...bundle, cached: false, isSunday, weekStart };
+}
+
+/**
+ * Updates an existing cache entry with AI prose. No-op if the binding is
+ * unavailable. Failures are silently ignored (prose is optional).
+ */
+export async function updateDigestCacheProse(input: {
+	weekStart: string;
+	binding?: D1Database;
+	prose: string | null;
+	proseModel: string | null;
+}): Promise<void> {
+	if (!input.binding) return;
+	try {
+		const db = createDb(input.binding);
+		const cached = await db.getWeeklyDigestCache(input.weekStart);
+		if (!cached) return;
+		const payload = JSON.parse(cached) as CachePayload;
+		payload.prose = input.prose;
+		payload.proseModel = input.proseModel;
+		await db.setWeeklyDigestCache(input.weekStart, JSON.stringify(payload));
+	} catch {
+		// Non-fatal.
+	}
+}
+
 /**
  * Assembles the weekly digest from every live data source. Shared by the
  * `/app/weekly` page load and the scheduled push handler so both surfaces

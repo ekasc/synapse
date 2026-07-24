@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
-import { assembleWeeklyDigest } from '$lib/server/weekly-digest-data';
+import { getOrAssembleWeeklyDigest, updateDigestCacheProse } from '$lib/server/weekly-digest-data';
 import { composeWeeklyProse } from '$lib/server/weekly-prose';
 import { createWeeklyPushRepository } from '$lib/server/push/subscriptions';
 import { deliverWeeklyDigestPush } from '$lib/server/push/deliver';
 
-// Invoked by the Worker's scheduled handler (cron) with the shared trigger
-// secret. Runs the same deterministic digest the page shows and pushes it to
-// every Web Push subscription, pruning expired endpoints.
+// Invoked by the Worker's Sunday scheduled handler with the shared trigger
+// secret. Populates this week's cache exactly once, then delivers that same
+// plan to every Web Push subscription and prunes expired endpoints.
 export async function POST(event) {
 	const env = event.platform?.env as Record<string, string> | undefined;
 	const secret = env?.WEEKLY_PUSH_SECRET ?? '';
@@ -18,25 +18,48 @@ export async function POST(event) {
 	if (!binding) {
 		return json({ error: 'database unavailable' }, { status: 503 });
 	}
+
+	const bundle = await getOrAssembleWeeklyDigest({
+		now: new Date(),
+		binding,
+		bucket: event.platform?.env?.MATERIALS as R2Bucket | undefined
+	});
+	let prose = bundle.cachedProse ?? null;
+	if (!bundle.cached) {
+		try {
+			const result = await composeWeeklyProse(bundle.digest);
+			prose = result?.prose ?? null;
+			await updateDigestCacheProse({
+				weekStart: bundle.weekStart,
+				binding,
+				prose,
+				proseModel: result?.model ?? null
+			});
+		} catch {
+			prose = null;
+			await updateDigestCacheProse({
+				weekStart: bundle.weekStart,
+				binding,
+				prose: null,
+				proseModel: null
+			});
+		}
+	}
+
 	const vapid = {
 		subject: env?.VAPID_SUBJECT ?? '',
 		privateKey: env?.VAPID_PRIVATE_KEY ?? '',
 		publicKey: env?.VAPID_PUBLIC_KEY ?? ''
 	};
 	if (!vapid.privateKey || !vapid.publicKey || !vapid.subject) {
-		return json({ skipped: 'vapid keys are not configured' }, { status: 200 });
+		return json({
+			weekStart: bundle.digest.weekStart,
+			weekEnd: bundle.digest.weekEnd,
+			cached: bundle.cached,
+			skipped: 'vapid keys are not configured'
+		});
 	}
-	const bundle = await assembleWeeklyDigest({
-		now: new Date(),
-		binding,
-		bucket: event.platform?.env?.MATERIALS as R2Bucket | undefined
-	});
-	let prose: string | null;
-	try {
-		prose = (await composeWeeklyProse(bundle.digest))?.prose ?? null;
-	} catch {
-		prose = null;
-	}
+
 	const repository = createWeeklyPushRepository(binding);
 	const subscriptions = await repository.list();
 	const summary = await deliverWeeklyDigestPush({
@@ -56,6 +79,7 @@ export async function POST(event) {
 	return json({
 		weekStart: bundle.digest.weekStart,
 		weekEnd: bundle.digest.weekEnd,
+		cached: bundle.cached,
 		degraded: bundle.degraded,
 		attempted: summary.attempted,
 		delivered: summary.delivered,

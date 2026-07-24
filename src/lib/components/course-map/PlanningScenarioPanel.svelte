@@ -259,13 +259,13 @@
 	.shared-issues {
 		grid-column: 1 / -1;
 		padding: 0.75rem;
-		border-left: 3px solid var(--ok);
+		border: 1px solid var(--rule);
 		background: var(--paper-shelf);
 	}
 
 	.invalid-notice,
 	.shared-issues {
-		border-color: var(--accent);
+		border-color: var(--pen-red);
 	}
 
 	.shared-notice p,
@@ -303,7 +303,7 @@
 
 	h3 {
 		margin-top: 0.2rem;
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
 	}
 
 	dl {
@@ -327,8 +327,9 @@
 
 	.ready-status {
 		margin-top: 0.65rem;
-		padding-left: 0.55rem;
-		border-left: 3px solid var(--accent);
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--accent);
+		background: var(--paper-shelf);
 	}
 
 	.ready-status.ready {
@@ -390,12 +391,6 @@
 		font: inherit;
 		font-size: 0.72rem;
 		cursor: pointer;
-	}
-
-	button:focus-visible,
-	.history summary:focus-visible {
-		outline: 3px solid var(--ok);
-		outline-offset: 2px;
 	}
 
 	.reset {

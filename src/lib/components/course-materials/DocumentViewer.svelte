@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { PDFDocumentProxy } from 'pdfjs-dist';
-	import JSZip from 'jszip';
 
 	type Material = {
 		id: string;
@@ -68,6 +67,7 @@
 	let totalPages = $state(0);
 	let pdfDoc = $state<PDFDocumentProxy | null>(null);
 	let canvasRef = $state<HTMLCanvasElement | undefined>();
+	let closeRef = $state<HTMLButtonElement | undefined>();
 	let docxSrcdoc = $state('');
 	let slides = $state<SlidePreview[]>([]);
 	let activeLoadId = 0;
@@ -83,6 +83,11 @@
 	$effect(() => {
 		if (!open || !material) return;
 		void loadDocument();
+	});
+
+	$effect(() => {
+		if (!open) return;
+		closeRef?.focus();
 	});
 
 	$effect(() => {
@@ -191,6 +196,7 @@
 	}
 
 	async function loadPptx(blob: Blob, loadId: number) {
+		const JSZip = (await import('jszip')).default;
 		const zip = await JSZip.loadAsync(await blob.arrayBuffer());
 		if (loadId !== activeLoadId) return;
 
@@ -265,7 +271,7 @@
 			padding: 28px;
 			color: var(--ink);
 			background: var(--surface-paper);
-			font: 15px/1.65 ui-serif, Georgia, Cambria, "Times New Roman", serif;
+			font: 15px/1.65 var(--font-body);
 		}
 		img { max-width: 100%; height: auto; }
 		table { width: 100%; border-collapse: collapse; margin: 16px 0; }
@@ -273,7 +279,8 @@
 		th { font-weight: 650; background: var(--paper-shelf); }
 		p { margin: 0 0 12px; }
 		ul, ol { padding-left: 24px; }
-		a { color: var(--subject-comp); }
+		a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+		a:hover { color: var(--pen-blue); }
 	</style>
 </head>
 <body>${body}</body>
@@ -327,6 +334,7 @@
 					<a class="viewer-download font-mono" href={downloadUrl} download={fileName}>download</a>
 					<button
 						type="button"
+						bind:this={closeRef}
 						class="viewer-close"
 						onclick={onClose}
 						aria-label="Close document viewer"
@@ -345,8 +353,12 @@
 						<Button variant="secondary" size="sm" onclick={loadDocument}>Try again</Button>
 					</div>
 				{:else if fileType === 'pdf'}
-					<div class="pdf-stage">
-						<canvas bind:this={canvasRef} class="pdf-canvas"></canvas>
+					<div
+						class="pdf-stage"
+						role="img"
+						aria-label={`Page ${pageNum} of ${totalPages} of ${fileName}`}
+					>
+						<canvas bind:this={canvasRef} class="pdf-canvas" aria-hidden="true"></canvas>
 					</div>
 				{:else if fileType === 'docx' && docxSrcdoc}
 					<iframe title={`${fileName} preview`} srcdoc={docxSrcdoc} sandbox="" class="docx-frame"
@@ -402,8 +414,7 @@
 	.viewer-backdrop {
 		position: absolute;
 		inset: 0;
-		background: color-mix(in srgb, var(--ink) 34%, transparent);
-		backdrop-filter: blur(3px);
+		background: var(--backdrop-overlay);
 	}
 
 	.viewer-panel {
@@ -413,9 +424,21 @@
 		flex-direction: column;
 		max-width: 980px;
 		margin-inline: auto;
+		animation: viewer-in 0.18s var(--ease-out-quart);
 		border: 1px solid var(--ink);
 		background: var(--paper);
-		box-shadow: 8px 8px 0 rgba(26, 26, 23, 0.18);
+		box-shadow: 0 2px 6px var(--shadow-ink);
+	}
+
+	@keyframes viewer-in {
+		from {
+			opacity: 0;
+			transform: translateY(6px) scale(0.98);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
 	}
 
 	.viewer-header,
@@ -451,7 +474,8 @@
 		margin: 0;
 		overflow: hidden;
 		color: var(--ink);
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
+		font-weight: 700;
 		font-size: 1rem;
 		line-height: 1.2;
 		text-overflow: ellipsis;
@@ -466,26 +490,34 @@
 	}
 
 	.viewer-download {
+		transition: text-decoration-color 0.15s var(--ease-out-quart);
 		font-size: 0.68rem;
-		color: var(--ink-soft);
-		text-decoration: none;
+		color: var(--ink);
+		text-decoration: underline;
+		text-decoration-color: var(--border-faint);
+		text-underline-offset: 3px;
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
 	}
 
 	.viewer-download:hover {
-		color: var(--ink);
+		text-decoration-color: var(--ink);
 	}
 
 	.viewer-close {
 		width: 2rem;
 		height: 2rem;
+		transition: border-color 0.15s var(--ease-out-quart);
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink);
 		font-size: 1.4rem;
 		line-height: 1;
 		cursor: pointer;
+	}
+
+	.viewer-close:hover {
+		border-color: var(--ink);
 	}
 
 	.viewer-body {
@@ -528,7 +560,7 @@
 		max-width: 100%;
 		height: auto;
 		background: white;
-		box-shadow: 0 2px 12px rgba(26, 26, 23, 0.18);
+		box-shadow: 0 2px 12px var(--shadow-ink);
 	}
 
 	.docx-frame {
@@ -550,7 +582,7 @@
 		padding: 1.5rem;
 		border: 1px solid var(--rule);
 		background: var(--surface-paper);
-		box-shadow: 3px 3px 0 rgba(26, 26, 23, 0.12);
+		box-shadow: 3px 3px 0 var(--shadow-ink);
 	}
 
 	.slide-number {
@@ -564,7 +596,8 @@
 	.slide-card h3 {
 		margin: 0 0 1rem;
 		color: var(--ink);
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
+		font-weight: 700;
 		font-size: clamp(1.4rem, 3vw, 2rem);
 		line-height: 1.1;
 	}

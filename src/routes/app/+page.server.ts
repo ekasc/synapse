@@ -12,22 +12,24 @@ export async function load(event) {
 			return fallback;
 		}
 	};
-	const semesters = await safe([], () => getSemesters());
-	const courses = await safe([], () => getCourses());
-	const graph = await safe({ positions: {}, edges: [] }, () => getGraphState());
 	const binding = event.platform?.env?.BRIEF_DB as D1Database | undefined;
-	const events = binding ? await safe([], () => createDb(binding).getCalendarEvents()) : [];
-	const briefs = binding ? await safe([], () => createDb(binding).getBriefs()) : [];
-	const practiceResult = binding
-		? await safe({ outcome: 'ok' as const, value: [] }, () =>
-				createPracticeSessionRepository(binding).list()
-			)
-		: { outcome: 'ok' as const, value: [] };
-	const practice = practiceResult.outcome === 'ok' ? practiceResult.value : [];
 	const bucket = event.platform?.env?.MATERIALS as R2Bucket | undefined;
-	const materials = bucket
-		? await safe([], () => listMaterials(bucket))
-		: safe([], async () => listMaterialsFallback());
+	// All seven reads are independent (buildPriorityDashboard is the only
+	// consumer), so fetch them concurrently instead of sequentially.
+	const [semesters, courses, graph, events, briefs, practiceResult, materials] = await Promise.all([
+		safe([], () => getSemesters()),
+		safe([], () => getCourses()),
+		safe({ positions: {}, edges: [] }, () => getGraphState()),
+		binding ? safe([], () => createDb(binding).getCalendarEvents()) : Promise.resolve([]),
+		binding ? safe([], () => createDb(binding).getBriefs()) : Promise.resolve([]),
+		binding
+			? safe({ outcome: 'ok' as const, value: [] }, () =>
+					createPracticeSessionRepository(binding).list()
+				)
+			: Promise.resolve({ outcome: 'ok' as const, value: [] }),
+		bucket ? safe([], () => listMaterials(bucket)) : safe([], async () => listMaterialsFallback())
+	]);
+	const practice = practiceResult.outcome === 'ok' ? practiceResult.value : [];
 	const priority = buildPriorityDashboard({
 		now: new Date(),
 		semesters,
@@ -35,7 +37,7 @@ export async function load(event) {
 		events,
 		practice,
 		briefs,
-		materials: await materials
+		materials
 	});
 	return {
 		semesters: semesters.slice().sort((a, b) => b.order - a.order),

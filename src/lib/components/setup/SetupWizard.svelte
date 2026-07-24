@@ -177,6 +177,7 @@
 			{#each termOptions as opt (opt.id)}
 				<button
 					class="term-chip"
+					aria-pressed={selectedTerms.some((t) => t.id === opt.id)}
 					class:selected={selectedTerms.some((t) => t.id === opt.id)}
 					onclick={() => toggleTerm(opt)}
 				>
@@ -204,11 +205,13 @@
 		<div class="mode-tabs">
 			<button
 				class="mode-tab font-mono"
+				aria-pressed={inputMode === 'manual'}
 				class:active={inputMode === 'manual'}
 				onclick={() => (inputMode = 'manual')}>add manually</button
 			>
 			<button
 				class="mode-tab font-mono"
+				aria-pressed={inputMode === 'import'}
 				class:active={inputMode === 'import'}
 				onclick={() => (inputMode = 'import')}>import from transcript</button
 			>
@@ -407,7 +410,6 @@ CSIS 2100  Systems Analysis"
 		font-size: 0.8rem;
 		color: var(--ink);
 		resize: vertical;
-		outline: none;
 		box-sizing: border-box;
 		transition: border-color 0.12s var(--ease-out-quart);
 	}
@@ -464,7 +466,6 @@ CSIS 2100  Systems Analysis"
 		font-family: var(--font-body);
 		font-size: 0.85rem;
 		color: var(--ink);
-		outline: none;
 		transition: border-color 0.12s var(--ease-out-quart);
 	}
 

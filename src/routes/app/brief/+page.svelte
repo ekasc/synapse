@@ -42,7 +42,7 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Course Brief</title></svelte:head>
+<svelte:head><title>Synapse · Course briefs</title></svelte:head>
 
 <div class="page page-enter">
 	<div class="slip-slot">
@@ -61,7 +61,7 @@
 	{#if briefs.length > 0}
 		<header class="page-head">
 			<div>
-				<h1 class="page-title">Course Brief</h1>
+				<h1 class="page-title">Course briefs</h1>
 				<p class="page-tagline">Syllabus intelligence for courses you're considering</p>
 			</div>
 			<div class="count font-mono">{briefs.length} {briefs.length === 1 ? 'entry' : 'entries'}</div>

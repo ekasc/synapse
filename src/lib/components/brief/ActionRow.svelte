@@ -30,7 +30,7 @@
 			confirming = false;
 			onDeleted?.();
 		} catch {
-			deleteError = 'Could not delete this briefing.';
+			deleteError = 'Could not delete this brief.';
 		} finally {
 			deleting = false;
 		}
@@ -50,16 +50,11 @@
 		<span class="error font-mono">{deleteError}</span>
 	{/if}
 	{#if confirming}
-		<span class="confirm-label font-mono">Delete this briefing?</span>
+		<span class="confirm-label font-mono">Delete this brief?</span>
 		<button class="btn btn-sm btn-ghost" type="button" onclick={() => (confirming = false)}>
 			cancel
 		</button>
-		<button
-			class="btn btn-sm btn-danger"
-			type="button"
-			onclick={confirmDelete}
-			disabled={deleting}
-		>
+		<button class="btn btn-sm btn-danger" type="button" onclick={confirmDelete} disabled={deleting}>
 			{deleting ? 'deleting…' : 'delete'}
 		</button>
 	{:else}
@@ -67,7 +62,7 @@
 			Refresh research
 		</button>
 		<button class="btn btn-sm btn-danger" type="button" onclick={() => (confirming = true)}>
-			Delete briefing
+			Delete brief
 		</button>
 	{/if}
 </div>

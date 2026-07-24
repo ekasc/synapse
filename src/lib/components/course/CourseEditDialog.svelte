@@ -42,18 +42,24 @@
 
 	const TAGS = ['core', 'programming', 'math', 'systems', 'ai', 'writing'];
 
-	const COLOR_PRESETS = [
-		'#4a6fa5',
-		'#5a7a4a',
-		'#7a5a8a',
-		'#3a8a7a',
-		'#b08a3a',
-		'#b04a6a',
-		'#6a5a8a',
-		'#5a6a7a',
-		'#b05a4a',
-		'#4a7a6a'
+	// Only the 7 subject palette tokens are offered for new picks — colors
+	// persist to the DB, so anything else would drift off-palette.
+	const SUBJECT_COLORS = [
+		'#4a6fa5', // --subject-comp
+		'#5a7a4a', // --subject-math
+		'#7a5a8a', // --subject-csis
+		'#3a8a7a', // --subject-stat
+		'#b08a3a', // --subject-econ
+		'#b04a6a', // --subject-isys
+		'#6a5a8a' // --subject-humn
 	];
+
+	// Legacy courses may carry a color outside the 7; keep it selectable so
+	// editing such a course never silently loses its color.
+	const legacyColor = $derived(
+		course?.color && !SUBJECT_COLORS.includes(course.color) ? course.color : null
+	);
+	const colorOptions = $derived(legacyColor ? [legacyColor, ...SUBJECT_COLORS] : SUBJECT_COLORS);
 
 	let saving = $state(false);
 	let error = $state<string | null>(null);
@@ -272,15 +278,17 @@
 						type="button"
 						class="color-swatch"
 						class:selected={form.color === ''}
+						aria-pressed={form.color === ''}
 						onclick={() => (form.color = '')}
 						aria-label="No color">—</button
 					>
-					{#each COLOR_PRESETS as color (color)}
+					{#each colorOptions as color (color)}
 						<button
 							type="button"
 							class="color-swatch"
 							style="background: {color}"
 							class:selected={form.color === color}
+							aria-pressed={form.color === color}
 							onclick={() => (form.color = color)}
 							aria-label="Color {color}"
 						></button>
@@ -374,7 +382,7 @@
 	.modal-input {
 		padding: 0.5rem 0.6rem;
 		border: 1px solid var(--rule);
-		background: white;
+		background: var(--surface-paper);
 		color: var(--ink);
 		font-size: 0.85rem;
 		font-family: var(--font-body);
@@ -440,20 +448,20 @@
 	.color-swatch {
 		width: 1.5rem;
 		height: 1.5rem;
-		border-radius: 50%;
+		border-radius: 0;
 		border: 1.5px solid var(--rule);
 		cursor: pointer;
 		padding: 0;
 		flex-shrink: 0;
 		font-size: 0.7rem;
 		color: var(--ink-faint);
-		background: white;
+		background: var(--surface-paper);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		transition:
-			border-color 0.12s,
-			transform 0.12s;
+			border-color 0.12s var(--ease-out-quart),
+			transform 0.12s var(--ease-out-quart);
 	}
 
 	.color-swatch:hover {
@@ -469,7 +477,7 @@
 
 	.modal-error {
 		font-size: 0.72rem;
-		color: var(--accent);
+		color: var(--pen-red);
 		margin: 0;
 	}
 

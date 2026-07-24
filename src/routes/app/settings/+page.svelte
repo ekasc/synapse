@@ -106,7 +106,7 @@
 	});
 </script>
 
-<svelte:head><title>Synapse · Settings</title></svelte:head>
+<svelte:head><title>Settings · Synapse</title></svelte:head>
 
 <div class="page page-enter">
 	<div class="page-cover">
@@ -248,6 +248,9 @@
 	}
 	.state-value[data-status='subscribed'] {
 		color: var(--ok);
+	}
+	.state-value[data-status='unsupported'] {
+		color: var(--warn);
 	}
 	.state-value[data-status='denied'],
 	.state-value[data-status='error'] {

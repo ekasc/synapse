@@ -30,7 +30,7 @@
 		fill: none;
 		stroke: var(--ink-soft);
 		stroke-width: 2;
-		transition: opacity 0.15s ease;
+		transition: opacity 0.15s var(--ease-out-quart);
 	}
 
 	.pending {

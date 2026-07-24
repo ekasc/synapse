@@ -120,6 +120,11 @@
 	}
 
 	:global(.ui-dialog-button-danger) {
+		border-color: rgba(194, 54, 42, 0.35);
+		color: var(--pen-red);
+	}
+
+	:global(.ui-dialog-button-danger:hover:not(:disabled)) {
 		border-color: var(--pen-red);
 		background: var(--pen-red);
 		color: var(--paper);
@@ -127,5 +132,11 @@
 
 	:global(.ui-dialog-button:active) {
 		transform: translateY(1px);
+	}
+
+	@media (pointer: coarse) {
+		:global(.ui-dialog-button) {
+			min-height: 2.75rem;
+		}
 	}
 </style>

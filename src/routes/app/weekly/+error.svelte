@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/stores';
+	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 
 	function navigate(href: string) {
 		if (!href.startsWith('/app/') || href.startsWith('//')) return;
@@ -10,9 +11,8 @@
 </script>
 
 {#if $navigating}
-	<div class="loading" aria-live="polite" role="status">
-		<span></span><span></span><span></span>
-		<em>loading</em>
+	<div class="loading">
+		<LoadingDots label="Loading" />
 	</div>
 {/if}
 
@@ -34,22 +34,7 @@
 	.loading {
 		display: flex;
 		align-items: center;
-		gap: 0.35rem;
-		padding: 0.5rem 2rem;
-		font-family: var(--font-mono);
-		font-size: 0.7rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
-	}
-	.loading span {
-		width: 0.3rem;
-		height: 0.3rem;
-		background: var(--ink-faint);
-	}
-	.loading em {
-		font-style: normal;
-		margin-left: 0.3rem;
+		padding: 0.5rem 0;
 	}
 
 	.weekly-error {

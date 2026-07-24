@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { sql } from 'drizzle-orm';
+import { sql, desc } from 'drizzle-orm';
 import * as schema from './d1-schema';
 
 export type Briefing = {
@@ -252,7 +252,14 @@ export function createDb(binding: D1Database) {
 
 	return {
 		getBriefs: async (): Promise<Briefing[]> => {
-			const rows = await db.select().from(schema.briefings).all();
+			// Newest-first (researchedAt is ISO 8601), capped so the dashboard
+			// and brief library don't do an unbounded full-table scan.
+			const rows = await db
+				.select()
+				.from(schema.briefings)
+				.orderBy(desc(schema.briefings.researchedAt))
+				.limit(500)
+				.all();
 			return rows.map(rowToBriefing);
 		},
 
@@ -393,6 +400,34 @@ export function createDb(binding: D1Database) {
 
 		deleteCalendarEvent: async (id: string): Promise<void> => {
 			await db.delete(ce).where(sql`${ce.id} = ${id}`);
+		},
+
+		// ── Weekly digest cache ──
+
+		getWeeklyDigestCache: async (weekStart: string): Promise<string | null> => {
+			const row = await db
+				.select({ digestJson: schema.weeklyDigestCache.digestJson })
+				.from(schema.weeklyDigestCache)
+				.where(sql`${schema.weeklyDigestCache.weekStart} = ${weekStart}`)
+				.get();
+			return row ? String(row.digestJson) : null;
+		},
+
+		setWeeklyDigestCache: async (weekStart: string, json: string): Promise<void> => {
+			await db
+				.insert(schema.weeklyDigestCache)
+				.values({
+					weekStart,
+					digestJson: json,
+					createdAt: new Date().toISOString()
+				})
+				.onConflictDoUpdate({
+					target: schema.weeklyDigestCache.weekStart,
+					set: {
+						digestJson: json,
+						createdAt: new Date().toISOString()
+					}
+				});
 		}
 	};
 }

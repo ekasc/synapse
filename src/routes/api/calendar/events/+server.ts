@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { createDb } from '$lib/server/db/d1';
 import { getCourses, getSemesters } from '$lib/server/store';
+import { normalizeSyllabusEventTitle } from '$lib/calendar/syllabus-sync';
 
 const EVENT_TYPES = new Set(['assignment', 'midterm', 'final', 'quiz', 'lecture', 'study_session']);
 
@@ -70,15 +71,20 @@ export async function POST({ request, platform }: RequestEvent) {
 		);
 	}
 
-	const existing = await platform.env.BRIEF_DB.prepare(
-		`SELECT id FROM calendar_events
-		 WHERE course_id = ? AND course_code = ? AND title = ? AND type = ?
-		   AND year = ? AND month = ? AND date = ? AND COALESCE(time, '') = ?
-		 LIMIT 1`
+	const candidates = await platform.env.BRIEF_DB.prepare(
+		`SELECT id, title FROM calendar_events
+		 WHERE course_id = ? AND course_code = ? AND type = ?
+		   AND year = ? AND month = ? AND date = ? AND COALESCE(time, '') = ?`
 	)
-		.bind(course.id, course.code, title, type, year, month, date, time ?? '')
-		.first<{ id: string }>();
-	if (existing) return json({ ok: true, id: existing.id, created: false });
+		.bind(course.id, course.code, type, year, month, date, time ?? '')
+		.all<{ id: string; title: string }>();
+	const normalizedTitle = normalizeSyllabusEventTitle(title);
+	const existing = candidates.results?.find(
+		(candidate) => normalizeSyllabusEventTitle(candidate.title) === normalizedTitle
+	);
+	if (existing) {
+		return json({ ok: true, id: existing.id, created: false, reason: 'duplicate' });
+	}
 
 	const id = crypto.randomUUID();
 	const db = createDb(platform.env.BRIEF_DB);

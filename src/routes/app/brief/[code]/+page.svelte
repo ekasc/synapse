@@ -25,7 +25,7 @@
 <svelte:head><title>Synapse · {data.code}</title></svelte:head>
 
 <div class="page page-enter">
-	<a class="back font-mono" href="/app/brief">← back to all briefings</a>
+	<a class="back font-mono" href="/app/brief">← back to all briefs</a>
 
 	{#if data.state === 'found' && data.detail}
 		{@const d = data.detail}
@@ -39,7 +39,7 @@
 						courseTitle={d.title}
 						professorName={d.professor.requestedName}
 						institution={d.institution}
-						onDeleted={onDeleted}
+						{onDeleted}
 					/>
 				</div>
 				<div class="side">
@@ -49,15 +49,15 @@
 		</article>
 	{:else if data.state === 'not_found'}
 		<div class="empty">
-			<h1 class="empty-head">Briefing not found</h1>
-			<p class="empty-text">This briefing may have been deleted or the link may be invalid.</p>
-			<a class="btn btn-sm font-mono" href="/app/brief">Return to all briefings</a>
+			<h1 class="empty-head">Brief not found</h1>
+			<p class="empty-text">This brief may have been deleted or the link may be invalid.</p>
+			<a class="btn btn-sm font-mono" href="/app/brief">Return to all briefs</a>
 		</div>
 	{:else}
 		<div class="empty">
-			<h1 class="empty-head">Could not load this briefing</h1>
-			<p class="empty-text">An error occurred while loading the briefing. Please try again.</p>
-			<a class="btn btn-sm font-mono" href="/app/brief">Return to the briefing list</a>
+			<h1 class="empty-head">Could not load this brief</h1>
+			<p class="empty-text">An error occurred while loading the brief. Please try again.</p>
+			<a class="btn btn-sm font-mono" href="/app/brief">Return to the brief list</a>
 		</div>
 	{/if}
 </div>

@@ -58,11 +58,11 @@
 		box-sizing: border-box;
 		border: 1px solid var(--ink);
 		background: var(--surface-paper);
-		box-shadow: 4px 4px 0 rgba(31, 28, 20, 0.1);
+		box-shadow: 4px 4px 0 var(--shadow-ink);
 		transition:
-			opacity 0.15s ease,
-			border-color 0.15s ease,
-			box-shadow 0.15s ease;
+			opacity 0.15s var(--ease-out-quart),
+			border-color 0.15s var(--ease-out-quart),
+			box-shadow 0.15s var(--ease-out-quart);
 	}
 
 	.node-copy {
@@ -117,8 +117,9 @@
 		display: -webkit-box;
 		overflow: hidden;
 		margin-top: 0.3rem;
-		font-family: var(--font-display);
+		font-family: var(--font-body);
 		font-size: 0.95rem;
+		font-weight: 600;
 		line-height: 1.15;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
@@ -146,39 +147,31 @@
 		color: var(--ink);
 	}
 
-	.inspect-button:focus-visible,
-	.course-link:focus-visible {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
-
 	.selected {
 		border-width: 2px;
-		border-color: var(--ok);
+		border-color: var(--ink);
 		background: var(--paper-shelf);
-		box-shadow:
-			inset 4px 0 0 var(--ok),
-			5px 5px 0 rgba(31, 28, 20, 0.14);
+		box-shadow: 5px 5px 0 var(--shadow-ink);
 	}
 
 	.selected .inspect-button {
-		border-color: var(--ok);
+		border-color: var(--ink);
 		background: var(--surface-paper);
-		color: var(--ok);
+		color: var(--ink);
 	}
 
 	.upstream {
-		border-color: var(--pen-blue, #315c91);
+		border-color: var(--pen-blue);
 	}
 
 	.downstream {
-		border-color: var(--pen-red, #a43a32);
+		border-color: var(--pen-red);
 	}
 
 	.conflict {
 		border-width: 2px;
 		border-color: var(--accent);
-		box-shadow: inset 4px 0 0 var(--accent);
+		background: var(--paper-edge);
 	}
 
 	.resolved {

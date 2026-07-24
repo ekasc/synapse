@@ -100,7 +100,7 @@
 
 	h3 {
 		margin-top: 0.3rem;
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
 		font-size: 1rem;
 	}
 
@@ -149,16 +149,10 @@
 		cursor: not-allowed;
 	}
 
-	select:focus-visible,
-	button:focus-visible {
-		outline: 3px solid var(--ok);
-		outline-offset: 2px;
-	}
-
 	.result-message {
 		margin-top: 0.8rem;
 		padding: 0.75rem;
-		border-left: 3px solid var(--accent);
+		border: 1px solid var(--accent);
 		background: var(--paper-shelf);
 	}
 

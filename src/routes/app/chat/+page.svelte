@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
+	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 
 	type Source = {
 		id: string;
@@ -151,7 +152,7 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Academic Assistant</title></svelte:head>
+<svelte:head><title>Assistant · Synapse</title></svelte:head>
 
 <CatalogHeader term="Assistant" />
 
@@ -210,13 +211,14 @@
 				{/each}
 				{#if sending}
 					<div class="thinking">
-						<span></span><span></span><span></span><em>checking sources</em>
+						<LoadingDots label="Checking sources" />
+						<em>checking sources</em>
 					</div>
 				{/if}
 			</div>
 
 			<div class="composer">
-				{#if errorMessage}<p class="error-message">{errorMessage}</p>{/if}
+				{#if errorMessage}<p class="error-message" role="alert">{errorMessage}</p>{/if}
 				<label for="chat-question" class="sr-only">Ask an academic question</label>
 				<textarea
 					id="chat-question"
@@ -374,8 +376,9 @@
 		gap: 0.2rem;
 	}
 	.thread-head strong {
-		font-family: var(--font-display);
+		font-family: var(--font-body);
 		font-size: 1rem;
+		font-weight: 600;
 	}
 	.privacy-note {
 		border: 1px solid var(--rule);
@@ -393,12 +396,10 @@
 	}
 	.message {
 		max-width: 88%;
-		border-left: 2px solid var(--highlight);
 		padding: 0.2rem 0 0.2rem 0.8rem;
 	}
 	.message.user-message {
 		align-self: flex-end;
-		border-left: 0;
 		border-right: 2px solid var(--ink);
 		padding: 0.2rem 0.8rem 0.2rem 0;
 		text-align: right;
@@ -439,31 +440,25 @@
 		margin-top: 0.65rem;
 	}
 	.inline-sources a {
-		border-bottom: 2px solid var(--highlight);
+		border-bottom: 1px solid var(--rule);
 		color: var(--ink-soft);
 		font-size: 0.7rem;
 		text-decoration: none;
+		transition:
+			color 0.12s var(--ease-out-quart),
+			border-color 0.12s var(--ease-out-quart);
+	}
+	.inline-sources a:hover {
+		color: var(--ink);
+		border-bottom-color: var(--ink);
 	}
 	.thinking {
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: 0.4rem;
 		color: var(--ink-faint);
 	}
-	.thinking span {
-		width: 5px;
-		height: 5px;
-		background: var(--ink-faint);
-		animation: thinking 1s ease-in-out infinite;
-	}
-	.thinking span:nth-child(2) {
-		animation-delay: 0.15s;
-	}
-	.thinking span:nth-child(3) {
-		animation-delay: 0.3s;
-	}
 	.thinking em {
-		margin-left: 0.4rem;
 		font: normal 0.65rem var(--font-mono);
 		text-transform: uppercase;
 	}
@@ -471,6 +466,14 @@
 		border-top: 1px solid var(--ink);
 		padding: 1rem;
 		background: var(--paper-shelf);
+	}
+	.error-message {
+		margin: 0 0 0.75rem;
+		border: 1px solid rgba(194, 54, 42, 0.35);
+		padding: 0.55rem 0.65rem;
+		color: var(--pen-red);
+		font-size: 0.85rem;
+		line-height: 1.45;
 	}
 	.composer textarea {
 		display: block;
@@ -534,8 +537,10 @@
 	}
 	.source-head h2 {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-hand);
 		font-size: 1.35rem;
+		font-weight: 700;
+		line-height: 1.1;
 	}
 	.source-head > span {
 		border: 1px solid var(--rule);
@@ -562,8 +567,9 @@
 		display: block;
 	}
 	.source-card strong {
-		font-family: var(--font-display);
+		font-family: var(--font-body);
 		font-size: 0.86rem;
+		font-weight: 600;
 	}
 	.source-card span {
 		margin-top: 0.18rem;
@@ -594,12 +600,6 @@
 		clip: rect(0, 0, 0, 0);
 		white-space: nowrap;
 		border: 0;
-	}
-	@keyframes thinking {
-		50% {
-			opacity: 0.25;
-			transform: translateY(-2px);
-		}
 	}
 	@media (max-width: 850px) {
 		.assistant-layout {
@@ -636,9 +636,6 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.thinking span {
-			animation: none;
-		}
 		.thread {
 			scroll-behavior: auto;
 		}

@@ -251,14 +251,16 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · {course.code} materials</title></svelte:head>
+<svelte:head><title>{course.code} · Materials · Synapse</title></svelte:head>
 
 <div class="page page-enter">
 	<header class="page-cover">
 		<div>
 			<div class="eyebrow font-mono">Course materials</div>
 			<h1 class="page-title font-hand">Materials</h1>
-			<p class="page-tagline">Files used by Syllabus and Practice for {course.code}.</p>
+			<p class="page-tagline">
+				Files used by Syllabus intelligence and Practice for {course.code}.
+			</p>
 		</div>
 		<div class="material-total font-mono">
 			{materials.length} file{materials.length === 1 ? '' : 's'}
@@ -441,7 +443,7 @@
 		text-transform: uppercase;
 	}
 	.upload-error {
-		color: var(--accent);
+		color: var(--pen-red);
 	}
 	.empty-state {
 		padding: 2rem;
@@ -492,10 +494,10 @@
 		font-size: 0.78rem;
 	}
 	.index-ready {
-		color: var(--success, #3f684b);
+		color: var(--ok);
 	}
 	.index-problem {
-		color: var(--accent);
+		color: var(--pen-red);
 	}
 	.material-name {
 		display: block;
@@ -508,7 +510,7 @@
 	}
 	.material-name:hover {
 		text-decoration: underline;
-		text-decoration-color: var(--accent);
+		text-decoration-color: var(--ink);
 	}
 	.material-meta {
 		margin-top: 0.2rem;
@@ -525,7 +527,7 @@
 		font: 0.85rem var(--font-body);
 	}
 	.material-delete {
-		color: var(--accent);
+		color: var(--pen-red);
 	}
 	@media (max-width: 640px) {
 		.page-cover {

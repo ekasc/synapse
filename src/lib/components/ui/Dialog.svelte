@@ -97,4 +97,11 @@
 		border-color: var(--ink);
 		outline: 2px solid var(--highlight);
 	}
+
+	@media (pointer: coarse) {
+		:global(.ui-dialog-close) {
+			width: 2.75rem;
+			height: 2.75rem;
+		}
+	}
 </style>

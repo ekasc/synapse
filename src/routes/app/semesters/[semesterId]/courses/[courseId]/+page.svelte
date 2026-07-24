@@ -3,6 +3,9 @@
 	import { page } from '$app/stores';
 	import { resolveRoute } from '$app/paths';
 	import { cn } from '$lib/utils';
+	import CourseHeader from '$lib/components/course/CourseHeader.svelte';
+	import SyllabusDetails from '$lib/components/course/SyllabusDetails.svelte';
+	import CourseActivity from '$lib/components/course/CourseActivity.svelte';
 	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
 	import { AlertDialog } from '$lib/components/ui';
 	import { Combobox } from 'bits-ui';
@@ -81,33 +84,6 @@
 	);
 	const coursesById = $derived(new Map(data.courses.map((c) => [c.id, c])));
 
-	const headerTerm = $derived(semester ? `${semester.term} ${semester.year}` : 'No term');
-
-	const status = $derived(course.signals?.status ?? 'planned');
-	const statusLabel = $derived(status.replaceAll('-', ' '));
-
-	const statusVariant: 'crit' | 'ok' | 'warn' | 'idle' = $derived(
-		status === 'completed'
-			? 'ok'
-			: status === 'at-risk'
-				? 'crit'
-				: status === 'active'
-					? 'warn'
-					: 'idle'
-	);
-
-	const riskLabel = $derived(course.signals?.riskLevel ?? 'none');
-
-	const riskVariant: 'crit' | 'ok' | 'warn' | 'idle' = $derived(
-		riskLabel === 'high'
-			? 'crit'
-			: riskLabel === 'medium'
-				? 'warn'
-				: riskLabel === 'low'
-					? 'ok'
-					: 'idle'
-	);
-
 	const topics = $derived(course.signals?.topics ?? []);
 	const availableConnectionCourses = $derived(
 		data.courses.filter((candidate) => candidate.id !== course.id)
@@ -160,9 +136,9 @@
 	$effect(() => {
 		const id = edgeFormTarget;
 		if (!id) return;
-		const course = availableConnectionCourses.find((c) => c.id === id);
-		if (course) {
-			edgeTargetQuery = `${course.code} · ${course.name}`;
+		const c = availableConnectionCourses.find((candidate) => candidate.id === id);
+		if (c) {
+			edgeTargetQuery = `${c.code} · ${c.name}`;
 		}
 	});
 
@@ -273,119 +249,19 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · {course.code}</title></svelte:head>
+<svelte:head><title>{course.code} · Synapse</title></svelte:head>
 
 <div class="page page-enter">
-	<button class="back-link font-mono" onclick={goBack}>← back</button>
+	<CourseHeader
+		{course}
+		{semester}
+		{backHref}
+		onEdit={() => (showEditModal = true)}
+		onDelete={() => (showDeleteModal = true)}
+		onBack={goBack}
+	/>
 
-	<div class="page-cover">
-		<div class="cover-head">
-			<div class="cover-meta">
-				<h1 class="page-title font-display">{course.code}</h1>
-				<p class="course-name">{course.name}</p>
-				<p class="course-line font-mono">
-					{#if semester}{semester.term} {semester.year} ·
-					{/if}
-					{#if course.instructor}{course.instructor} ·
-					{/if}
-					{#if course.credits !== undefined}{course.credits} credit{course.credits === 1
-							? ''
-							: 's'}{/if}
-				</p>
-				{#if course.tag || course.signals?.requirementGroup}
-					<div class="course-tags">
-						{#if course.tag}
-							<span class="tag-chip font-mono">{course.tag}</span>
-						{/if}
-						{#if course.signals?.requirementGroup}
-							<span class="tag-chip tag-chip-req font-mono">{course.signals.requirementGroup}</span>
-						{/if}
-					</div>
-				{/if}
-			</div>
-			<div class="cover-actions">
-				<button class="btn btn-secondary btn-sm" onclick={() => (showEditModal = true)}>edit</button
-				>
-				<button class="btn btn-ghost btn-sm danger" onclick={() => (showDeleteModal = true)}
-					>delete</button
-				>
-			</div>
-		</div>
-
-		<div class="state-strip" aria-label="Course state">
-			<div class="state-cell">
-				<span class="state-label font-mono">Status</span>
-				<span class="state-value state-{statusVariant} font-display">{statusLabel}</span>
-			</div>
-			<div class="state-cell">
-				<span class="state-label font-mono">Grade</span>
-				<span class="state-value font-display">
-					{#if course.signals?.currentGrade !== undefined}
-						{course.signals.currentGrade}
-					{:else}
-						<span class="state-empty">—</span>
-					{/if}
-				</span>
-			</div>
-			<div class="state-cell">
-				<span class="state-label font-mono">Risk</span>
-				<span class="state-value state-{riskVariant} font-display">{riskLabel}</span>
-			</div>
-			{#if course.signals?.nextDeadline}
-				<div class="state-cell">
-					<span class="state-label font-mono">Next</span>
-					<span class="state-value state-next font-display">{course.signals.nextDeadline}</span>
-				</div>
-			{/if}
-		</div>
-	</div>
-
-	{#if professor || importantDates.length > 0}
-		<section class="block">
-			<header class="block-head">
-				<h2 class="block-title font-mono">Syllabus details</h2>
-				<span class="block-meta font-mono">saved to this course</span>
-			</header>
-			{#if professor}
-				<dl class="activity">
-					{#if professor.name && professor.name !== 'Not found'}
-						<div class="activity-row">
-							<dt>Instructor</dt>
-							<dd>{professor.name}</dd>
-						</div>
-					{/if}
-					{#if professor.email && professor.email !== 'Not found'}
-						<div class="activity-row">
-							<dt>Email</dt>
-							<dd><a href={`mailto:${professor.email}`}>{professor.email}</a></dd>
-						</div>
-					{/if}
-					{#if professor.office && professor.office !== 'Not found'}
-						<div class="activity-row">
-							<dt>Office</dt>
-							<dd>{professor.office}</dd>
-						</div>
-					{/if}
-					{#if professor.officeHours && professor.officeHours !== 'Not found'}
-						<div class="activity-row">
-							<dt>Office hours</dt>
-							<dd>{professor.officeHours}</dd>
-						</div>
-					{/if}
-				</dl>
-			{/if}
-			{#if importantDates.length > 0}
-				<div class="syllabus-dates">
-					{#each importantDates as item (`${item.label}-${item.date}`)}
-						<div class="syllabus-date">
-							<span>{item.label}</span>
-							<time class="font-mono">{item.date}{item.needsReview ? ' · review' : ''}</time>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</section>
-	{/if}
+	<SyllabusDetails {professor} dates={importantDates} />
 
 	{#if topics.length > 0}
 		<section class="block">
@@ -408,20 +284,20 @@
 		</header>
 
 		<button
-			class={cn(
-				'mb-3.5 inline-flex items-center gap-1.5 border border-[var(--rule)] bg-transparent px-2.5 py-1.5 text-[0.72rem] font-[var(--font-mono)] tracking-[0.12em] text-[var(--ink-soft)] uppercase transition-colors hover:border-[var(--ink)] hover:bg-[var(--paper-2)] hover:text-[var(--ink)]'
-			)}
+			class="btn btn-secondary btn-sm conn-toggle font-mono"
 			onclick={() => {
 				showConnForm = !showConnForm;
 			}}
 			aria-expanded={showConnForm}
+			aria-controls="add-prereq-panel"
 		>
-			<span class="text-[0.85rem] leading-none">{showConnForm ? '▾' : '+'}</span>
+			<span class="conn-toggle-glyph" aria-hidden="true">{showConnForm ? '▾' : '+'}</span>
 			add prerequisite
 		</button>
 
 		{#if showConnForm}
 			<div
+				id="add-prereq-panel"
 				class="mb-3.5 flex flex-col gap-2.5 border border-[var(--rule)] bg-[var(--paper-shelf)] p-3.5"
 			>
 				<Combobox.Root
@@ -472,7 +348,7 @@
 					</div>
 					<Combobox.Content
 						class={cn(
-							'z-[var(--z-popover)] max-h-72 overflow-y-auto border border-[var(--ink)] bg-[var(--paper)] shadow-[4px_4px_0_rgba(31,28,20,0.12)]'
+							'z-[var(--z-popover)] max-h-72 overflow-y-auto border border-[var(--ink)] bg-[var(--paper)] shadow-[4px_4px_0_var(--shadow-ink)]'
 						)}
 					>
 						<Combobox.Viewport>
@@ -547,7 +423,7 @@
 				{/if}
 
 				{#if edgeFormError}
-					<p class="m-0 text-[0.78rem] font-[var(--font-mono)] text-[var(--accent)]">
+					<p class="m-0 text-[0.78rem] font-[var(--font-mono)] text-[var(--pen-red)]">
 						{edgeFormError}
 					</p>
 				{/if}
@@ -685,39 +561,7 @@
 		{/if}
 	</section>
 
-	{#if course.signals && (course.signals.deadlinesThisWeek || course.signals.studyHours || course.signals.materialCount || course.signals.noteCount)}
-		<section class="block">
-			<header class="block-head">
-				<h2 class="block-title font-mono">Activity</h2>
-			</header>
-			<dl class="activity">
-				{#if course.signals.deadlinesThisWeek !== undefined}
-					<div class="activity-row">
-						<dt>Deadlines this week</dt>
-						<dd>{course.signals.deadlinesThisWeek}</dd>
-					</div>
-				{/if}
-				{#if course.signals.studyHours !== undefined}
-					<div class="activity-row">
-						<dt>Study hours</dt>
-						<dd>{course.signals.studyHours}</dd>
-					</div>
-				{/if}
-				{#if course.signals.materialCount !== undefined}
-					<div class="activity-row">
-						<dt>Materials</dt>
-						<dd>{course.signals.materialCount}</dd>
-					</div>
-				{/if}
-				{#if course.signals.noteCount !== undefined}
-					<div class="activity-row">
-						<dt>Notes</dt>
-						<dd>{course.signals.noteCount}</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
-	{/if}
+	<CourseActivity signals={course.signals} />
 </div>
 
 {#if deleteCourseError}<p class="delete-error" role="alert">{deleteCourseError}</p>{/if}
@@ -732,7 +576,7 @@
 <AlertDialog
 	open={showDeleteModal}
 	title="Delete course?"
-	description={`Delete ${course.code}? This also removes its course-map connections. This cannot be undone.`}
+	description={`Delete ${course.code}? This also removes its course map connections. This cannot be undone.`}
 	confirmLabel="Delete course"
 	busy={deletingCourse}
 	onConfirm={removeCourse}
@@ -746,138 +590,10 @@
 		padding-block: 2rem 4rem;
 	}
 
-	.back-link {
-		display: inline-block;
-		margin-bottom: 1rem;
-		padding: 0;
-		border: none;
-		background: none;
-		font-size: 0.72rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		cursor: pointer;
-		transition: color 0.12s var(--ease-out-quart);
-	}
-
-	.back-link:hover {
-		color: var(--ink);
-	}
-
-	.page-cover {
-		margin-bottom: 2rem;
-		padding-bottom: 1.5rem;
-		border-bottom: 1px solid var(--ink);
-	}
-
-	.cover-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 1rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.cover-actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-
 	.delete-error {
 		margin: 0.75rem 0 0;
 		color: var(--pen-red);
 		font-size: 0.8rem;
-	}
-
-	.cover-meta {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.page-title {
-		font-size: clamp(2.6rem, 5vw, 3.4rem);
-		color: var(--ink);
-		margin: 0 0 0.4rem;
-		line-height: 1;
-		letter-spacing: -0.02em;
-	}
-
-	.course-name {
-		font-family: var(--font-display);
-		font-size: 1.4rem;
-		color: var(--ink);
-		margin: 0 0 0.5rem;
-		line-height: 1.2;
-	}
-
-	.course-line {
-		font-size: 0.78rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		margin: 0;
-	}
-
-	.course-tags {
-		display: flex;
-		gap: 0.4rem;
-		margin-top: 0.75rem;
-		flex-wrap: wrap;
-	}
-
-	.tag-chip {
-		padding: 0.2rem 0.55rem;
-		background: var(--paper-shelf);
-		border: 1px solid var(--rule);
-		font-size: 0.7rem;
-		color: var(--ink);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.tag-chip-req {
-		background: var(--paper);
-	}
-
-	.state-strip {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-		gap: 0;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-	}
-
-	.state-cell {
-		padding: 0.85rem 1rem;
-		border-right: 1px solid var(--rule);
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.state-cell:last-child {
-		border-right: 0;
-	}
-
-	.state-label {
-		font-size: 0.65rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-	}
-
-	.state-value {
-		font-size: 1.4rem;
-		color: var(--ink);
-		line-height: 1;
-	}
-
-	.state-empty {
-		color: var(--ink-faint);
-	}
-
-	.state-next {
-		font-size: 0.95rem;
 	}
 
 	.block {
@@ -922,17 +638,6 @@
 		border: 1px solid var(--rule);
 		font-size: 0.72rem;
 		color: var(--ink);
-	}
-
-	.rename-input {
-		box-sizing: border-box;
-		width: 100%;
-		padding: 0.15rem 0.3rem;
-		border: 1px solid var(--ink);
-		background: var(--paper);
-		color: var(--ink);
-		font-size: 0.9rem;
-		outline: none;
 	}
 
 	.empty {
@@ -1004,6 +709,17 @@
 		letter-spacing: 0.1em;
 	}
 
+	.conn-toggle {
+		margin-bottom: 0.875rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+	}
+
+	.conn-toggle-glyph {
+		font-size: 0.85rem;
+		line-height: 1;
+	}
+
 	.conn-select {
 		padding: 0.2rem 0.4rem;
 		border: 1px solid var(--rule);
@@ -1013,7 +729,7 @@
 		font-size: 0.75rem;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
-		min-height: 0;
+		min-height: 2.5rem;
 	}
 
 	.conn-select:disabled {
@@ -1029,7 +745,7 @@
 
 	.conn-error {
 		font-size: 0.78rem;
-		color: var(--accent);
+		color: var(--pen-red);
 		margin: 0 0 0.85rem;
 	}
 
@@ -1044,74 +760,7 @@
 		border: 0;
 	}
 
-	.activity {
-		margin: 0;
-		display: grid;
-		gap: 0.4rem;
-	}
-
-	.activity-row {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.4rem 0;
-		border-bottom: 1px dashed var(--rule);
-	}
-
-	.activity-row:last-child {
-		border-bottom: none;
-	}
-
-	.activity-row dt {
-		font-size: 0.85rem;
-		color: var(--ink-soft);
-		margin: 0;
-	}
-
-	.activity-row dd {
-		font-size: 0.85rem;
-		color: var(--ink);
-		margin: 0;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.activity-row a {
-		color: inherit;
-	}
-
-	.syllabus-dates {
-		display: grid;
-		gap: 0.4rem;
-		margin-top: 1rem;
-	}
-
-	.syllabus-date {
-		display: flex;
-		justify-content: space-between;
-		gap: 1rem;
-		padding: 0.5rem 0;
-		border-bottom: 1px dashed var(--rule);
-		font-size: 0.85rem;
-	}
-
-	.syllabus-date time {
-		color: var(--ink-soft);
-		font-size: 0.72rem;
-		white-space: nowrap;
-	}
-
-	@media (max-width: 640px) {
-		.state-strip {
-			grid-template-columns: repeat(2, 1fr);
-		}
-
-		.state-cell:nth-child(2) {
-			border-right: 0;
-		}
-
-		.state-cell:nth-child(-n + 2) {
-			border-bottom: 1px solid var(--rule);
-		}
-
+	@media (max-width: 900px) {
 		.conn-row,
 		.conn-row.conn-row-editable {
 			grid-template-columns: 1fr;

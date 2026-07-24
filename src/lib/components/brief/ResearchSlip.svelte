@@ -112,7 +112,11 @@
 					let completedCode: string | undefined;
 					try {
 						const out = data.job.output
-							? (JSON.parse(data.job.output) as { courseCode?: string; code?: string; identity?: { code?: string } })
+							? (JSON.parse(data.job.output) as {
+									courseCode?: string;
+									code?: string;
+									identity?: { code?: string };
+								})
 							: null;
 						completedCode = out?.courseCode ?? out?.code ?? out?.identity?.code;
 					} catch {
@@ -190,7 +194,11 @@
 				let completedCode: string | undefined;
 				try {
 					const out = data.job.output
-						? (JSON.parse(data.job.output) as { courseCode?: string; code?: string; identity?: { code?: string } })
+						? (JSON.parse(data.job.output) as {
+								courseCode?: string;
+								code?: string;
+								identity?: { code?: string };
+							})
 						: null;
 					completedCode = out?.courseCode ?? out?.code ?? out?.identity?.code;
 				} catch {
@@ -263,7 +271,10 @@
 			<span class="done-check" aria-hidden="true">✓</span>
 			<span class="done-text">
 				<strong>{succeededCode}</strong> ready —
-				<a href={`/app/brief/${encodeURIComponent(succeededCode)}`} onclick={() => onSuccess?.(succeededCode!)}>view brief →</a>
+				<a
+					href={`/app/brief/${encodeURIComponent(succeededCode)}`}
+					onclick={() => onSuccess?.(succeededCode!)}>view brief →</a
+				>
 			</span>
 		</div>
 	{:else if job && (job.status === 'running' || job.status === 'queued' || job.status === 'failed' || job.status === 'conflict' || job.status === 'expired' || job.status === 'canceled' || timedOut)}
@@ -271,13 +282,7 @@
 			<div class="slip-label-row">
 				<span class="slip-state font-mono">researching · {courseCode.trim().toUpperCase()}</span>
 			</div>
-			<JobTracker
-				job={job}
-				courseCode={courseCode}
-				timedOut={timedOut}
-				onCancel={cancelJob}
-				onRetry={retry}
-			/>
+			<JobTracker {job} {courseCode} {timedOut} onCancel={cancelJob} onRetry={retry} />
 		</div>
 	{:else}
 		<div class="slip-body">
@@ -292,12 +297,7 @@
 					bind:value={courseCode}
 					onkeydown={onKeydown}
 				/>
-				<button
-					class="btn btn-primary submit"
-					type="button"
-					onclick={submit}
-					disabled={!canSubmit}
-				>
+				<button class="btn btn-primary submit" type="button" onclick={submit} disabled={!canSubmit}>
 					research →
 				</button>
 			</div>
@@ -306,11 +306,13 @@
 				type="button"
 				onclick={() => (moreOptionsOpen = !moreOptionsOpen)}
 				aria-expanded={moreOptionsOpen}
+				aria-controls="brief-more-options"
 			>
-				{moreOptionsOpen ? '▾' : '▸'} {moreOptionsOpen ? 'less' : 'more'} options
+				{moreOptionsOpen ? '▾' : '▸'}
+				{moreOptionsOpen ? 'less' : 'more'} options
 			</button>
 			{#if moreOptionsOpen}
-				<div class="more-panel">
+				<div class="more-panel" id="brief-more-options">
 					<label class="field">
 						<span class="field-label font-mono">Course name</span>
 						<input
@@ -423,6 +425,7 @@
 		align-items: stretch;
 	}
 
+	/* No outline:none here — the global ink focus ring (layout.css) applies. */
 	.code-input {
 		flex: 1 1 auto;
 		min-width: 0;
@@ -435,7 +438,6 @@
 		background: var(--paper);
 		border: 1px solid var(--rule);
 		border-radius: 0;
-		outline: none;
 		transition:
 			border-color 0.15s var(--ease-out-quart),
 			box-shadow 0.15s var(--ease-out-quart);
@@ -443,7 +445,6 @@
 
 	.code-input:focus {
 		border-color: var(--ink);
-		box-shadow: 0 0 0 2px var(--highlight);
 	}
 
 	.code-input.error {
@@ -521,15 +522,11 @@
 		background: var(--paper);
 		border: 1px solid var(--rule);
 		border-radius: 0;
-		outline: none;
-		transition:
-			border-color 0.15s var(--ease-out-quart),
-			box-shadow 0.15s var(--ease-out-quart);
+		transition: border-color 0.15s var(--ease-out-quart);
 	}
 
 	.field-input:focus {
 		border-color: var(--ink);
-		box-shadow: 0 0 0 2px var(--highlight);
 	}
 
 	.field-input::placeholder {
