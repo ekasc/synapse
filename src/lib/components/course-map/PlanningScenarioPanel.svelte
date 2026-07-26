@@ -66,12 +66,12 @@
 			<div class="shared-notice" role="status">
 				<strong>Shared draft plan</strong>
 				{#if sharedSource.replay.appliedCount === 0}
-					<p>This shared draft plan could not be applied to the current course plan.</p>
+					<p>This shared draft plan could not be loaded into the preview.</p>
 				{:else}
 					<p>
 						{sharedSource.replay.appliedCount} move{sharedSource.replay.appliedCount === 1
 							? ''
-							: 's'} applied from this link{sharedSource.replay.skippedCount > 0
+							: 's'} loaded into this preview{sharedSource.replay.skippedCount > 0
 							? ` · ${sharedSource.replay.skippedCount} move${sharedSource.replay.skippedCount === 1 ? '' : 's'} skipped`
 							: ''}.
 					</p>
@@ -87,8 +87,7 @@
 
 		{#if scenario.moves.length > 0}
 			<div class="summary">
-				<p class="eyebrow font-mono">Draft plan summary</p>
-				<h3 id="planning-title">Changes from your saved schedule</h3>
+				<h3 id="planning-title">Draft comparison</h3>
 				<dl>
 					<div>
 						<dt>Moved courses</dt>
@@ -168,7 +167,7 @@
 				</div>
 			</div>
 
-			<details class="history" open>
+			<details class="history">
 				<summary
 					>Draft plan · {scenario.moves.length} change{scenario.moves.length === 1
 						? ''
@@ -195,7 +194,9 @@
 					<button type="button" onclick={onundolast}>Undo last move</button><button
 						type="button"
 						class="reset"
-						onclick={onreset}>Discard draft</button
+						onclick={() => {
+							if (window.confirm('Discard every change in this comparison draft?')) onreset();
+						}}>Discard comparison draft</button
 					>
 					<button type="button" class="copy" onclick={copyLink}>Copy draft plan link</button>
 				</div>
@@ -216,7 +217,7 @@
 				<h4>Shared link issues</h4>
 				<p>
 					{sharedSource.replay.skippedCount} move{sharedSource.replay.skippedCount === 1 ? '' : 's'} could
-					not be applied
+					not be loaded into the preview
 				</p>
 				<ul>
 					{#each sharedSource.replay.entries.filter((entry) => entry.status !== 'applied') as entry (entry.index)}
@@ -232,7 +233,7 @@
 									>{course(entry.courseId)?.code ?? 'Course'} was already in that semester</strong
 								>
 							{:else}
-								<strong>Move could not be safely applied</strong><span
+								<strong>Move could not be safely previewed</strong><span
 									>{course(entry.courseId)?.code ?? 'Course unavailable'}</span
 								>
 							{/if}
@@ -284,7 +285,6 @@
 		margin-top: 0.55rem;
 	}
 
-	.eyebrow,
 	h3,
 	h4,
 	p,
@@ -293,17 +293,14 @@
 		margin: 0;
 	}
 
-	.eyebrow,
 	h4 {
-		font-size: 0.65rem;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
+		font-size: var(--text-small);
 		color: var(--ink-soft);
 	}
 
 	h3 {
 		margin-top: 0.2rem;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 	}
 
 	dl {

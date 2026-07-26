@@ -28,15 +28,8 @@
 
 <section class="simulator" aria-labelledby="simulator-title">
 	<div class="simulator-heading">
-		<div>
-			<p class="eyebrow font-mono">Try a different semester</p>
-			<h3 id="simulator-title">
-				Move {course.name} from {currentSemester
-					? `${currentSemester.term} ${currentSemester.year}`
-					: 'Unplaced'} to:
-			</h3>
-		</div>
-		<p class="preview-note">Preview only — your saved schedule will not change.</p>
+		<h3 id="simulator-title">Move {course.code}</h3>
+		<p>{currentSemester ? `${currentSemester.term} ${currentSemester.year}` : 'Unplaced'}</p>
 	</div>
 
 	{#if options.length === 0}
@@ -83,30 +76,25 @@
 		justify-content: space-between;
 	}
 
-	.eyebrow,
 	h3,
 	p {
 		margin: 0;
 	}
 
-	.eyebrow,
 	label {
-		font-size: 0.65rem;
-		font-weight: 600;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
+		font-size: var(--text-small);
+		font-weight: 500;
 		color: var(--ink-soft);
 	}
 
 	h3 {
-		margin-top: 0.3rem;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-size: 1rem;
 	}
 
-	.preview-note {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
+	.simulator-heading p {
+		font-size: var(--text-caption);
+		color: var(--ink-soft);
 	}
 
 	.simulator-controls {

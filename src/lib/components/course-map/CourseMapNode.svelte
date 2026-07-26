@@ -12,10 +12,22 @@
 	}
 
 	let { course, position, state, selected = false, preview = false, oninspect }: Props = $props();
+	const relationshipState = $derived(
+		state === 'upstream'
+			? 'Prerequisite of the selected course'
+			: state === 'downstream'
+				? 'Requires the selected course'
+				: state === 'conflict'
+					? 'Has a planning conflict'
+					: state === 'resolved'
+						? 'Planning conflict resolved'
+						: ''
+	);
 </script>
 
 <article
 	class={['node', state, { selected }]}
+	data-course-node={course.id}
 	style:left={`${position.x}px`}
 	style:top={`${position.y}px`}
 	style:width={`${position.width}px`}
@@ -29,6 +41,7 @@
 		<span class="state-label preview-label font-mono">Moved</span>
 	{/if}
 	<div class="node-copy">
+		{#if relationshipState}<span class="sr-only">{relationshipState}.</span>{/if}
 		<a
 			href={resolve('/app/semesters/[semesterId]/courses/[courseId]', {
 				semesterId: course.semesterId,
@@ -42,6 +55,7 @@
 		<button
 			type="button"
 			class="inspect-button font-mono"
+			data-course-inspect={course.id}
 			onclick={() => oninspect(course.id)}
 			aria-pressed={selected}
 			aria-label={`${selected ? 'Close plan details for' : 'Check plan for'} ${course.code}`}
@@ -52,6 +66,18 @@
 </article>
 
 <style>
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.node {
 		position: absolute;
 		z-index: 2;

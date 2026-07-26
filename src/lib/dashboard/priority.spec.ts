@@ -81,6 +81,8 @@ describe('priority dashboard', () => {
 	it('uses zero-based calendar months without shifting March', () => {
 		const result = buildPriorityDashboard(base({ events: [event('march', 11)] }));
 		expect(result.agendaDays[0]?.date).toBe('2026-03-11');
+		expect(result.agendaDays[0]?.items[0]?.href).toBe('/app/calendar?year=2026&month=2');
+		expect(result.agendaDays[0]?.items[0]?.actionLabel).toBe('Open date');
 	});
 	it('rejects invalid calendar dates and accepts valid month boundaries', () => {
 		const result = buildPriorityDashboard(

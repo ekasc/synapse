@@ -17,9 +17,10 @@
 		relations: MapRelation[];
 		cycle?: string[];
 		onapplymove: (courseId: string, targetSemesterId: string) => CourseMoveScenario;
+		onclose: () => void;
 	}
 
-	let { course, courses, semesters, relations, cycle, onapplymove }: Props = $props();
+	let { course, courses, semesters, relations, cycle, onapplymove, onclose }: Props = $props();
 	const coursesById = $derived(new Map(courses.map((item) => [item.id, item])));
 	const semestersById = $derived(new Map(semesters.map((item) => [item.id, item])));
 	const prerequisites = $derived(getDirectPrerequisites(course.id, relations));
@@ -62,10 +63,17 @@
 	}
 </script>
 
-<aside class="inspector" aria-live="polite" aria-label={`Dependency details for ${course.code}`}>
+<aside
+	class="inspector"
+	data-dependency-inspector
+	aria-label={`Dependency details for ${course.code}`}
+>
+	<button type="button" class="close-button" onclick={onclose} aria-label="Close course details"
+		>×</button
+	>
 	<header>
 		<p class="course-code font-mono">{course.code}</p>
-		<h2>{course.name}</h2>
+		<h2 tabindex="-1">{course.name}</h2>
 		<p class="scheduled">
 			Scheduled: {semester ? `${semester.term} ${semester.year}` : 'Unplaced'}
 		</p>
@@ -73,7 +81,6 @@
 
 	<section>
 		<h3>Requires</h3>
-		<p class="section-help">Courses that must be scheduled before this course.</p>
 		{#if prerequisites.length > 0}
 			<ul>
 				{#each prerequisites as courseId (courseId)}
@@ -92,7 +99,6 @@
 
 	<section>
 		<h3>Required for</h3>
-		<p class="section-help">Courses that require this course first.</p>
 		{#if dependants.length > 0}
 			<ul>
 				{#each dependants as courseId (courseId)}
@@ -156,13 +162,35 @@
 
 <style>
 	.inspector {
+		position: fixed;
+		top: 1rem;
+		right: 1rem;
+		bottom: 1rem;
+		z-index: 1050;
 		display: grid;
+		width: min(26rem, calc(100vw - 2rem));
 		gap: 1rem;
-		margin-top: 1rem;
-		padding: 1rem;
+		overflow-y: auto;
+		box-sizing: border-box;
+		padding: 3.25rem 1rem 1rem;
 		border: 1px solid var(--ink);
 		background: var(--surface-paper);
-		box-shadow: 5px 5px 0 var(--shadow-ink);
+		box-shadow: -6px 6px 0 var(--shadow-ink);
+	}
+
+	.close-button {
+		position: absolute;
+		top: 0.65rem;
+		right: 0.65rem;
+		display: grid;
+		width: 44px;
+		height: 44px;
+		place-items: center;
+		border: 1px solid var(--ink);
+		background: var(--surface-paper);
+		color: var(--ink);
+		font: 500 1.4rem/1 var(--font-body);
+		cursor: pointer;
 	}
 
 	header,
@@ -192,7 +220,7 @@
 
 	h2 {
 		margin-top: 0.25rem;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-size: 1.35rem;
 	}
 
@@ -211,11 +239,6 @@
 	.scheduled {
 		margin-top: 0.4rem;
 		color: var(--ink-soft);
-	}
-
-	.section-help {
-		margin-bottom: 0.45rem;
-		color: var(--ink-faint);
 	}
 
 	.secondary {
@@ -241,7 +264,7 @@
 
 	.eligibility-term {
 		display: block;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-size: 1.2rem;
 	}
 
@@ -252,19 +275,12 @@
 		background: var(--paper-shelf);
 	}
 
-	@media (min-width: 800px) {
+	@media (max-width: 600px) {
 		.inspector {
-			grid-template-columns: 1.2fr 1fr 1fr 1fr;
-		}
-
-		.eligibility {
-			grid-column: 1 / -1;
-		}
-
-		header {
-			padding: 0 1rem 0 0;
-			border-right: 1px solid var(--rule);
-			border-bottom: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			width: 100%;
 		}
 	}
 </style>

@@ -15,6 +15,8 @@ export type PriorityItem = {
 	tone: PriorityTone;
 	href: string;
 	actionLabel: string;
+	daysLate?: number;
+	gradeWeight?: number;
 };
 export type AgendaDay = { date: string; dateLabel: string; items: PriorityItem[] };
 export type PrioritySummary = { urgentCount: number; upcomingCount: number; sentence: string };
@@ -132,8 +134,10 @@ function eventItem(event: CalendarEventRow, now: Date): PriorityItem {
 		reason,
 		dateLabel: label(date),
 		tone,
-		href: '/app/calendar',
-		actionLabel: 'Open calendar'
+		href: `/app/calendar?year=${event.year}&month=${event.month}`,
+		actionLabel: 'Open date',
+		daysLate: overdue ? Math.max(1, Math.round((today.getTime() - date.getTime()) / 86400000)) : 0,
+		gradeWeight: event.gradeWeight ?? undefined
 	};
 }
 

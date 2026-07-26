@@ -31,9 +31,7 @@
 <main class="courses-page">
 	<header class="page-cover">
 		<h1 class="page-title">Course Map</h1>
-		<p class="page-tagline">
-			See which courses must come first, check your semester plan, and preview changes.
-		</p>
+		<p class="page-tagline">Prerequisites by semester.</p>
 	</header>
 
 	{#if semesters.length === 0}
@@ -47,25 +45,18 @@
 			<a class="btn empty-action" href={resolve('/app/semesters')}>Add course</a>
 		</section>
 	{:else}
-		<section class="map-section" aria-labelledby="map-title">
-			<div class="map-heading">
-				<div>
-					<p class="eyebrow font-mono">Degree sequence</p>
-					<h2 id="map-title">Prerequisite plan</h2>
-					<p class="map-explanation">
-						Arrows point from a prerequisite to the course that requires it.
-					</p>
-				</div>
-				<div class="legend font-mono" aria-label="Course map legend">
-					<span><i class="legend-line accepted"></i> Confirmed relationship</span>
-					<span><i class="legend-line pending"></i> Needs review</span>
-					<span><i class="legend-box upstream"></i> Required before selected course</span>
-					<span><i class="legend-box downstream"></i> Requires selected course</span>
-				</div>
-			</div>
-
+		<section class="map-section" aria-label="Prerequisite plan">
 			{#if !hasPrerequisites}
-				<p class="no-relations">No prerequisite relationships have been added yet.</p>
+				<div class="no-relations">
+					<strong>No prerequisites yet.</strong>
+					<a
+						class="btn"
+						href={resolve('/app/semesters/[semesterId]/courses/[courseId]', {
+							semesterId: courses[0].semesterId,
+							courseId: courses[0].id
+						})}>Choose a course</a
+					>
+				</div>
 			{/if}
 
 			<CourseMap {courses} {semesters} {relations} />
@@ -75,43 +66,20 @@
 
 <style>
 	.courses-page {
+		box-sizing: border-box;
+		min-width: 0;
+		max-width: 100%;
 		padding: clamp(1.25rem, 3vw, 2.5rem);
 	}
 
 	.map-section {
+		min-width: 0;
+		max-width: 100%;
 		margin-top: 2rem;
 	}
 
-	.map-heading {
-		display: flex;
-		gap: 1rem 2rem;
-		align-items: end;
-		justify-content: space-between;
-		margin-bottom: 0.9rem;
-	}
-
-	.eyebrow,
-	.map-heading h2 {
-		margin: 0;
-	}
-
-	.map-explanation {
-		max-width: 36rem;
-		margin: 0.35rem 0 0;
-		color: var(--ink-soft);
-		font-size: 0.8rem;
-	}
-
-	.eyebrow {
-		font-size: 0.65rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
-	}
-
-	.map-heading h2,
 	.empty-panel h2 {
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		color: var(--ink);
 	}
@@ -120,58 +88,21 @@
 		margin-top: 1rem;
 	}
 
-	.map-heading h2 {
-		margin-top: 0.2rem;
-		font-size: clamp(1.5rem, 3vw, 2rem);
-	}
-
-	.legend {
+	.no-relations {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.55rem 1rem;
-		justify-content: flex-end;
-		font-size: 0.62rem;
-		color: var(--ink-soft);
-	}
-
-	.legend span {
-		display: inline-flex;
-		gap: 0.35rem;
+		gap: 0.45rem 1rem;
 		align-items: center;
-	}
-
-	.legend-line {
-		display: inline-block;
-		width: 24px;
-		border-top: 2px solid var(--ink-soft);
-	}
-
-	.legend-line.pending {
-		border-top-style: dashed;
-	}
-
-	.legend-box {
-		display: inline-block;
-		width: 11px;
-		height: 11px;
-		border: 2px solid;
-	}
-
-	.legend-box.upstream {
-		border-color: var(--pen-blue);
-	}
-
-	.legend-box.downstream {
-		border-color: var(--pen-red);
-	}
-
-	.no-relations {
 		margin: 0 0 0.75rem;
-		padding: 0.65rem 0.8rem;
+		padding: 0.8rem;
 		border: 1px solid var(--rule);
 		background: var(--paper-shelf);
 		font-size: 0.82rem;
 		color: var(--ink-soft);
+	}
+
+	.no-relations .btn {
+		flex: 0 0 auto;
 	}
 
 	.empty-panel {
@@ -185,17 +116,6 @@
 	.empty-panel h2 {
 		margin: 0;
 		font-size: 1.35rem;
-	}
-
-	@media (max-width: 1100px) {
-		.map-heading {
-			align-items: flex-start;
-			flex-direction: column;
-		}
-
-		.legend {
-			justify-content: flex-start;
-		}
 	}
 
 	@media (max-width: 720px) {

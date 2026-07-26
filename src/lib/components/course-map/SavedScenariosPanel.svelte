@@ -157,7 +157,7 @@
 			loadIssues = onloadscenario(body.scenario);
 			operationState = completeScenarioOperation(
 				operation,
-				operation === 'recovery' ? 'Saved version restored' : 'Draft plan loaded'
+				operation === 'recovery' ? 'Saved version restored' : 'Draft plan ready to compare'
 			);
 		} catch (error) {
 			recordFailure(operation, stored, 'Could not load draft plan.', error);
@@ -227,11 +227,7 @@
 
 <section class="saved" aria-labelledby="saved-title">
 	<div class="saved-heading">
-		<div>
-			<p class="eyebrow font-mono">Saved draft plans</p>
-			<h3 id="saved-title">Draft plan library</h3>
-			<p class="saved-help">Draft plans you can compare, apply, or discard.</p>
-		</div>
+		<h3 id="saved-title">Saved drafts</h3>
 		{#if moves.length > 0 && !association}
 			<button type="button" onclick={openSave}>Save draft plan</button>
 		{:else if association && dirty}
@@ -249,8 +245,8 @@
 	{#if loadIssues && loadIssues.skippedCount > 0}<div class="replace">
 			<strong>Saved draft plan compatibility issues</strong>
 			<p>
-				{loadIssues.appliedCount} moves applied · {loadIssues.skippedCount} moves skipped because courses
-				or semesters are unavailable.
+				{loadIssues.appliedCount} moves loaded into the preview · {loadIssues.skippedCount} moves skipped
+				because courses or semesters are unavailable.
 			</p>
 		</div>{/if}
 	{#if showSaveForm}<form
@@ -358,8 +354,8 @@
 						{:else}<div class="actions">
 								<button
 									type="button"
-									aria-label={`Load ${stored.name}`}
-									onclick={() => load(stored)}>Load</button
+									aria-label={`Preview ${stored.name}`}
+									onclick={() => load(stored)}>Preview</button
 								><button
 									type="button"
 									aria-label={`Rename ${stored.name}`}
@@ -396,24 +392,12 @@
 		align-items: center;
 		justify-content: space-between;
 	}
-	.eyebrow,
 	h3,
 	p {
 		margin: 0;
 	}
-	.eyebrow {
-		font-size: 0.65rem;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
-		color: var(--ink-soft);
-	}
 	h3 {
-		font-family: var(--font-hand);
-	}
-	.saved-help {
-		margin-top: 0.2rem;
-		font-size: 0.78rem;
-		color: var(--ink-faint);
+		font-family: var(--font-body);
 	}
 	button,
 	input {
