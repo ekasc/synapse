@@ -10,16 +10,12 @@ import { createMaterialIndexRepository } from '$lib/server/practice/material-ind
 import { runBackgroundIndexing } from '$lib/server/practice/background-index';
 import { createSemanticPipeline } from '$lib/server/practice/embeddings';
 
-// Invoked by the Worker's scheduled handler with the shared trigger secret.
-// Resumes pending/indexing material indexes so uploads finish even when the
-// browser tab that started them is closed.
+// Resumes pending/indexing material indexes for the calling user. Triggered
+// ad hoc from the weekly plan page (no longer a cron) so the user doesn't
+// need to keep the browser tab open after uploading a PDF.
 export async function POST(event: RequestEvent) {
-	const env = event.platform?.env as Record<string, string> | undefined;
-	const secret = env?.BACKGROUND_INDEX_SECRET ?? '';
-	const provided = event.request.headers.get('x-index-secret') ?? '';
-	if (!secret || provided !== secret) {
-		return json({ error: 'unauthorized' }, { status: 401 });
-	}
+	const userId = event.locals.user?.id;
+	if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
 	const binding = event.platform?.env?.BRIEF_DB as D1Database | undefined;
 	if (!binding) {
 		return json({ error: 'database unavailable' }, { status: 503 });

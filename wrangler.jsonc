@@ -16,11 +16,12 @@
 	],
 	// Weekly plan generation and push: Sundays 15:00 UTC (08:00 PT during PDT).
 	// The scheduled handler calls /api/weekly-push/run with WEEKLY_PUSH_SECRET.
-	// Background material indexing: every 6 hours at :17. The scheduled handler
-	// calls /api/material-index/run with BACKGROUND_INDEX_SECRET. Set both
-	// secrets with `wrangler secret put` (or .dev.vars locally).
+	// Background material indexing is no longer a cron — users trigger it
+	// from the weekly plan page, so the secret and the scheduled branch are
+	// gone too. Set the remaining secret with `wrangler secret put` (or
+	// .dev.vars locally).
 	"triggers": {
-		"crons": ["0 15 * * 0", "17 */6 * * *"]
+		"crons": ["0 15 * * 0"]
 	},
 	"workers_dev": true,
 	"preview_urls": true,

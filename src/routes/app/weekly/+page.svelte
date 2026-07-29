@@ -11,8 +11,9 @@
 	import { buildWeeklyViewModel } from '$lib/dashboard/weekly-view-model';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: import('./$types').ActionData } = $props();
 	let regenerating = $state(false);
+	let indexing = $state(false);
 	const digest = $derived(data.digest);
 	const model = $derived(buildWeeklyViewModel(digest));
 	const hasAnyContent = $derived(
@@ -70,25 +71,63 @@
 					>{/if}{#if data.isSunday}<b>new week</b>{/if}
 			</p>
 		</div>
-		<form
-			method="POST"
-			action="?/regenerate"
-			use:enhance={() => {
-				regenerating = true;
-				return async ({ update }) => {
-					try {
-						await update();
-					} finally {
-						regenerating = false;
-					}
-				};
-			}}
-		>
-			<button class="btn btn-ghost btn-sm" disabled={regenerating}
-				>{regenerating ? 'Regenerating…' : 'Regenerate'}</button
+		<div class="weekly-actions">
+			<form
+				method="POST"
+				action="?/regenerate"
+				use:enhance={() => {
+					regenerating = true;
+					return async ({ update }) => {
+						try {
+							await update();
+						} finally {
+							regenerating = false;
+						}
+					};
+				}}
 			>
-		</form>
+				<button class="btn btn-ghost btn-sm" disabled={regenerating}
+					>{regenerating ? 'Regenerating…' : 'Regenerate'}</button
+				>
+			</form>
+			<form
+				method="POST"
+				action="?/indexMaterials"
+				use:enhance={() => {
+					indexing = true;
+					return async ({ update }) => {
+						try {
+							await update();
+						} finally {
+							indexing = false;
+						}
+					};
+				}}
+			>
+				<button
+					class="btn btn-ghost btn-sm"
+					disabled={indexing}
+					title="Resume any pending PDF indexing so practice questions can quote from your materials"
+					>{indexing ? 'Indexing…' : 'Index materials'}</button
+				>
+			</form>
+		</div>
 	</header>
+
+	{#if form?.indexMaterials}
+		{@const result = form.indexMaterials}
+		<p class="index-result" role="status">
+			{#if 'error' in result}
+				Could not index materials: {result.error}.
+			{:else if result.attempted === 0}
+				No materials were waiting to be indexed.
+			{:else}
+				Indexed {result.ready} of {result.attempted} material{result.attempted === 1 ? '' : 's'}
+				({result.batches} batch{result.batches === 1 ? '' : 'es'}, {result.failed} failed,
+				{result.skipped} skipped).
+			{/if}
+		</p>
+	{/if}
 
 	{#if data.degraded.length}
 		<p class="degraded" role="status">
@@ -225,6 +264,20 @@
 	.weekly-head > div {
 		display: grid;
 		gap: 0.3rem;
+	}
+	.weekly-actions {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+	.index-result {
+		margin: 0;
+		padding: 0.5rem 0.75rem;
+		background: var(--paper-soft, var(--paper));
+		border: 1px solid var(--rule);
+		border-radius: 6px;
+		font-size: var(--text-body-sm, 0.875rem);
+		color: var(--ink);
 	}
 	.kicker {
 		font-family: var(--font-body);
