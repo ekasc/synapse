@@ -42,10 +42,10 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Course briefs</title></svelte:head>
+<svelte:head><title>Briefs · Synapse</title></svelte:head>
 
-<div class="page page-enter">
-	<div class="slip-slot">
+<div class="page-enter mx-auto max-w-[var(--page-width)] pt-8 pb-16 max-[700px]:px-4">
+	<div class="sticky top-0 z-50 -mt-2 bg-[var(--paper)] pt-2 pb-4">
 		{#key slipKey}
 			<ResearchSlip
 				onSuccess={handleSlipSuccess}
@@ -59,89 +59,35 @@
 	</div>
 
 	{#if briefs.length > 0}
-		<header class="page-head">
+		<header
+			class="mt-2 flex items-end justify-between gap-4 border-b border-[var(--rule)] pb-2 max-[700px]:flex-col max-[700px]:items-start max-[700px]:gap-2"
+		>
 			<div>
-				<h1 class="page-title">Course briefs</h1>
-				<p class="page-tagline">Syllabus intelligence for courses you're considering</p>
+				<h1
+					class="m-0 font-[family-name:var(--font-body)] text-[1.75rem] leading-[1.1] font-bold tracking-[-0.01em] text-[var(--ink)]"
+				>
+					Course briefs
+				</h1>
+				<p
+					class="mt-1 mb-0 font-[family-name:var(--font-body)] text-[var(--ink-soft)] text-[var(--text-small)]"
+				>
+					Syllabus intelligence for courses you're considering
+				</p>
 			</div>
-			<div class="count font-mono">{briefs.length} {briefs.length === 1 ? 'entry' : 'entries'}</div>
+			<div class=" text-[var(--ink-faint)] text-[var(--text-caption)]">
+				{briefs.length}
+				{briefs.length === 1 ? 'entry' : 'entries'}
+			</div>
 		</header>
 
-		<section class="library" aria-label="Briefed courses">
+		<section class="mt-0 block" aria-label="Briefed courses">
 			{#each briefs as brief (brief.courseCode)}
 				<NotebookEntry {brief} />
 			{/each}
 		</section>
 	{:else}
-		<section class="library" aria-label="Briefed courses">
+		<section class="mt-0 block" aria-label="Briefed courses">
 			<EmptyState />
 		</section>
 	{/if}
 </div>
-
-<style>
-	.page {
-		max-width: var(--page-width);
-		margin-inline: auto;
-		padding-block: 2rem 4rem;
-	}
-
-	.slip-slot {
-		position: sticky;
-		top: 0;
-		z-index: 50;
-		background: var(--paper);
-		padding: 0.5rem 0 1rem;
-		margin: -0.5rem 0 0;
-	}
-
-	.page-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-end;
-		gap: 1rem;
-		padding: 0 0 0.5rem;
-		border-bottom: 1px solid var(--rule);
-		margin-top: 0.5rem;
-	}
-
-	.page-title {
-		font-family: var(--font-hand);
-		font-weight: 700;
-		font-size: 1.75rem;
-		line-height: 1.1;
-		color: var(--ink);
-		margin: 0;
-		letter-spacing: -0.01em;
-	}
-
-	.page-tagline {
-		font-family: var(--font-body);
-		font-size: 0.95rem;
-		color: var(--ink-soft);
-		margin: 0.25rem 0 0;
-	}
-
-	.count {
-		font-size: 0.78rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.library {
-		display: block;
-		margin-top: 0;
-	}
-
-	@media (max-width: 700px) {
-		.page {
-			padding-inline: 1rem;
-		}
-		.page-head {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.5rem;
-		}
-	}
-</style>

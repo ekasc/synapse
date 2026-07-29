@@ -64,223 +64,134 @@
 </script>
 
 <aside
-	class="inspector"
+	class="fixed top-4 right-4 bottom-4 z-[1050] box-border grid w-[min(26rem,calc(100vw-2rem))] gap-4 overflow-y-auto border border-[var(--ink)] bg-[var(--surface-paper)] px-4 pt-13 pb-4 shadow-[-6px_6px_0_var(--shadow-ink)] max-[600px]:inset-y-0 max-[600px]:right-0 max-[600px]:w-full"
 	data-dependency-inspector
 	aria-label={`Dependency details for ${course.code}`}
 >
-	<button type="button" class="close-button" onclick={onclose} aria-label="Close course details"
-		>×</button
+	<button
+		type="button"
+		class="absolute top-[0.65rem] right-[0.65rem] grid size-11 cursor-pointer place-items-center border border-[var(--ink)] bg-[var(--surface-paper)] text-[var(--ink)] [font:500_1.4rem/1_var(--font-body)]"
+		onclick={onclose}
+		aria-label="Close course details">×</button
 	>
-	<header>
-		<p class="course-code font-mono">{course.code}</p>
-		<h2 tabindex="-1">{course.name}</h2>
-		<p class="scheduled">
+	<header class="min-w-0 border-b border-[var(--rule)] pb-[0.8rem]">
+		<p class="m-0 text-[var(--text-caption)]">{course.code}</p>
+		<h2 class="mt-1 text-[1.35rem] font-[var(--font-body)]" tabindex="-1">{course.name}</h2>
+		<p class="mt-[0.4rem] leading-[1.45] text-[var(--ink-soft)] text-[var(--text-caption)]">
 			Scheduled: {semester ? `${semester.term} ${semester.year}` : 'Unplaced'}
 		</p>
 	</header>
 
-	<section>
-		<h3>Requires</h3>
+	<section class="min-w-0">
+		<h3 class="mb-[0.45rem] text-[var(--ink-soft)] text-[var(--text-caption)]">Requires</h3>
 		{#if prerequisites.length > 0}
-			<ul>
+			<ul class="m-0 pl-[1.1rem]">
 				{#each prerequisites as courseId (courseId)}
-					<li>
+					<li class="leading-[1.45] text-[var(--text-caption)]">
 						<strong>{courseLabel(courseId)}</strong> - {prerequisiteState(courseId)}
 						{#if !coursesById.has(courseId)}
-							<span class="secondary">Course record unavailable</span>
+							<span class="block text-[var(--ink-faint)]">Course record unavailable</span>
 						{/if}
 					</li>
 				{/each}
 			</ul>
 		{:else}
-			<p>No prerequisite relationships</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">No prerequisite relationships</p>
 		{/if}
 	</section>
 
-	<section>
-		<h3>Required for</h3>
+	<section class="min-w-0">
+		<h3 class="mb-[0.45rem] text-[var(--ink-soft)] text-[var(--text-caption)]">Required for</h3>
 		{#if dependants.length > 0}
-			<ul>
+			<ul class="m-0 pl-[1.1rem]">
 				{#each dependants as courseId (courseId)}
-					<li>{courseLabel(courseId)}</li>
+					<li class="leading-[1.45] text-[var(--text-caption)]">{courseLabel(courseId)}</li>
 				{/each}
 			</ul>
 		{:else}
-			<p>No courses currently require this course</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+				No courses currently require this course
+			</p>
 		{/if}
 	</section>
 
-	<section class:invalid={Boolean(cycle)} class:blocked={blocking.length > 0 && !cycle}>
-		<h3>Plan check</h3>
+	<section
+		class={[
+			'min-w-0',
+			(Boolean(cycle) || (blocking.length > 0 && !cycle)) &&
+				'border border-[var(--pen-red)] bg-[var(--paper-shelf)] p-3'
+		]}
+	>
+		<h3 class="mb-[0.45rem] text-[var(--ink-soft)] text-[var(--text-caption)]">Plan check</h3>
 		<strong>{status}</strong>
 		{#if cycle}
-			<p>Circular relationship: {cycle.map(courseLabel).join(' → ')}</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+				Circular relationship: {cycle.map(courseLabel).join(' → ')}
+			</p>
 		{:else if blocking.length > 0}
-			<p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
 				{blocking.length} required course{blocking.length === 1 ? ' is' : 's are'} not scheduled earlier.
 			</p>
 		{:else}
-			<p>Every confirmed prerequisite is scheduled earlier.</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+				Every confirmed prerequisite is scheduled earlier.
+			</p>
 		{/if}
 	</section>
 
-	<section class="eligibility" class:invalid={eligibility.status === 'cycle'}>
-		<h3>Earliest valid placement</h3>
+	<section
+		class={[
+			'min-w-0 border-t border-[var(--rule)] pt-4',
+			eligibility.status === 'cycle' && 'border border-[var(--pen-red)] bg-[var(--paper-shelf)] p-3'
+		]}
+	>
+		<h3 class="mb-[0.45rem] text-[var(--ink-soft)] text-[var(--text-caption)]">
+			Earliest valid placement
+		</h3>
 		{#if eligibility.status === 'already-eligible'}
 			<strong>No prerequisite constraint</strong>
-			<p>This course has no confirmed prerequisites in the map.</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+				This course has no confirmed prerequisites in the map.
+			</p>
 		{:else if eligibility.status === 'eligible'}
-			<strong class="eligibility-term">{eligibility.semesterLabel}</strong>
-			<p>
+			<strong class="block text-[1.2rem] font-[var(--font-body)]"
+				>{eligibility.semesterLabel}</strong
+			>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
 				Latest prerequisite{eligibility.latestPrerequisiteCourseIds.length === 1 ? '' : 's'}:
 				<strong>
 					{eligibility.latestPrerequisiteCourseIds.map(courseLabel).join(', ')} ·
 					{eligibility.latestPrerequisiteSemesterLabel}
 				</strong>
 			</p>
-			<div class="schedule-comparison">
+			<div class="mt-3 border border-[var(--rule)] bg-[var(--paper-shelf)] px-3 py-[0.65rem]">
 				<strong>{scheduleStatusLabel(eligibility.scheduleStatus)}</strong>
 				{#if eligibility.currentSemesterLabel}
-					<p>Current: {eligibility.currentSemesterLabel}</p>
+					<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+						Current: {eligibility.currentSemesterLabel}
+					</p>
 				{/if}
-				<p>Earliest placement: {eligibility.semesterLabel}</p>
+				<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+					Earliest placement: {eligibility.semesterLabel}
+				</p>
 			</div>
 		{:else if eligibility.status === 'outside-plan'}
 			<strong>No valid placement in the current plan</strong>
-			<p>Add a semester after {eligibility.latestPrerequisiteSemesterLabel}.</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+				Add a semester after {eligibility.latestPrerequisiteSemesterLabel}.
+			</p>
 		{:else if eligibility.status === 'unknown'}
 			<strong>Cannot determine placement</strong>
-			<p>A prerequisite course is missing or not scheduled.</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+				A prerequisite course is missing or not scheduled.
+			</p>
 		{:else}
 			<strong>Circular prerequisite relationship</strong>
-			<p>The cycle must be corrected before placement can be checked.</p>
+			<p class="m-0 leading-[1.45] text-[var(--text-caption)]">
+				The cycle must be corrected before placement can be checked.
+			</p>
 		{/if}
 	</section>
 
 	<CourseMoveSimulator {course} {semesters} onapply={onapplymove} />
 </aside>
-
-<style>
-	.inspector {
-		position: fixed;
-		top: 1rem;
-		right: 1rem;
-		bottom: 1rem;
-		z-index: 1050;
-		display: grid;
-		width: min(26rem, calc(100vw - 2rem));
-		gap: 1rem;
-		overflow-y: auto;
-		box-sizing: border-box;
-		padding: 3.25rem 1rem 1rem;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		box-shadow: -6px 6px 0 var(--shadow-ink);
-	}
-
-	.close-button {
-		position: absolute;
-		top: 0.65rem;
-		right: 0.65rem;
-		display: grid;
-		width: 44px;
-		height: 44px;
-		place-items: center;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		color: var(--ink);
-		font: 500 1.4rem/1 var(--font-body);
-		cursor: pointer;
-	}
-
-	header,
-	section {
-		min-width: 0;
-	}
-
-	header {
-		padding-bottom: 0.8rem;
-		border-bottom: 1px solid var(--rule);
-	}
-
-	.course-code,
-	h2,
-	h3,
-	p,
-	ul {
-		margin: 0;
-	}
-
-	.course-code,
-	h3 {
-		font-size: 0.68rem;
-		letter-spacing: 0.09em;
-		text-transform: uppercase;
-	}
-
-	h2 {
-		margin-top: 0.25rem;
-		font-family: var(--font-body);
-		font-size: 1.35rem;
-	}
-
-	h3 {
-		margin-bottom: 0.45rem;
-		color: var(--ink-soft);
-	}
-
-	.scheduled,
-	section p,
-	li {
-		font-size: 0.82rem;
-		line-height: 1.45;
-	}
-
-	.scheduled {
-		margin-top: 0.4rem;
-		color: var(--ink-soft);
-	}
-
-	.secondary {
-		display: block;
-		color: var(--ink-faint);
-	}
-
-	ul {
-		padding-left: 1.1rem;
-	}
-
-	.blocked,
-	.invalid {
-		padding: 0.75rem;
-		border: 1px solid var(--pen-red);
-		background: var(--paper-shelf);
-	}
-
-	.eligibility {
-		padding-top: 1rem;
-		border-top: 1px solid var(--rule);
-	}
-
-	.eligibility-term {
-		display: block;
-		font-family: var(--font-body);
-		font-size: 1.2rem;
-	}
-
-	.schedule-comparison {
-		margin-top: 0.75rem;
-		padding: 0.65rem 0.75rem;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-	}
-
-	@media (max-width: 600px) {
-		.inspector {
-			top: 0;
-			right: 0;
-			bottom: 0;
-			width: 100%;
-		}
-	}
-</style>

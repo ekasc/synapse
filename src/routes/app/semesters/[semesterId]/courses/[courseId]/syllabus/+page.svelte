@@ -231,10 +231,10 @@
 		aria-label={`Syllabus for ${selectedCourseLabel}`}
 	>
 		<div class="course-selector-main">
-			<span class="course-selector-label font-mono">Course context</span>
+			<span class="course-selector-label">Course context</span>
 			<h2 class="course-selector-title">
 				{#if activeCourse}
-					<span class="course-code font-mono">{activeCourse.code}</span>
+					<span class="course-code">{activeCourse.code}</span>
 					{activeCourse.name}
 				{:else}
 					No course selected
@@ -252,10 +252,7 @@
 
 	<section class="workspace" aria-label="Syllabus extraction workspace">
 		<aside class="upload-panel surface-polaroid">
-			<SectionHead
-				title="Upload syllabus PDF"
-				meta={selectedSyllabusFileName ? 'SELECTED' : 'EMPTY'}
-			/>
+			<SectionHead title="Upload syllabus PDF" />
 
 			<label class="drop-zone">
 				<input
@@ -266,7 +263,7 @@
 					onchange={onSyllabusFileChange}
 				/>
 				<span class="drop-title font-hand">Drop syllabus PDF</span>
-				<span class="drop-subtitle font-mono">or choose a file · PDF only</span>
+				<span class="drop-subtitle">or choose a file · PDF only</span>
 			</label>
 
 			{#if selectedSyllabusFileName}
@@ -274,7 +271,7 @@
 					<div class="file-info">
 						<span class="file-name">{selectedSyllabusFileName}</span>
 					</div>
-					<span class="file-badge font-mono">PDF</span>
+					<span class="file-badge">PDF</span>
 				</div>
 			{/if}
 
@@ -285,11 +282,11 @@
 				</div>
 			{:else}
 				<div class="extract-list">
-					<div class="extract-list-head font-mono">Extracted points</div>
+					<div class="extract-list-head">Extracted points</div>
 					<ul>
 						{#each extractionItems as item, i (i)}
 							<li>
-								<span class="check font-mono" aria-hidden="true">✓</span>
+								<span class="check" aria-hidden="true">✓</span>
 								<span>{item}</span>
 							</li>
 						{/each}
@@ -308,25 +305,22 @@
 				</button>
 				<button
 					type="button"
-					class="btn btn-ghost btn-sm font-mono"
+					class="btn btn-ghost btn-sm"
 					disabled={isExtracting || isResetting || !syllabus}
 					onclick={resetSyllabusImport}
 				>
 					{isResetting ? 'resetting' : 'reset import'}
 				</button>
-				<button type="button" class="btn btn-ghost btn-sm font-mono">replace file</button>
+				<button type="button" class="btn btn-ghost btn-sm">replace file</button>
 			</div>
 
 			{#if apiError}
-				<p class="api-error font-mono">{apiError}</p>
+				<p class="api-error">{apiError}</p>
 			{/if}
 		</aside>
 
 		<article class="results-panel surface-polaroid">
-			<SectionHead
-				title="Extracted data"
-				meta={syllabus ? `FROM · ${syllabus.fileName}` : 'WAITING'}
-			/>
+			<SectionHead title="Extracted data" />
 
 			{#if syllabus}
 				<div class="existing-result">
@@ -335,7 +329,7 @@
 					</p>
 					<div class="existing-actions">
 						<a href={resultHref} class="btn btn-primary"> View extraction results </a>
-						<span class="existing-status font-mono">
+						<span class="existing-status">
 							{syllabus.status === 'ready'
 								? 'Ready'
 								: syllabus.status === 'mocked'
@@ -368,7 +362,7 @@
 
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0.35rem 0 0;
 	}
 
@@ -391,7 +385,7 @@
 	.course-selector-label {
 		display: block;
 		color: var(--ink-faint);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.14em;
 	}
@@ -403,7 +397,7 @@
 		gap: 0.7rem;
 		margin: 0.45rem 0 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.4rem;
 		line-height: 1.1;
@@ -411,7 +405,7 @@
 
 	.course-code {
 		color: var(--ink-soft);
-		font-size: 0.82rem;
+		font-size: var(--text-caption);
 		letter-spacing: 0.12em;
 	}
 
@@ -426,7 +420,7 @@
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink-soft);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		padding: 0.35rem 0.5rem;
 	}
 
@@ -485,7 +479,7 @@
 	.drop-subtitle {
 		display: block;
 		color: var(--ink-faint);
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
 		margin-top: 0.35rem;
@@ -510,7 +504,7 @@
 
 	.file-name {
 		color: var(--ink);
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		font-weight: 500;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -518,7 +512,7 @@
 	}
 
 	.file-badge {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		text-transform: uppercase;
 		letter-spacing: 0.14em;
@@ -536,11 +530,11 @@
 		background: var(--paper);
 		padding: 1rem 1.25rem;
 		color: var(--ink-soft);
-		font-size: 0.88rem;
+		font-size: var(--text-small);
 	}
 
 	.extract-list-head {
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
@@ -559,7 +553,7 @@
 		align-items: center;
 		gap: 0.6rem;
 		color: var(--ink-soft);
-		font-size: 0.88rem;
+		font-size: var(--text-small);
 		padding: 0.35rem 0;
 		border-bottom: 1px solid var(--rule);
 	}
@@ -575,7 +569,7 @@
 		height: 1.15rem;
 		background: var(--ink);
 		color: var(--paper);
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		flex-shrink: 0;
 	}
 
@@ -592,7 +586,7 @@
 		color: var(--pen-red);
 		background: rgba(194, 54, 42, 0.08);
 		border: 1px solid var(--pen-red);
-		font-size: 0.8rem;
+		font-size: var(--text-caption);
 		line-height: 1.4;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
@@ -605,7 +599,7 @@
 
 	.existing-text {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0 0 1rem;
 	}
 
@@ -616,7 +610,7 @@
 	}
 
 	.existing-status {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
@@ -629,7 +623,7 @@
 
 	.empty-text {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0;
 	}
 

@@ -259,17 +259,27 @@
 	onDestroy(stopPolling);
 </script>
 
-<div class="slip">
-	<div class="slip-head">
-		<span class="slip-label font-mono">research request</span>
-		<span class="slip-date font-mono">{today}</span>
+<div
+	class="border border-[var(--rule)] bg-[var(--paper-shelf)] px-6 pt-4 pb-5 max-[700px]:px-4 max-[700px]:pt-3 max-[700px]:pb-4"
+>
+	<div class="flex items-center justify-between gap-2">
+		<span
+			class="border border-[var(--rule)] px-[0.4rem] py-[0.1rem] leading-[1.2] text-[var(--ink-faint)] text-[var(--text-caption)]"
+			>research request</span
+		>
+		<span class=" tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]">{today}</span
+		>
 	</div>
-	<div class="slip-rule"></div>
+	<div class="mt-[0.6rem] mb-3 h-px bg-[var(--rule-soft)]"></div>
 
 	{#if succeededCode}
-		<div class="done">
-			<span class="done-check" aria-hidden="true">✓</span>
-			<span class="done-text">
+		<div
+			class="flex items-center gap-[0.6rem] py-[0.4rem] font-[family-name:var(--font-body)] text-[var(--ink)] text-[var(--text-small)]"
+		>
+			<span class=" text-base text-[var(--ok)]" aria-hidden="true">✓</span>
+			<span
+				class="[&_a]:ml-[0.4rem] [&_a]:text-[var(--ink)] [&_a]:decoration-[var(--rule)] [&_a:hover]:decoration-[var(--ink)]"
+			>
 				<strong>{succeededCode}</strong> ready —
 				<a
 					href={`/app/brief/${encodeURIComponent(succeededCode)}`}
@@ -278,31 +288,40 @@
 			</span>
 		</div>
 	{:else if job && (job.status === 'running' || job.status === 'queued' || job.status === 'failed' || job.status === 'conflict' || job.status === 'expired' || job.status === 'canceled' || timedOut)}
-		<div class="slip-body">
-			<div class="slip-label-row">
-				<span class="slip-state font-mono">researching · {courseCode.trim().toUpperCase()}</span>
+		<div class="grid gap-[0.6rem]">
+			<div class="mb-2 flex items-center justify-between">
+				<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
+					>researching · {courseCode.trim().toUpperCase()}</span
+				>
 			</div>
 			<JobTracker {job} {courseCode} {timedOut} onCancel={cancelJob} onRetry={retry} />
 		</div>
 	{:else}
-		<div class="slip-body">
-			<div class="input-row">
+		<div class="grid gap-[0.6rem]">
+			<div class="flex items-stretch gap-2 max-[700px]:flex-col">
 				<label class="sr-only" for="brief-course-code">Course code</label>
 				<input
 					id="brief-course-code"
 					type="text"
-					class="code-input"
-					class:error={submitAttempted && !courseCode.trim()}
+					class={[
+						'min-h-11 min-w-0 flex-auto rounded-none border border-[var(--rule)] bg-[var(--paper)] px-[0.85rem] py-[0.6rem] font-[family-name:var(--font-body)] text-[1.1rem] font-medium text-[var(--ink)] transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out-quart)] placeholder:font-normal placeholder:text-[var(--ink-faint)] focus:border-[var(--ink)]',
+						submitAttempted && !courseCode.trim() && 'border-[var(--pen-red)]'
+					]}
 					placeholder="Course code (e.g. CSIS 3375, MATH 1130)"
 					bind:value={courseCode}
 					onkeydown={onKeydown}
 				/>
-				<button class="btn btn-primary submit" type="button" onclick={submit} disabled={!canSubmit}>
+				<button
+					class="btn btn-primary min-h-11 min-w-36 flex-none max-[700px]:w-full"
+					type="button"
+					onclick={submit}
+					disabled={!canSubmit}
+				>
 					research →
 				</button>
 			</div>
 			<button
-				class="more-toggle font-mono"
+				class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent py-[0.1rem] text-left tracking-normal text-[var(--ink-soft)] text-[var(--text-caption)] lowercase hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
 				type="button"
 				onclick={() => (moreOptionsOpen = !moreOptionsOpen)}
 				aria-expanded={moreOptionsOpen}
@@ -312,9 +331,12 @@
 				{moreOptionsOpen ? 'less' : 'more'} options
 			</button>
 			{#if moreOptionsOpen}
-				<div class="more-panel" id="brief-more-options">
-					<label class="field">
-						<span class="field-label font-mono">Course name</span>
+				<div
+					class="more-panel mt-1 grid grid-cols-2 gap-x-3 gap-y-[0.6rem] border-t border-dashed border-[var(--rule-soft)] pt-2 pb-1 max-[700px]:grid-cols-1"
+					id="brief-more-options"
+				>
+					<label class="grid gap-[0.3rem]">
+						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Course name</span>
 						<input
 							type="text"
 							class="field-input"
@@ -323,8 +345,8 @@
 							onkeydown={onKeydown}
 						/>
 					</label>
-					<label class="field">
-						<span class="field-label font-mono">Professor name</span>
+					<label class="grid gap-[0.3rem]">
+						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Professor name</span>
 						<input
 							type="text"
 							class="field-input"
@@ -333,8 +355,8 @@
 							onkeydown={onKeydown}
 						/>
 					</label>
-					<label class="field">
-						<span class="field-label font-mono">Institution</span>
+					<label class="grid gap-[0.3rem]">
+						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Institution</span>
 						<input
 							type="text"
 							class="field-input"
@@ -343,10 +365,10 @@
 							onkeydown={onKeydown}
 						/>
 					</label>
-					<label class="field field-wide">
-						<span class="field-label font-mono">Notes</span>
+					<label class="col-span-full grid gap-[0.3rem]">
+						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Notes</span>
 						<textarea
-							class="field-input field-textarea"
+							class="field-input min-h-16 resize-y leading-[1.45]"
 							placeholder="term, section, modality, or anything that might narrow the search"
 							maxlength="1200"
 							bind:value={additionalNotes}
@@ -356,168 +378,22 @@
 				</div>
 			{/if}
 			{#if researchError && !job}
-				<p class="research-error font-mono">{researchError}</p>
+				<p class="mt-[0.1rem] mb-0 text-[var(--pen-red)] text-[var(--text-caption)]">
+					{researchError}
+				</p>
 			{/if}
 		</div>
 	{/if}
 </div>
 
 <style>
-	.slip {
-		background: var(--paper-shelf);
-		border: 1px solid var(--rule);
-		border-radius: 0;
-		padding: 1rem 1.5rem 1.25rem;
-	}
-
-	.slip-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-	}
-
-	.slip-label {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-		border: 1px solid var(--rule);
-		padding: 0.1rem 0.4rem;
-		line-height: 1.2;
-	}
-
-	.slip-date {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.slip-rule {
-		height: 1px;
-		background: var(--rule-soft);
-		margin: 0.6rem 0 0.75rem;
-	}
-
-	.slip-label-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 0.5rem;
-	}
-
-	.slip-state {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.slip-body {
-		display: grid;
-		gap: 0.6rem;
-	}
-
-	.input-row {
-		display: flex;
-		gap: 0.5rem;
-		align-items: stretch;
-	}
-
-	/* No outline:none here — the global ink focus ring (layout.css) applies. */
-	.code-input {
-		flex: 1 1 auto;
-		min-width: 0;
-		min-height: 2.75rem;
-		padding: 0.6rem 0.85rem;
-		font-family: var(--font-body);
-		font-size: 1.1rem;
-		font-weight: 500;
-		color: var(--ink);
-		background: var(--paper);
-		border: 1px solid var(--rule);
-		border-radius: 0;
-		transition:
-			border-color 0.15s var(--ease-out-quart),
-			box-shadow 0.15s var(--ease-out-quart);
-	}
-
-	.code-input:focus {
-		border-color: var(--ink);
-	}
-
-	.code-input.error {
-		border-color: var(--pen-red);
-	}
-
-	.code-input::placeholder {
-		color: var(--ink-faint);
-		font-weight: 400;
-	}
-
-	.submit {
-		min-width: 9rem;
-		min-height: 2.75rem;
-		flex: 0 0 auto;
-	}
-
-	.more-toggle {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		background: none;
-		border: 0;
-		padding: 0.1rem 0;
-		font-size: 0.78rem;
-		color: var(--ink-soft);
-		cursor: pointer;
-		text-align: left;
-		text-transform: lowercase;
-		letter-spacing: 0;
-	}
-
-	.more-toggle:hover {
-		color: var(--ink);
-	}
-
-	.more-toggle:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: 2px;
-	}
-
-	.more-panel {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.6rem 0.75rem;
-		padding: 0.5rem 0 0.25rem;
-		border-top: 1px dashed var(--rule-soft);
-		margin-top: 0.25rem;
-		animation: slideDown 180ms var(--ease-out-quart);
-	}
-
-	.field {
-		display: grid;
-		gap: 0.3rem;
-	}
-
-	.field-wide {
-		grid-column: 1 / -1;
-	}
-
-	.field-label {
-		font-size: 0.7rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
+	/* Repeated text-field primitive shared by the optional inputs. */
 	.field-input {
 		width: 100%;
 		min-height: 2.4rem;
 		padding: 0.45rem 0.65rem;
 		font-family: var(--font-body);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 		background: var(--paper);
 		border: 1px solid var(--rule);
@@ -533,54 +409,8 @@
 		color: var(--ink-faint);
 	}
 
-	.field-textarea {
-		min-height: 4rem;
-		resize: vertical;
-		line-height: 1.45;
-	}
-
-	.research-error {
-		font-size: 0.85rem;
-		color: var(--pen-red);
-		margin: 0.1rem 0 0;
-	}
-
-	.done {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-		padding: 0.4rem 0;
-		font-family: var(--font-body);
-		font-size: 0.95rem;
-		color: var(--ink);
-	}
-
-	.done-check {
-		font-family: var(--font-mono);
-		color: var(--ok);
-		font-size: 1rem;
-	}
-
-	.done-text a {
-		color: var(--ink);
-		text-decoration-color: var(--rule);
-		margin-left: 0.4rem;
-	}
-
-	.done-text a:hover {
-		text-decoration-color: var(--ink);
-	}
-
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
+	.more-panel {
+		animation: slideDown 180ms var(--ease-out-quart);
 	}
 
 	@keyframes slideDown {
@@ -597,21 +427,6 @@
 	@media (prefers-reduced-motion: reduce) {
 		.more-panel {
 			animation: none;
-		}
-	}
-
-	@media (max-width: 700px) {
-		.slip {
-			padding: 0.75rem 1rem 1rem;
-		}
-		.input-row {
-			flex-direction: column;
-		}
-		.submit {
-			width: 100%;
-		}
-		.more-panel {
-			grid-template-columns: 1fr;
 		}
 	}
 </style>

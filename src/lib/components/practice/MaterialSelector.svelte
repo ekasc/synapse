@@ -26,97 +26,39 @@
 	}
 </script>
 
-<fieldset class="material-scope">
-	<div class="material-scope-head">
-		<legend>Use course materials</legend>
+<fieldset class="m-0 mb-4 border-0 p-0">
+	<div class="mb-[0.45rem] flex items-baseline justify-between gap-4">
+		<legend class="p-0 font-semibold text-[var(--ink)] text-[var(--text-caption)]"
+			>Use course materials</legend
+		>
 		{#if materials.length > 1}
-			<button type="button" class="material-scope-toggle" onclick={toggleAll}>
+			<button
+				type="button"
+				class="cursor-pointer border-0 bg-transparent p-0 text-[length:var(--text-caption)] leading-[1.4] text-[var(--ink-soft)] underline underline-offset-[0.2rem]"
+				onclick={toggleAll}
+			>
 				{allSelected ? 'clear all' : 'select all'}
 			</button>
 		{/if}
 	</div>
-	<div class="material-options">
+	<div class="grid grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-[0.4rem]">
 		{#each materials as material (material.id)}
-			<label class="material-option">
+			<label
+				class="flex min-w-0 cursor-pointer items-center gap-[0.55rem] border border-[var(--rule)] bg-[var(--paper)] px-[0.65rem] py-[0.55rem] text-[var(--ink)] text-[var(--text-caption)]"
+			>
 				<input
+					class="accent-[var(--ink)]"
 					type="checkbox"
 					checked={selectedIds.includes(material.id)}
 					onchange={() => ontoggle(material.id)}
 				/>
-				<span>{material.fileName}</span>
+				<span class="truncate">{material.fileName}</span>
 			</label>
 		{/each}
 	</div>
 	{#if selectedIds.length === 0}
-		<p class="material-scope-error">Select at least one course material.</p>
+		<p class="mt-[0.45rem] mb-0 text-[var(--accent)] text-[var(--text-caption)]">
+			Select at least one course material.
+		</p>
 	{/if}
 </fieldset>
-
-<style>
-	.material-scope {
-		padding: 0;
-		margin: 0 0 1rem;
-		border: 0;
-	}
-
-	.material-scope-head {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-		margin-bottom: 0.45rem;
-	}
-
-	.material-scope legend {
-		padding: 0;
-		color: var(--ink);
-		font-size: 0.85rem;
-		font-weight: 600;
-	}
-
-	.material-scope-toggle {
-		padding: 0;
-		border: 0;
-		background: transparent;
-		color: var(--ink-soft);
-		font: 0.72rem var(--font-mono);
-		text-decoration: underline;
-		text-underline-offset: 0.2rem;
-		cursor: pointer;
-	}
-
-	.material-options {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
-		gap: 0.4rem;
-	}
-
-	.material-option {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		min-width: 0;
-		padding: 0.55rem 0.65rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink);
-		font-size: 0.82rem;
-		cursor: pointer;
-	}
-
-	.material-option input {
-		accent-color: var(--ink);
-	}
-
-	.material-option span {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.material-scope-error {
-		margin: 0.45rem 0 0;
-		color: var(--accent);
-		font-size: 0.78rem;
-	}
-</style>

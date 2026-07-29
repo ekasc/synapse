@@ -25,10 +25,8 @@
 		today,
 		eventsByDay = new Map<string, CalendarEvent[]>(),
 		colorByCode = new Map<string, string>(),
-		focusedDay = null as number | null,
 		onShiftWeek = (_days: -7 | 7) => {},
 		onGoToday = () => {},
-		onAddEvent = (_day: number) => {},
 		onNavigateToDay = (_day: CalendarDate) => {}
 	}: {
 		weekDays: CalendarDate[];
@@ -37,10 +35,8 @@
 		today: number;
 		eventsByDay: Map<string, CalendarEvent[]>;
 		colorByCode: Map<string, string>;
-		focusedDay: number | null;
 		onShiftWeek: (days: -7 | 7) => void;
 		onGoToday: () => void;
-		onAddEvent: (day: number) => void;
 		onNavigateToDay: (day: CalendarDate) => void;
 	} = $props();
 
@@ -56,25 +52,25 @@
 <div class="surface-polaroid" style="padding: 1.5rem">
 	<div class="cal-header" style="margin-bottom: 0.75rem">
 		<div class="cal-month-nav">
-			<button
-				class="cal-nav-btn font-mono"
-				onclick={() => onShiftWeek(-7)}
-				aria-label="Previous week">←</button
+			<button class="cal-nav-btn" onclick={() => onShiftWeek(-7)} aria-label="Previous week"
+				>←</button
 			>
-			<span class="cal-month-label">Week of {MONTHS[weekDays[0].month]} {weekDays[0].date}</span>
-			<button class="cal-nav-btn font-mono" onclick={() => onShiftWeek(7)} aria-label="Next week"
-				>→</button
-			>
-			<button class="cal-today-btn font-mono" onclick={onGoToday}>today</button>
-			<button
-				class="cal-nav-btn-wide font-mono"
-				onclick={() => onAddEvent(focusedDay ?? today)}
-				style="margin-left: 0.25rem">+ event</button
-			>
+			<span class="cal-month-label">
+				{new Date(weekDays[0].year, weekDays[0].month, weekDays[0].date).toLocaleDateString(
+					'en-US',
+					{ month: 'short', day: 'numeric' }
+				)}–{new Date(
+					weekDays[weekDays.length - 1].year,
+					weekDays[weekDays.length - 1].month,
+					weekDays[weekDays.length - 1].date
+				).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+			</span>
+			<button class="cal-nav-btn" onclick={() => onShiftWeek(7)} aria-label="Next week">→</button>
+			<button class="cal-today-btn" onclick={onGoToday}>today</button>
 		</div>
 	</div>
 	<div class="cal-weekdays">
-		{#each DAYS_SHORT as day, i (i)}<span class="cal-weekday font-mono">{day}</span>{/each}
+		{#each DAYS_SHORT as day, i (i)}<span class="cal-weekday">{day}</span>{/each}
 	</div>
 	<div class="cal-week-grid">
 		{#each weekDays as day (`${day.year}-${day.month}-${day.date}`)}
@@ -88,23 +84,21 @@
 				onclick={() => onNavigateToDay(day)}
 			>
 				<div class="cal-week-cell-head">
-					<span class="cal-week-cell-day font-mono"
+					<span class="cal-week-cell-day"
 						>{DAYS_SHORT[new Date(day.year, day.month, day.date).getDay()]}</span
-					><span class="cal-week-cell-date font-mono"
-						>{MONTHS[day.month].slice(0, 3)} {day.date}</span
-					>
+					><span class="cal-week-cell-date">{MONTHS[day.month].slice(0, 3)} {day.date}</span>
 				</div>
 				<div class="cal-week-cell-events">
 					{#each evts.slice(0, 2) as ev (ev.id)}
 						<span class="cal-week-cell-event" style="border-color: {colorFor(ev.courseCode)}">
 							<span class="cal-week-cell-title">{ev.title}</span>
-							{#if ev.time}<span class="cal-week-cell-time font-mono">{ev.time}</span>{/if}
+							{#if ev.time}<span class="cal-week-cell-time font-numeric">{ev.time}</span>{/if}
 							{#if ev.gradeWeight != null && ev.gradeWeight > 0}
-								<span class="cal-week-cell-weight font-mono">{ev.gradeWeight}%</span>
+								<span class="cal-week-cell-weight font-numeric">{ev.gradeWeight}%</span>
 							{/if}
 						</span>
 					{/each}
-					{#if evts.length > 2}<span class="cal-week-cell-more font-mono"
+					{#if evts.length > 2}<span class="cal-week-cell-more font-numeric"
 							>+{evts.length - 2} more</span
 						>{/if}
 				</div>
@@ -132,7 +126,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		cursor: pointer;
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		line-height: 1;
 		transition:
 			border-color 0.12s var(--ease-out-quart),
@@ -155,9 +149,9 @@
 		background: var(--paper);
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 0.65rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		transition:
 			border-color 0.12s var(--ease-out-quart),
 			color 0.12s var(--ease-out-quart);
@@ -165,19 +159,6 @@
 	.cal-today-btn:hover {
 		border-color: var(--ink);
 		color: var(--ink);
-	}
-	.cal-nav-btn-wide {
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink);
-		cursor: pointer;
-		font-size: 0.8rem;
-		padding: 0.35rem 0.65rem;
-		line-height: 1;
-		transition: border-color 0.12s var(--ease-out-quart);
-	}
-	.cal-nav-btn-wide:hover {
-		border-color: var(--ink);
 	}
 	/* ── End shared toolbar ── */
 
@@ -188,25 +169,27 @@
 	}
 	.cal-weekdays {
 		display: grid;
-		grid-template-columns: repeat(7, 1fr);
+		grid-template-columns: repeat(7, minmax(0, 1fr));
 		gap: 2px;
 		margin-bottom: 4px;
 	}
 	.cal-weekday {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		text-align: center;
 		padding: 4px 0;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		text-transform: none;
+		letter-spacing: normal;
 	}
 	.cal-week-grid {
 		display: grid;
-		grid-template-columns: repeat(7, 1fr);
+		grid-template-columns: repeat(7, minmax(0, 1fr));
 		gap: 4px;
 	}
 	.cal-week-cell {
 		display: flex;
+		min-width: 0;
+		max-width: 100%;
 		flex-direction: column;
 		min-height: 120px;
 		padding: 6px;
@@ -237,26 +220,30 @@
 		margin-bottom: 4px;
 	}
 	.cal-week-cell-day {
-		font-size: 0.68rem;
+		font-size: var(--text-caption);
 		font-weight: 600;
 		color: var(--ink);
-		text-transform: uppercase;
+		text-transform: none;
 	}
 	.cal-week-cell-date {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 	}
 	.cal-week-cell-events {
 		display: flex;
+		min-width: 0;
+		max-width: 100%;
+		flex: 1;
 		flex-direction: column;
 		gap: 2px;
-		flex: 1;
 	}
 	.cal-week-cell-event {
 		display: block;
+		min-width: 0;
+		max-width: 100%;
 		padding: 2px 4px;
 		border: 1px solid var(--rule);
-		font-size: 0.65rem;
+		font-size: var(--text-caption);
 		line-height: 1.2;
 		background: var(--paper-shelf);
 		overflow: hidden;
@@ -264,20 +251,24 @@
 		white-space: nowrap;
 	}
 	.cal-week-cell-title {
+		display: block;
+		overflow: hidden;
 		color: var(--ink);
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.cal-week-cell-time {
 		color: var(--ink-faint);
 		margin-left: 0.25rem;
-		font-size: 0.6rem;
+		font-size: var(--text-caption);
 	}
 	.cal-week-cell-weight {
 		color: var(--ink-soft);
 		margin-left: auto;
-		font-size: 0.6rem;
+		font-size: var(--text-caption);
 	}
 	.cal-week-cell-more {
-		font-size: 0.6rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		padding: 2px 4px;
 	}
@@ -342,8 +333,7 @@
 	/* Touch: raise toolbar buttons to the 44px WCAG hit-area floor. */
 	@media (pointer: coarse) {
 		.cal-nav-btn,
-		.cal-today-btn,
-		.cal-nav-btn-wide {
+		.cal-today-btn {
 			min-width: 2.75rem;
 			min-height: 2.75rem;
 		}

@@ -44,14 +44,23 @@
 	}
 </script>
 
-<nav class="course-workspace-nav" aria-label={`${data.course.code} workspace`}>
-	<div class="course-context">
-		<span class="course-code">{data.course.code}</span>
+<nav
+	class="course-workspace-nav mx-auto mt-5 flex max-w-[var(--page-width)] items-end justify-between gap-6 border-b border-[var(--ink)] max-[700px]:flex-col max-[700px]:items-stretch max-[700px]:gap-0"
+	aria-label={`${data.course.code} workspace`}
+>
+	<div
+		class="course-context flex gap-[0.6rem] pb-[0.65rem] text-[length:var(--text-micro)] leading-[1.4] text-[var(--ink-soft)] max-[700px]:pb-2"
+	>
+		<span class="course-code font-semibold text-[var(--ink)]">{data.course.code}</span>
 		<span>{data.semester.term} {data.semester.year}</span>
 	</div>
-	<div class="course-tabs">
+	<div class="course-tabs flex gap-0 overflow-x-auto max-[700px]:w-full">
 		{#each tabs as tab (tab.href)}
-			<a href={tab.href} aria-current={active(tab.href) ? 'page' : undefined}>
+			<a
+				class="inline-flex min-h-10 items-center border-l border-[var(--rule)] px-[0.85rem] py-[0.55rem] text-[length:var(--text-small)] leading-[1.4] font-[var(--font-body)] font-medium whitespace-nowrap text-[var(--ink-soft)] no-underline last:border-r hover:bg-[var(--paper-shelf)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--ink)] aria-[current=page]:bg-[var(--highlight)] aria-[current=page]:text-[var(--ink)] max-[700px]:flex-1 max-[700px]:justify-center"
+				href={tab.href}
+				aria-current={active(tab.href) ? 'page' : undefined}
+			>
 				{tab.label}
 			</a>
 		{/each}
@@ -59,76 +68,3 @@
 </nav>
 
 {@render children()}
-
-<style>
-	.course-workspace-nav {
-		display: flex;
-		max-width: var(--page-width);
-		margin: 1.25rem auto 0;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 1.5rem;
-		border-bottom: 1px solid var(--ink);
-	}
-	.course-context {
-		display: flex;
-		gap: 0.6rem;
-		padding-bottom: 0.65rem;
-		color: var(--ink-soft);
-		font: 0.68rem var(--font-mono);
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-	.course-code {
-		color: var(--ink);
-		font-weight: 600;
-	}
-	.course-tabs {
-		display: flex;
-		gap: 0;
-		overflow-x: auto;
-	}
-	.course-tabs a {
-		min-height: 2.5rem;
-		display: inline-flex;
-		align-items: center;
-		padding: 0.55rem 0.85rem;
-		border-left: 1px solid var(--rule);
-		color: var(--ink-soft);
-		font: 500 0.82rem var(--font-body);
-		text-decoration: none;
-		white-space: nowrap;
-	}
-	.course-tabs a:last-child {
-		border-right: 1px solid var(--rule);
-	}
-	.course-tabs a:hover {
-		background: var(--paper-shelf);
-		color: var(--ink);
-	}
-	.course-tabs a[aria-current='page'] {
-		background: var(--highlight);
-		color: var(--ink);
-	}
-	.course-tabs a:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: -2px;
-	}
-	@media (max-width: 700px) {
-		.course-workspace-nav {
-			align-items: stretch;
-			flex-direction: column;
-			gap: 0;
-		}
-		.course-context {
-			padding-bottom: 0.5rem;
-		}
-		.course-tabs {
-			width: 100%;
-		}
-		.course-tabs a {
-			flex: 1;
-			justify-content: center;
-		}
-	}
-</style>

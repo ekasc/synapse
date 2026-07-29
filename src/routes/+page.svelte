@@ -15,7 +15,7 @@
 	/>
 </svelte:head>
 
-<main class="paper">
+<main class="paper bg-[var(--paper)]">
 	<CoverSection />
 
 	<div class="rough-divider" aria-hidden="true"></div>
@@ -37,131 +37,40 @@
 	<div class="rough-divider" aria-hidden="true"></div>
 
 	<!-- ==================== CLOSING CTA ==================== -->
-	<section class="section section--cta" aria-labelledby="cta-heading">
-		<h2 id="cta-heading" class="cta-title font-hand">
+	<section
+		class="section section--cta relative mx-auto max-w-[84rem] px-[clamp(1.5rem,4vw,4rem)] py-[clamp(4rem,8vw,7rem)] text-center"
+		aria-labelledby="cta-heading"
+	>
+		<h2
+			id="cta-heading"
+			class="cta-title font-hand m-0 mb-8 text-[clamp(2rem,4.2vw,3.2rem)] leading-[1.1] text-[var(--ink)]"
+		>
 			your degree is <span class="highlighter">one graph</span>, not four semesters
 		</h2>
-		<a href={resolveRoute('/app')} class="cta-button"> open your notebook → </a>
+		<a
+			href={resolveRoute('/app')}
+			class="cta-button inline-flex items-center gap-2 rounded-[2px] border-[1.5px] border-[var(--ink)] bg-transparent px-8 py-[0.9rem] text-lg font-[var(--font-body)] font-medium text-[var(--ink)] no-underline transition-[background,transform] duration-150 ease-out hover:-translate-y-px hover:bg-[var(--highlight)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[var(--ink)] active:translate-y-0"
+		>
+			open your notebook →
+		</a>
 	</section>
 
 	<div class="rough-divider" aria-hidden="true"></div>
 
 	<!-- ==================== FOOTER ==================== -->
-	<footer class="footer" aria-label="Colophon">
-		<div class="footer-grid">
-			<div class="footer-brand font-hand">synapse · vol. 01</div>
-			<p class="footer-copy font-body">
+	<footer
+		class="footer mx-auto max-w-[84rem] px-[clamp(1.5rem,4vw,4rem)] pt-12 pb-16"
+		aria-label="Colophon"
+	>
+		<div
+			class="footer-grid grid grid-cols-2 items-baseline gap-8 max-sm:grid-cols-1 max-sm:gap-3 max-sm:text-center"
+		>
+			<div class="footer-brand font-hand text-[1.6rem] text-[var(--ink)]">synapse · vol. 01</div>
+			<p
+				class="footer-copy font-body m-0 text-right text-[var(--ink-soft)] text-[var(--text-small)] max-sm:text-center"
+			>
 				© 2026 · built for students who take their education seriously
 			</p>
 		</div>
 	</footer>
 </main>
-
-<style>
-	/* ============================================================
-	   GLOBAL LANDING OVERRIDES
-	   ============================================================ */
-	:global(body) {
-		background: var(--paper);
-	}
-
-	/* ============================================================
-	   SHARED SECTION SCAFFOLD
-	   ============================================================ */
-	:global(.section) {
-		position: relative;
-		max-width: 84rem;
-		margin: 0 auto;
-		padding: clamp(3.5rem, 7vw, 6rem) clamp(1.5rem, 4vw, 4rem);
-	}
-
-	/* ============================================================
-	   CLOSING CTA
-	   ============================================================ */
-	.section--cta {
-		text-align: center;
-		padding: clamp(4rem, 8vw, 7rem) clamp(1.5rem, 4vw, 4rem);
-	}
-
-	.cta-title {
-		font-size: clamp(2rem, 4.2vw, 3.2rem);
-		color: var(--ink);
-		margin: 0 0 2rem;
-		line-height: 1.1;
-	}
-
-	.cta-button {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.9rem 2rem;
-		background: transparent;
-		color: var(--ink);
-		text-decoration: none;
-		border: 1.5px solid var(--ink);
-		border-radius: 2px;
-		font-family: var(--font-body);
-		font-size: 1.125rem;
-		font-weight: 500;
-		transition:
-			background 150ms ease-out,
-			transform 150ms ease-out;
-	}
-
-	.cta-button:hover {
-		background: var(--highlight);
-		transform: translateY(-1px);
-	}
-
-	.cta-button:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: 3px;
-	}
-
-	.cta-button:active {
-		transform: translateY(0);
-	}
-
-	/* ============================================================
-	   FOOTER
-	   ============================================================ */
-	.footer {
-		max-width: 84rem;
-		margin: 0 auto;
-		padding: 3rem clamp(1.5rem, 4vw, 4rem) 4rem;
-	}
-
-	.footer-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 2rem;
-		align-items: baseline;
-	}
-
-	.footer-brand {
-		font-size: 1.6rem;
-		color: var(--ink);
-	}
-
-	.footer-copy {
-		font-size: 0.95rem;
-		color: var(--ink-soft);
-		text-align: right;
-		margin: 0;
-	}
-
-	/* ============================================================
-	   RESPONSIVE (CTA + FOOTER)
-	   ============================================================ */
-	@media (max-width: 640px) {
-		.footer-grid {
-			grid-template-columns: 1fr;
-			text-align: center;
-			gap: 0.75rem;
-		}
-
-		.footer-copy {
-			text-align: center;
-		}
-	}
-</style>

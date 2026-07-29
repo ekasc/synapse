@@ -507,18 +507,18 @@
 	</div>
 
 	<div class="control-bar">
-		<div class="course-practice-context font-mono">
+		<div class="course-practice-context">
 			{selectedCourseInfo?.code} · {selectedCourseInfo?.materialCount ?? 0} materials
 		</div>
 		<div class="mode-tabs">
 			<button
-				class="mode-tab font-mono"
+				class="mode-tab"
 				class:active={mode === 'quiz'}
 				aria-pressed={mode === 'quiz'}
 				onclick={() => (mode = 'quiz')}>quiz</button
 			>
 			<button
-				class="mode-tab font-mono"
+				class="mode-tab"
 				class:active={mode === 'flashcards'}
 				aria-pressed={mode === 'flashcards'}
 				onclick={() => (mode = 'flashcards')}>flashcards</button
@@ -554,7 +554,7 @@
 			{generating ? 'Generating…' : 'Generate practice'}
 		</button>
 		{#if selectedCourseInfo}
-			<span class="generate-hint font-mono">
+			<span class="generate-hint">
 				{selectedCourseInfo.readyMaterialCount} ready material{selectedCourseInfo.readyMaterialCount !==
 				1
 					? 's'
@@ -673,7 +673,7 @@
 
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0.35rem 0 0;
 	}
 
@@ -691,9 +691,9 @@
 	.course-practice-context {
 		padding-block: 0.45rem;
 		color: var(--ink-soft);
-		font-size: 0.72rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		font-size: var(--text-caption);
+		letter-spacing: normal;
+		text-transform: none;
 	}
 
 	.mode-tabs {
@@ -708,10 +708,10 @@
 		min-height: 2.5rem;
 		border: 1px solid var(--rule);
 		background: var(--paper);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		cursor: pointer;
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 		transition:
 			background 0.12s var(--ease-out-quart),
@@ -744,7 +744,7 @@
 
 	.practice-focus-label {
 		color: var(--ink);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		font-weight: 600;
 	}
 
@@ -760,7 +760,7 @@
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink);
-		font: 0.9rem var(--font-body);
+		font: var(--text-small)/1.4 var(--font-body);
 	}
 
 	.generate-bar {
@@ -771,19 +771,19 @@
 	}
 
 	.btn-generate {
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 	}
 
 	.generate-hint {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 	}
 	.material-setup-link {
 		margin-left: auto;
 		color: var(--ink);
-		font: 500 0.78rem var(--font-body);
+		font: 500 var(--text-small)/1.4 var(--font-body);
 		text-decoration-color: var(--accent);
 		text-underline-offset: 0.2rem;
 	}
@@ -799,7 +799,7 @@
 
 	.error-text {
 		flex: 1;
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--ink);
 	}
 
@@ -817,7 +817,7 @@
 
 	.empty-text {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0;
 	}
 </style>

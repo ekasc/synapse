@@ -14,16 +14,8 @@
 
 <svelte:head><title>Synapse · Setup</title></svelte:head>
 
-<div class="page">
+<div class="mx-auto max-w-[var(--page-width)] pt-10 pb-16">
 	{#if data.semesters.length === 0}
 		<SetupWizard />
 	{/if}
 </div>
-
-<style>
-	.page {
-		max-width: var(--page-width);
-		margin-inline: auto;
-		padding-block: 2.5rem 4rem;
-	}
-</style>

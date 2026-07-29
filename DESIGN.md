@@ -31,7 +31,7 @@ The interface should not feel like a generic SaaS dashboard. The product's data 
 - Kalam for handwritten display text
 - Inter for body text, navigation, controls, labels, and data
 - Source Serif 4 for the brand wordmark (synapse.)
-- JetBrains Mono for code, data, labels, and monospace detail
+- JetBrains Mono only for numeric displays and tabular numeric values
 - Flat paper-on-paper surfaces with light borders
 - Polaroid frames, tape strips, dashed stamps, and hand notes as supporting furniture
 - No glassmorphism, gradient text, corporate metric cards, dark network graphics, or decorative blobs
@@ -91,14 +91,14 @@ All tokens are defined in `src/routes/layout.css` as CSS custom properties (`--p
 
 - **Hand Font:** Kalam (`--font-hand`), weight 700. For brand marks, page titles, editorial section titles, stamps, and handwritten notes.
 - **Body Font:** Inter (`--font-body`), weights 400, 500, 600. For nav, buttons, form controls, data rows, course nodes, helper text, and all dense app surfaces.
-- **Mono Font:** JetBrains Mono (`--font-mono`), weights 400, 500, 600. For code, data labels, metadata, field names, uppercase detail, and small print.
+- **Numeric Font:** JetBrains Mono (`--font-numeric`), weights 400 and 500. Use only for values whose primary content is numeric, such as times, counts, percentages, grades, and measurements.
 - **Display Font:** Source Serif 4 (`--font-display`), weight 600. For the brand wordmark in the sidebar header (synapse.). Not used elsewhere.
 
 ### Usage
 
 - Use Kalam for page titles, editorial labels, notebook markings, and stamp-like UI.
 - Use Inter for all interactive controls, data, navigation, and body text.
-- Use JetBrains Mono for small metadata, uppercase labels, field names, counts, and anything requiring a data-like appearance.
+- Use JetBrains Mono only for numeric values. Labels, field names, statuses, course codes, filenames, dates written as prose, and metadata use Inter.
 - Use Source Serif 4 only for the sidebar brand mark.
 - Do not use Kalam for body paragraphs, sidebar nav, input text, or table-like data.
 - Data distinction should come from weight, uppercase, letter spacing, color, and layout — not from switching to a different font family unnecessarily.
@@ -110,9 +110,9 @@ All tokens are defined in `src/routes/layout.css` as CSS custom properties (`--p
 - **App page titles:** Kalam 700, roughly `1.5rem` to `2rem`.
 - **Sidebar brand:** Source Serif 4 600, `1.25rem`.
 - **Sidebar nav:** Inter 500, `0.9rem`.
-- **Body:** Inter 400, `0.9rem` to `1rem`.
-- **Labels / data:** Inter or JetBrains Mono, `0.68rem` to `0.85rem`, uppercase where useful.
-- **Small metadata / monospace:** JetBrains Mono, `0.68rem` to `0.78rem`.
+- **Body:** Inter 400, `1rem` by default; `0.9375rem` for supporting text.
+- **Labels / data:** Inter, at least `0.875rem`. Use natural case unless the content itself is conventionally uppercase, such as a course code.
+- **Numeric metadata:** JetBrains Mono, `0.875rem`, only when the displayed value is primarily numeric. Functional information must not be reduced below the caption role.
 
 ## 5. Surfaces and Elevation
 
@@ -159,7 +159,7 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 ### Button
 
 - Variants: `primary`, `secondary` (default), `ghost`, `danger`.
-- All use `border-radius: 0`, Inter font, 0.8rem size.
+- All use `border-radius: 0`, Inter font, and the `0.875rem` caption role.
 - Primary: `var(--ink)` background, `var(--paper)` text.
 - Secondary: transparent, 1px ink-tinted border (`rgba(26,26,23,0.18)`).
 - Ghost: no border, `var(--ink-soft)` text, hover shows subtle bg.
@@ -167,14 +167,14 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 - Hover: lifts `translateY(-1px)`, shows `var(--highlight-soft)` background.
 - Active: presses `translateY(2px)`.
 - Disabled: `opacity: 0.4`, cursor not-allowed.
-- Size variants: `sm` (2.25rem height, 0.72rem font) and `md` (2.5rem height).
+- Size variants: `sm` (2.25rem minimum height) and `md` (2.5rem minimum height). On coarse pointers, both provide at least a 2.75rem × 2.75rem target.
 
 ### Checkbox
 
 - Square 1.25rem × 1.25rem, `border-radius: 0`, `var(--ink)` border.
 - Checked: `var(--highlight)` background, stamp-pop scale animation.
 - Active: scale(0.92).
-- Label in Inter, 0.82rem.
+- Label in Inter using the `0.875rem` caption role.
 
 ### Dialog / AlertDialog
 
@@ -189,7 +189,7 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 - Trigger: 2.5rem square, `rgba(26,26,23,0.18)` border, Inter.
 - Content: `var(--paper)` background, 1px `var(--ink)` border, no border-radius.
 - Entrance animation: 0.12s scale + translate, `transform-origin: top right`.
-- Items: Inter 0.82rem, highlight background on selection.
+- Items: Inter using the `0.875rem` caption role, with a highlight background on selection.
 - Danger items: `var(--pen-red)` color.
 
 ### Input / Textarea
@@ -205,13 +205,13 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 
 - Trigger: same appearance as Input.
 - Dropdown content: `var(--paper)`, 1px `var(--ink)` border, no border-radius.
-- Items: Inter 0.78rem, `var(--highlight)` on hover/selected.
+- Items: Inter using the `0.875rem` caption role, with `var(--highlight)` on hover/selected.
 - Transition: 0.15s trigger border, 0.1s item background.
 
 ### ToggleGroup
 
 - Horizontal inline-flex group, 0.25rem gap.
-- Items: Inter uppercase, 0.75rem, `var(--rule)` border, `var(--paper)` bg.
+- Items: Inter using the `0.875rem` caption role and natural case, with a `var(--rule)` border and `var(--paper)` background.
 - Hover: border → `var(--ink)`, text → `var(--ink)`.
 - Selected (`[data-state='on']`): `var(--highlight)` background, `var(--ink)` text.
 - Active: press-down `translateY(1px)`.
@@ -241,8 +241,8 @@ The landing page is more expressive than the app; its job is to communicate the 
 
 - Fixed left sidebar on desktop (240px width, `var(--sidebar-bg)` dark-ink surface), hidden on mobile. The sidebar is deliberate dark chrome — the desk the paper sits on — not dark mode: every content page stays on paper.
 - Brand mark `Synapse.` uses Source Serif 4 (`--font-display`) at 1.4rem — the only permitted use of the display font in the product.
-- Nav section labeled "Workspace" in JetBrains Mono uppercase (0.7rem).
-- Nav items use Inter 0.9rem weight 500.
+- Nav section labels use Inter at the `0.875rem` caption role and natural case.
+- Nav items use Inter at least `0.9375rem`, weight 500.
 - Active nav item: bold weight, tinted background, `var(--accent)` (red) left border.
 - Hover: subtle background shift with an ink-tinted left border — visually distinct from the active state, never the same red.
 - Below nav, a dynamic term list displays semesters and course counts.
@@ -257,7 +257,7 @@ The landing page is more expressive than the app; its job is to communicate the 
 
 ### Mobile Navigation
 
-- Fixed fab button (bottom-right, 2.75rem square, `var(--ink)` border, `var(--paper)` background).
+- Fixed fab button (bottom-right, at least 2.75rem square, `var(--ink)` border, `var(--paper)` background). All coarse-pointer controls provide at least a 2.75rem × 2.75rem target.
 - Popup nav menu: `#fbf8f0` background, 1px `var(--rule)` border, item tap areas with Inter labels.
 - Open state escapes on click-outside and Escape key.
 
@@ -350,7 +350,7 @@ Onboarding flow for new users to set up semesters and courses.
 - Keep the app interface clear, compact, and usable.
 - Use highlighter for active selections and critical extracted facts.
 - Use red pen for review or uncertainty only.
-- Use JetBrains Mono for data labels, field names, and small metadata.
+- Use Inter for data labels, field names, and metadata. Reserve JetBrains Mono for numeric values.
 - Match existing app controls before inventing new ones.
 - Keep feature pages scoped to their actual implemented state.
 - Use `var(--ease-out-quart)` for all transitions.

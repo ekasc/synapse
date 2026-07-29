@@ -196,16 +196,11 @@
 		}}
 	>
 		<label>
-			<span class="field-label font-mono">Course Code *</span>
-			<input
-				type="text"
-				class="modal-input font-mono"
-				placeholder="e.g. CSIS 3375"
-				bind:value={form.code}
-			/>
+			<span class="field-label">Course Code *</span>
+			<input type="text" class="modal-input" placeholder="e.g. CSIS 3375" bind:value={form.code} />
 		</label>
 		<label>
-			<span class="field-label font-mono">Course Name *</span>
+			<span class="field-label">Course Name *</span>
 			<input
 				type="text"
 				class="modal-input"
@@ -225,7 +220,7 @@
 			<summary>More details</summary>
 			{#if isEditing || !lockSemester}
 				<label>
-					<span class="field-label font-mono">Semester *</span>
+					<span class="field-label">Semester *</span>
 					<select class="modal-input" bind:value={form.semesterId}>
 						<option value="">Select semester…</option>
 						{#each semesters as sem (sem.id)}<option value={sem.id}>{sem.term} {sem.year}</option
@@ -234,7 +229,7 @@
 				</label>
 			{/if}
 			<label>
-				<span class="field-label font-mono">Instructor</span>
+				<span class="field-label">Instructor</span>
 				<input
 					type="text"
 					class="modal-input"
@@ -244,7 +239,7 @@
 			</label>
 			<div class="modal-row">
 				<label>
-					<span class="field-label font-mono">Credits</span>
+					<span class="field-label">Credits</span>
 					<input
 						type="number"
 						class="modal-input short"
@@ -255,7 +250,7 @@
 					/>
 				</label>
 				<label>
-					<span class="field-label font-mono">Tag</span>
+					<span class="field-label">Tag</span>
 					<input
 						type="text"
 						class="modal-input"
@@ -272,7 +267,7 @@
 			</div>
 
 			<div class="color-picker">
-				<span class="field-label font-mono">Color</span>
+				<span class="field-label">Color</span>
 				<div class="color-swatches">
 					<button
 						type="button"
@@ -298,7 +293,7 @@
 
 			<div class="modal-row">
 				<label>
-					<span class="field-label font-mono">Status</span>
+					<span class="field-label">Status</span>
 					<select class="modal-input" bind:value={form.status}>
 						<option value="planned">planned</option>
 						<option value="active">active</option>
@@ -308,7 +303,7 @@
 				</label>
 				{#if form.status === 'active'}
 					<label>
-						<span class="field-label font-mono">Risk Level</span>
+						<span class="field-label">Risk Level</span>
 						<select class="modal-input" bind:value={form.riskLevel}>
 							<option value="none">none</option>
 							<option value="low">low</option>
@@ -321,7 +316,7 @@
 
 			{#if form.status === 'active'}
 				<label>
-					<span class="field-label font-mono">Current Grade</span>
+					<span class="field-label">Current Grade</span>
 					<input
 						type="number"
 						class="modal-input short"
@@ -335,7 +330,7 @@
 			{/if}
 
 			<label>
-				<span class="field-label font-mono">Topics (comma-separated)</span>
+				<span class="field-label">Topics (comma-separated)</span>
 				<textarea
 					class="modal-input"
 					rows="2"
@@ -373,9 +368,9 @@
 	}
 
 	.field-label {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 	}
 
@@ -384,7 +379,7 @@
 		border: 1px solid var(--rule);
 		background: var(--surface-paper);
 		color: var(--ink);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		font-family: var(--font-body);
 		outline: none;
 	}
@@ -400,7 +395,7 @@
 
 	.semester-context {
 		font-family: var(--font-body);
-		font-size: 0.82rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		margin: -0.2rem 0 0;
 	}
@@ -414,7 +409,7 @@
 	summary {
 		cursor: pointer;
 		font-family: var(--font-body);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		padding: 0.25rem 0;
 	}
@@ -453,7 +448,7 @@
 		cursor: pointer;
 		padding: 0;
 		flex-shrink: 0;
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		background: var(--surface-paper);
 		display: flex;
@@ -476,7 +471,7 @@
 	}
 
 	.modal-error {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--pen-red);
 		margin: 0;
 	}

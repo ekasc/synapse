@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Select } from 'bits-ui';
 	import type { CourseMoveScenario } from './simulation';
 	import type { MapCourse, MapSemester } from './types';
 
@@ -26,135 +27,85 @@
 	}
 </script>
 
-<section class="simulator" aria-labelledby="simulator-title">
-	<div class="simulator-heading">
-		<h3 id="simulator-title">Move {course.code}</h3>
-		<p>{currentSemester ? `${currentSemester.term} ${currentSemester.year}` : 'Unplaced'}</p>
+<section class="col-span-full border-t border-[var(--rule)] pt-4" aria-labelledby="simulator-title">
+	<div class="flex items-start justify-between gap-4 max-[520px]:flex-col">
+		<h3 id="simulator-title" class="m-0 text-base font-[var(--font-body)]">
+			Move {course.code}
+		</h3>
+		<p class="m-0 text-[length:var(--text-caption)] text-[var(--ink-soft)]">
+			{currentSemester ? `${currentSemester.term} ${currentSemester.year}` : 'Unplaced'}
+		</p>
 	</div>
 
 	{#if options.length === 0}
-		<p>No other semesters are available for simulation.</p>
+		<p class="m-0">No other semesters are available for simulation.</p>
 	{:else}
-		<div class="simulator-controls">
-			<label for="move-target">Target semester</label>
-			<select id="move-target" bind:value={targetSemesterId}>
-				<option value="">Choose a semester</option>
-				{#each options as semester (semester.id)}
-					<option value={semester.id}>{semester.term} {semester.year}</option>
-				{/each}
-			</select>
-			<button type="button" onclick={apply} disabled={!targetSemesterId}>Add to draft plan</button>
+		<div
+			class="mt-[0.8rem] grid max-w-[620px] grid-cols-[minmax(180px,1fr)_auto] gap-x-[0.65rem] gap-y-[0.35rem] max-[520px]:grid-cols-1"
+		>
+			<label
+				for="move-target"
+				class="col-span-full text-[length:var(--text-small)] font-medium text-[var(--ink-soft)] max-[520px]:col-auto"
+				>Target semester</label
+			>
+			<Select.Root
+				type="single"
+				name="move-target"
+				items={options.map((semester) => ({
+					value: semester.id,
+					label: `${semester.term} ${semester.year}`
+				}))}
+				bind:value={targetSemesterId}
+			>
+				<Select.Trigger
+					id="move-target"
+					class="flex min-h-11 min-w-0 items-center rounded-none border border-[var(--ink)] bg-[var(--surface-paper)] px-[0.7rem] text-left font-[inherit] text-[var(--ink)]"
+				>
+					<Select.Value placeholder="Choose a semester" />
+				</Select.Trigger>
+				<Select.Portal>
+					<Select.Content
+						class="z-[var(--z-dropdown)] border border-[var(--ink)] bg-[var(--surface-paper)] shadow-[3px_3px_0_var(--shadow-ink)]"
+					>
+						<Select.Viewport>
+							{#each options as semester (semester.id)}
+								<Select.Item
+									value={semester.id}
+									label={`${semester.term} ${semester.year}`}
+									class="min-h-10 cursor-pointer px-3 py-2 outline-none data-[highlighted]:bg-[var(--highlight-soft)] data-[selected]:bg-[var(--highlight)]"
+								>
+									{semester.term}
+									{semester.year}
+								</Select.Item>
+							{/each}
+						</Select.Viewport>
+					</Select.Content>
+				</Select.Portal>
+			</Select.Root>
+			<button
+				type="button"
+				onclick={apply}
+				disabled={!targetSemesterId}
+				class="min-h-11 cursor-pointer rounded-none border border-[var(--ink)] bg-[var(--ink)] px-4 font-[inherit] font-semibold text-[var(--surface-paper)] disabled:cursor-not-allowed disabled:opacity-45"
+				>Add to draft plan</button
+			>
 		</div>
 	{/if}
 
 	{#if result && result.status !== 'valid' && result.status !== 'invalid'}
-		<div class="result-message" aria-live="polite">
+		<div
+			class="mt-[0.8rem] border border-[var(--accent)] bg-[var(--paper-shelf)] p-3"
+			aria-live="polite"
+		>
 			{#if result.status === 'cycle'}
 				<strong>Circular prerequisite relationship</strong>
-				<p>This course belongs to a prerequisite cycle that must be corrected.</p>
+				<p class="m-0">This course belongs to a prerequisite cycle that must be corrected.</p>
 			{:else if result.status === 'unknown'}
 				<strong>Unable to apply this move</strong>
-				<p>A prerequisite course is missing or not scheduled.</p>
+				<p class="m-0">A prerequisite course is missing or not scheduled.</p>
 			{:else}
 				<strong>This move cannot be added to the draft plan.</strong>
 			{/if}
 		</div>
 	{/if}
 </section>
-
-<style>
-	.simulator {
-		grid-column: 1 / -1;
-		padding-top: 1rem;
-		border-top: 1px solid var(--rule);
-	}
-
-	.simulator-heading {
-		display: flex;
-		gap: 1rem;
-		align-items: start;
-		justify-content: space-between;
-	}
-
-	h3,
-	p {
-		margin: 0;
-	}
-
-	label {
-		font-size: var(--text-small);
-		font-weight: 500;
-		color: var(--ink-soft);
-	}
-
-	h3 {
-		font-family: var(--font-body);
-		font-size: 1rem;
-	}
-
-	.simulator-heading p {
-		font-size: var(--text-caption);
-		color: var(--ink-soft);
-	}
-
-	.simulator-controls {
-		display: grid;
-		grid-template-columns: minmax(180px, 1fr) auto;
-		gap: 0.35rem 0.65rem;
-		max-width: 620px;
-		margin-top: 0.8rem;
-	}
-
-	.simulator-controls label {
-		grid-column: 1 / -1;
-	}
-
-	select,
-	button {
-		min-height: 44px;
-		border: 1px solid var(--ink);
-		border-radius: 0;
-		font: inherit;
-	}
-
-	select {
-		min-width: 0;
-		padding: 0 0.7rem;
-		background: var(--surface-paper);
-		color: var(--ink);
-	}
-
-	button {
-		padding: 0 1rem;
-		background: var(--ink);
-		color: var(--surface-paper);
-		font-weight: 600;
-		cursor: pointer;
-	}
-
-	button:disabled {
-		opacity: 0.45;
-		cursor: not-allowed;
-	}
-
-	.result-message {
-		margin-top: 0.8rem;
-		padding: 0.75rem;
-		border: 1px solid var(--accent);
-		background: var(--paper-shelf);
-	}
-
-	@media (max-width: 520px) {
-		.simulator-heading {
-			flex-direction: column;
-		}
-
-		.simulator-controls {
-			grid-template-columns: 1fr;
-		}
-
-		.simulator-controls label {
-			grid-column: auto;
-		}
-	}
-</style>

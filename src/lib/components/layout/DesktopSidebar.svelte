@@ -36,15 +36,29 @@
 	} = $props();
 </script>
 
-<aside class="sidebar" aria-label="App navigation">
-	<div class="sidebar-header">
-		<a href={resolveRoute('/')} class="sidebar-brand" aria-label="Synapse home">
-			<span class="sidebar-brand-text">Synapse</span><span class="sidebar-brand-dot">.</span>
+<aside
+	class="sidebar sticky top-0 flex h-screen w-[var(--sidebar-width)] shrink-0 flex-col overflow-x-hidden overflow-y-auto bg-[var(--sidebar-bg)] py-6 text-[var(--sidebar-fg)] max-md:hidden"
+	aria-label="App navigation"
+>
+	<div
+		class="sidebar-header mb-4 flex items-baseline justify-between gap-2 border-b border-[var(--sidebar-rule)] px-6 pb-6"
+	>
+		<a
+			href={resolveRoute('/')}
+			class="sidebar-brand inline-flex items-baseline leading-none text-[var(--sidebar-fg)] no-underline"
+			aria-label="Synapse home"
+		>
+			<span
+				class="sidebar-brand-text text-[1.4rem] font-[var(--font-body)] font-semibold tracking-[-0.02em]"
+				>Synapse</span
+			><span
+				class="sidebar-brand-dot text-[1.4rem] leading-none font-[var(--font-body)] font-bold text-[var(--accent)]"
+				>.</span
+			>
 		</a>
 	</div>
 
-	<div class="sidebar-section">
-		<div class="sidebar-section-label">Workspace</div>
+	<div class="sidebar-section mt-4">
 		<Menu>
 			{#each routes as route (route.href)}
 				<MenuItem>
@@ -53,19 +67,32 @@
 						isActive={isRouteActive(pathname, route)}
 						ariaLabel={route.label}
 					>
-						<span class="sidebar-label">{route.label}</span>
+						<span
+							class="sidebar-label min-w-0 overflow-hidden font-medium text-ellipsis whitespace-nowrap text-[var(--sidebar-fg)] text-[var(--text-small)]"
+							>{route.label}</span
+						>
 						{#if route.href === '/app/activity' && runningCount > 0}
-							<span class="sidebar-activity-dot" title="Job running"></span>
+							<span
+								class="sidebar-activity-dot h-1.5 w-1.5 shrink-0 animate-[sb-pulse_1.2s_ease-in-out_infinite] rounded-none bg-[var(--warn)]"
+								title="Job running"
+							></span>
 						{:else if route.href === '/app/activity' && unreadCount > 0}
-							<span class="sidebar-badge font-mono"
+							<span
+								class="sidebar-badge min-w-4 bg-[var(--accent)] px-[5px] text-center leading-[1.4] font-medium text-[var(--paper)] text-[var(--text-caption)]"
 								>{unreadCount}<span class="sr-only"> unread activity updates</span></span
 							>
 						{/if}
 						{#if route.href === '/app/courses'}
-							<span class="sidebar-count">{coursesCount}</span>
+							<span
+								class="sidebar-count shrink-0 leading-none font-medium text-[var(--sidebar-fg-soft)] text-[var(--text-caption)]"
+								>{coursesCount}</span
+							>
 						{/if}
 						{#if route.href === '/app/weekly' && weeklyPlanPending}
-							<span class="sidebar-nav-progress" aria-hidden="true"></span>
+							<span
+								class="sidebar-nav-progress absolute bottom-0 left-0 h-0.5 w-[45%] animate-[sidebar-nav-loading_1.1s_var(--ease-out-quart)_infinite] bg-[var(--accent)]"
+								aria-hidden="true"
+							></span>
 						{/if}
 					</MenuButton>
 				</MenuItem>
@@ -73,110 +100,12 @@
 		</Menu>
 	</div>
 
-	<div class="sidebar-section">
+	<div class="sidebar-section mt-4">
 		<TermList {semesters} {courses} {countsById} {onAddSemester} />
 	</div>
 </aside>
 
 <style>
-	.sidebar {
-		width: var(--sidebar-width);
-		flex-shrink: 0;
-		background: var(--sidebar-bg);
-		color: var(--sidebar-fg);
-		display: flex;
-		flex-direction: column;
-		padding: 1.5rem 0;
-		position: sticky;
-		top: 0;
-		height: 100vh;
-		overflow-x: hidden;
-		overflow-y: auto;
-	}
-
-	@media (max-width: 767px) {
-		.sidebar {
-			display: none;
-		}
-	}
-
-	.sidebar-header {
-		padding: 0 1.5rem 1.5rem;
-		margin-bottom: 1rem;
-		border-bottom: 1px solid var(--sidebar-rule);
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 0.5rem;
-	}
-
-	.sidebar-brand {
-		color: var(--sidebar-fg);
-		text-decoration: none;
-		line-height: 1;
-		display: inline-flex;
-		align-items: baseline;
-	}
-
-	.sidebar-brand-text {
-		font-family: var(--font-display);
-		font-size: 1.4rem;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-	}
-
-	.sidebar-brand-dot {
-		color: var(--accent);
-		font-family: var(--font-display);
-		font-size: 1.4rem;
-		font-weight: 700;
-		line-height: 1;
-	}
-
-	.sidebar-section {
-		margin-top: 1rem;
-	}
-
-	.sidebar-section-label {
-		font-family: var(--font-mono);
-		font-size: 0.62rem;
-		color: var(--sidebar-fg-soft);
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		padding: 0 1.5rem 0.5rem;
-	}
-
-	.sidebar-label {
-		font-size: 0.88rem;
-		font-weight: 500;
-		letter-spacing: 0;
-		color: var(--sidebar-fg);
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.sidebar-activity-dot {
-		width: 6px;
-		height: 6px;
-		flex-shrink: 0;
-		background: var(--warn);
-		border-radius: 0;
-		animation: sb-pulse 1.2s ease-in-out infinite;
-	}
-
-	.sidebar-badge {
-		font-size: 0.65rem;
-		color: var(--paper);
-		background: var(--accent);
-		padding: 0 5px;
-		line-height: 1.4;
-		font-weight: 500;
-		min-width: 1rem;
-		text-align: center;
-	}
-
 	@keyframes sb-pulse {
 		0%,
 		100% {
@@ -187,25 +116,6 @@
 		}
 	}
 
-	.sidebar-count {
-		font-family: var(--font-mono);
-		font-size: 0.7rem;
-		color: var(--sidebar-fg-soft);
-		font-weight: 500;
-		line-height: 1;
-		flex-shrink: 0;
-	}
-
-	.sidebar-nav-progress {
-		position: absolute;
-		left: 0;
-		bottom: 0;
-		width: 45%;
-		height: 2px;
-		background: var(--accent);
-		animation: sidebar-nav-loading 1.1s var(--ease-out-quart) infinite;
-	}
-
 	@keyframes sidebar-nav-loading {
 		0% {
 			transform: translateX(-100%);
@@ -213,37 +123,5 @@
 		100% {
 			transform: translateX(225%);
 		}
-	}
-
-	/* Override sidebar link colors for dark theme */
-	:global(.sidebar-link) {
-		padding: 0.45rem 1.5rem;
-		color: var(--sidebar-fg);
-		border-left-color: transparent;
-	}
-
-	:global(.sidebar-link:hover) {
-		background: rgba(255, 255, 255, 0.04);
-		color: var(--sidebar-fg);
-		border-left-color: rgba(245, 236, 217, 0.35);
-	}
-
-	:global(.sidebar-link[data-active='true']) {
-		background: rgba(255, 255, 255, 0.06);
-		color: var(--sidebar-fg);
-		border-left-color: var(--accent);
-		font-weight: 600;
-	}
-
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
 	}
 </style>

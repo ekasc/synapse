@@ -130,11 +130,11 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-family: var(--font-mono);
-		font-size: 0.62rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--sidebar-fg-soft);
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
+		letter-spacing: normal;
+		text-transform: none;
 		padding: 0 1.5rem 0.5rem;
 	}
 	.add-button,
@@ -173,7 +173,7 @@
 		background: transparent;
 		color: var(--sidebar-fg);
 		cursor: pointer;
-		font: 500 0.9rem var(--font-body);
+		font: 500 var(--text-small)/1.4 var(--font-body);
 		padding: 0.5rem 1.5rem;
 		text-align: left;
 		transition:
@@ -200,7 +200,7 @@
 	:global(.semester-arrow) {
 		flex: 0 0 0.75rem;
 		color: var(--term-color);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		font-weight: 700;
 		transition:
 			color 0.12s var(--ease-out-quart),
@@ -216,8 +216,8 @@
 	}
 	.sidebar-count {
 		margin-left: auto;
-		font-family: var(--font-mono);
-		font-size: 0.72rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--sidebar-fg-soft);
 	}
 	:global(.course-content),
@@ -262,14 +262,14 @@
 		font-weight: 600;
 	}
 	.nested-course-code {
-		font: 500 0.72rem/1.25 var(--font-mono);
+		font: 500 var(--text-caption)/1.25 var(--font-body);
 		color: inherit;
 	}
 	.nested-course-name {
 		max-width: 100%;
 		overflow: hidden;
 		color: inherit;
-		font: 0.85rem/1.3 var(--font-body);
+		font: var(--text-small)/1.4 var(--font-body);
 		display: -webkit-box;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
@@ -292,13 +292,13 @@
 	}
 	.overview-label {
 		color: var(--course-meta);
-		font: 500 0.7rem/1.2 var(--font-mono);
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		font: 500 var(--text-caption)/1.25 var(--font-body);
+		letter-spacing: normal;
+		text-transform: none;
 	}
 	.overview-arrow {
 		color: var(--course-meta);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 	}
 	.semester-overview-link[data-active='true'] {
 		border-left-color: var(--accent);
@@ -327,7 +327,7 @@
 	.empty-add {
 		color: var(--sidebar-fg);
 		padding: 0.45rem 1.5rem;
-		font: 500 0.88rem var(--font-body);
+		font: 500 var(--text-small)/1.4 var(--font-body);
 	}
 	:global(.semester-trigger:focus-visible),
 	button:focus-visible,

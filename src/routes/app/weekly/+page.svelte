@@ -227,15 +227,15 @@
 		gap: 0.3rem;
 	}
 	.kicker {
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		letter-spacing: normal;
+		text-transform: none;
 		color: var(--ink-faint);
 	}
 	h1 {
 		margin: 0;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-size: 2rem;
 		line-height: 1.05;
 		color: var(--ink);
@@ -246,8 +246,8 @@
 		flex-wrap: wrap;
 		align-items: baseline;
 		gap: 0.35rem;
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 	}
 	.range > span {
@@ -258,8 +258,8 @@
 	.range b {
 		padding: 0.05rem 0.32rem;
 		border: 1px solid var(--rule-soft);
-		font-size: 0.55rem;
-		text-transform: uppercase;
+		font-size: var(--text-caption);
+		text-transform: none;
 		font-weight: 400;
 	}
 	.degraded {
@@ -268,7 +268,7 @@
 		border: 1px dashed color-mix(in srgb, var(--warn) 55%, transparent);
 		background: var(--paper-shelf);
 		color: var(--ink-soft);
-		font-size: 0.8rem;
+		font-size: var(--text-caption);
 	}
 	.glance {
 		border: 1px solid var(--rule);
@@ -285,12 +285,12 @@
 		max-width: 58rem;
 		line-height: 1.55;
 		color: var(--ink-soft);
-		font-size: 0.88rem;
+		font-size: var(--text-small);
 	}
 	.glance small {
-		font-family: var(--font-mono);
-		font-size: 0.55rem;
-		text-transform: uppercase;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		text-transform: none;
 		color: var(--ink-faint);
 	}
 	.secondary {
@@ -319,14 +319,14 @@
 	}
 	li strong,
 	.health strong {
-		font-family: var(--font-mono);
-		font-size: 0.62rem;
-		text-transform: uppercase;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		text-transform: none;
 		color: var(--ink);
 	}
 	li span,
 	.health span {
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		line-height: 1.4;
 		color: var(--ink-soft);
 	}
@@ -352,7 +352,7 @@
 	}
 	.empty h2 {
 		margin: 0;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		color: var(--ink);
 	}
 	.empty p {

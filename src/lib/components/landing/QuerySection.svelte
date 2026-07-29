@@ -179,7 +179,7 @@
 	}
 
 	.query-mini-header {
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		color: var(--ink-soft);
 		margin-bottom: 0.4rem;
 	}
@@ -192,7 +192,7 @@
 	}
 
 	.query-mini-detail {
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		line-height: 1.4;
 		margin: 0;
 		color: var(--ink-soft);

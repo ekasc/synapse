@@ -16,97 +16,25 @@
 		class?: string;
 		children: Snippet;
 	} = $props();
+
+	const baseClass =
+		'inline-flex min-h-[var(--control-md)] cursor-pointer items-center justify-center gap-[var(--space-2)] whitespace-nowrap rounded-none border border-[rgba(26,26,23,0.18)] bg-transparent px-[0.9rem] py-2 text-[var(--text-caption)] leading-none font-medium text-[var(--ink)] no-underline transition-[background,border-color,color,transform] duration-[120ms] ease-[var(--ease-out-quart)] font-body enabled:hover:-translate-y-px enabled:hover:border-[var(--ink)] enabled:hover:bg-[var(--highlight-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-40 [@media(pointer:coarse)]:min-h-[var(--target-touch)] [@media(pointer:coarse)]:min-w-[var(--target-touch)]';
+	const variantClass = $derived(
+		{
+			primary:
+				'border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)] enabled:hover:bg-[var(--ink)] enabled:hover:text-[var(--paper)] enabled:hover:opacity-85',
+			secondary: '',
+			ghost:
+				'border-transparent text-[var(--ink-soft)] enabled:hover:border-transparent enabled:hover:bg-[rgba(26,26,23,0.05)] enabled:hover:text-[var(--ink)]',
+			danger:
+				'border-[rgba(194,54,42,0.35)] text-[var(--pen-red)] enabled:hover:border-[var(--pen-red)] enabled:hover:bg-[var(--pen-red)] enabled:hover:text-[var(--paper)]'
+		}[variant]
+	);
+	const sizeClass = $derived(
+		size === 'sm' ? 'min-h-[var(--control-sm)] px-[0.7rem] py-1.5 text-[var(--text-caption)]' : ''
+	);
 </script>
 
-<Button.Root {type} class="ui-button ui-button--{variant} ui-button--{size} {className}" {...rest}>
+<Button.Root {type} class="{baseClass} {variantClass} {sizeClass} {className}" {...rest}>
 	{@render children()}
 </Button.Root>
-
-<style>
-	:global(.ui-button) {
-		display: inline-flex;
-		min-height: 2.5rem;
-		align-items: center;
-		justify-content: center;
-		gap: 0.4rem;
-		padding: 0.5rem 0.9rem;
-		border: 1px solid rgba(26, 26, 23, 0.18);
-		border-radius: 0;
-		background: transparent;
-		color: var(--ink);
-		font-family: var(--font-body);
-		font-size: 0.8rem;
-		font-weight: 500;
-		line-height: 1;
-		text-decoration: none;
-		white-space: nowrap;
-		cursor: pointer;
-		transition:
-			background 0.12s var(--ease-out-quart),
-			border-color 0.12s var(--ease-out-quart),
-			color 0.12s var(--ease-out-quart),
-			transform 0.12s var(--ease-out-quart);
-	}
-
-	:global(.ui-button:hover:not(:disabled)) {
-		border-color: var(--ink);
-		background: var(--highlight-soft);
-		transform: translateY(-1px);
-	}
-
-	:global(.ui-button:focus-visible) {
-		outline: 2px solid var(--ink);
-		outline-offset: 2px;
-	}
-
-	:global(.ui-button:disabled) {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	:global(.ui-button--primary) {
-		border-color: var(--ink);
-		background: var(--ink);
-		color: var(--paper);
-	}
-
-	:global(.ui-button--primary:hover:not(:disabled)) {
-		background: var(--ink);
-		color: var(--paper);
-		opacity: 0.85;
-	}
-
-	:global(.ui-button--ghost) {
-		border-color: transparent;
-		color: var(--ink-soft);
-	}
-
-	:global(.ui-button--ghost:hover:not(:disabled)) {
-		border-color: transparent;
-		background: rgba(26, 26, 23, 0.05);
-		color: var(--ink);
-	}
-
-	:global(.ui-button--danger) {
-		border-color: rgba(194, 54, 42, 0.35);
-		color: var(--pen-red);
-	}
-
-	:global(.ui-button--danger:hover:not(:disabled)) {
-		border-color: var(--pen-red);
-		background: var(--pen-red);
-		color: var(--paper);
-	}
-
-	:global(.ui-button--sm) {
-		min-height: 2.25rem;
-		padding: 0.4rem 0.7rem;
-		font-size: 0.72rem;
-	}
-
-	@media (pointer: coarse) {
-		:global(.ui-button) {
-			min-height: 2.75rem;
-		}
-	}
-</style>

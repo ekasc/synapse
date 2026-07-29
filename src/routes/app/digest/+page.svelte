@@ -778,17 +778,17 @@
 	}
 </script>
 
-<svelte:head><title>Digest · Synapse</title></svelte:head>
+<svelte:head><title>Grades &amp; GPA · Synapse</title></svelte:head>
 
 <div class="page page-enter">
 	<div class="page-cover">
 		<div class="page-cover-row">
 			<div>
 				<div class="page-cover-stamps">
-					<span class="stamp-sm stamp-rot-l">from syllabus</span>
-					<span class="stamp-sm stamp-rot-r">grade analytics</span>
+					<span class="page-subtitle-label">from syllabus</span>
+					<span class="page-subtitle-label">grade analytics</span>
 				</div>
-				<h1 class="page-title">Digest</h1>
+				<h1 class="page-title">Grades &amp; GPA</h1>
 				<p class="page-tagline">
 					Grade weights are pulled from the Syllabus Intelligence extraction. Add your scores here
 					to project where the course is heading.
@@ -804,7 +804,7 @@
 			aria-pressed={activeDigestTab === 'gpa'}
 			onclick={() => (activeDigestTab = 'gpa')}
 		>
-			<span class="font-mono">Total GPA</span>
+			<span>Total GPA</span>
 			<strong>Academic Progress Overview</strong>
 		</button>
 		<button
@@ -813,7 +813,7 @@
 			aria-pressed={activeDigestTab === 'term'}
 			onclick={() => (activeDigestTab = 'term')}
 		>
-			<span class="font-mono">Current Course</span>
+			<span>Current Course</span>
 			<strong>Term Grade Dashboard</strong>
 		</button>
 	</div>
@@ -822,7 +822,7 @@
 		<section class="surface gpa-panel" aria-label="Total GPA projection">
 			<div class="gpa-hero">
 				<div>
-					<span class="gpa-kicker font-mono">GPA analytics + projection</span>
+					<span class="gpa-kicker">GPA analytics + projection</span>
 					<h2 class="gpa-title">Total GPA</h2>
 					<p class="gpa-copy">
 						{hasSetupCourseImport
@@ -832,7 +832,7 @@
 				</div>
 				<div class="transcript-upload-actions">
 					<label class="gpa-scale-control">
-						<span class="font-mono">GPA scale</span>
+						<span>GPA scale</span>
 						<select bind:value={gpaScale} aria-label="GPA scale">
 							<option value="douglas-4.33">Douglas 4.33</option>
 							<option value="standard-4.0">Standard 4.0</option>
@@ -856,10 +856,10 @@
 					>
 						{digestResetting ? 'resetting' : 'reset import'}
 					</button>
-					<span class="source-note font-mono">Source: {transcriptSourceLabel}</span>
+					<span class="source-note">Source: {transcriptSourceLabel}</span>
 				</div>
 				{#if transcriptUploadError}
-					<p class="upload-error font-mono">{transcriptUploadError}</p>
+					<p class="upload-error">{transcriptUploadError}</p>
 				{/if}
 			</div>
 
@@ -902,19 +902,19 @@
 
 			<div class="digest-source-strip">
 				<div>
-					<span class="index-label">Academic history digest</span>
+					<span class="source-label">Academic history digest</span>
 					<strong>{activeBackendDigest.summary}</strong>
 					{#if digestInsight}
 						<span class="source-note">{digestInsight}</span>
 					{/if}
 				</div>
-				<span class="import-badge font-mono">{digestSourceBadge}</span>
+				<span class="import-badge">{digestSourceBadge}</span>
 			</div>
 
 			<div class="transcript-columns" role="group" aria-label="Courses included in GPA">
 				<div class="transcript-column current-column">
 					<div class="transcript-column-head">
-						<span class="font-mono">Current courses</span>
+						<span>Current courses</span>
 						<strong>{dashboardCurrentTranscriptCourses.length}</strong>
 					</div>
 					<div class="transcript-list" role="list">
@@ -925,7 +925,7 @@
 									class="gpa-course-row current"
 									role="listitem"
 								>
-									<span class="font-mono">{course.code}</span>
+									<span>{course.code}</span>
 									<span>{course.term}</span>
 									<span>{percentToGpa(course.currentPercent).toFixed(2)} GPA</span>
 								</div>
@@ -938,7 +938,7 @@
 
 				<div class="transcript-column finished-column">
 					<div class="transcript-column-head">
-						<span class="font-mono">Finished courses</span>
+						<span>Finished courses</span>
 						<strong>{dashboardFinishedCourses.length}</strong>
 					</div>
 					<div class="transcript-list">
@@ -950,13 +950,13 @@
 									aria-label={`Open ${course.code} grade history`}
 									onclick={() => openHistoryCourse(course.id)}
 								>
-									<span class="font-mono">{course.code}</span>
+									<span>{course.code}</span>
 									<span>{course.term}</span>
 									<span>
 										{course.letter} - {course.currentPercent.toFixed(0)}% -
 										{letterToGpa(course.letter)?.toFixed(2) ?? '--'} GPA
 									</span>
-									<span class="history-open-label font-mono">
+									<span class="history-open-label">
 										{course.historyGrades?.length ? 'open gradebook' : 'view transcript note'}
 									</span>
 								</button>
@@ -973,11 +973,11 @@
 			<section class="surface performance-panel" aria-label="Performance over time">
 				<div class="performance-head">
 					<div>
-						<span class="gpa-kicker font-mono">Academic performance analytics</span>
+						<span class="gpa-kicker">Academic performance analytics</span>
 						<h2>GPA Trend by Academic Term</h2>
 					</div>
 					<div class="performance-delta">
-						<span class="index-label">GPA movement</span>
+						<span class="source-label">GPA movement</span>
 						<strong class={performanceDelta >= 0 ? 'ok' : 'warn'}>
 							{performanceDelta >= 0 ? '+' : ''}{performanceDelta.toFixed(2)}
 						</strong>
@@ -997,7 +997,7 @@
 								</strong>
 								<span class={`trend-icon ${item.direction}`} aria-label={`GPA ${item.direction}`}
 								></span>
-								<small class="font-mono">{item.label}</small>
+								<small>{item.label}</small>
 							</div>
 						{/each}
 					</div>
@@ -1005,7 +1005,7 @@
 					<div class="performance-list">
 						{#each performanceTrendWithDelta as item (item.term)}
 							<div class="performance-row">
-								<span class="font-mono">{item.label}</span>
+								<span>{item.label}</span>
 								<span>{item.term}</span>
 								<strong class={`trend-value ${item.direction}`}>
 									{item.gpa.toFixed(2)}
@@ -1023,11 +1023,11 @@
 				<div class="term-performance-panel">
 					<div class="term-performance-head">
 						<div>
-							<span class="gpa-kicker font-mono">Course performance by term</span>
+							<span class="gpa-kicker">Course performance by term</span>
 							<h3>{selectedPerformanceTerm} Course Results</h3>
 						</div>
 						<label class="term-select-box">
-							<span class="field-label font-mono">Choose term</span>
+							<span class="field-label">Choose term</span>
 							<div class="select-shell">
 								<select value={selectedPerformanceTerm} onchange={changePerformanceTerm}>
 									{#each performanceTermOptions as term (term)}
@@ -1047,7 +1047,7 @@
 						{#each selectedTermCourses as course (course.id)}
 							<div class="term-course-bar">
 								<div>
-									<span class="font-mono">{course.code}</span>
+									<span>{course.code}</span>
 									<strong>
 										{course.status === 'finished' ? course.letter : 'In progress'} -
 										{course.status === 'finished'
@@ -1068,7 +1068,7 @@
 			<section class="surface performance-panel" aria-label="Performance over time">
 				<div class="performance-head">
 					<div>
-						<span class="gpa-kicker font-mono">Academic performance analytics</span>
+						<span class="gpa-kicker">Academic performance analytics</span>
 						<h2>No GPA trend yet</h2>
 						<p class="empty-gradebook-note">
 							Upload a transcript or import setup courses to generate academic progress analytics.
@@ -1079,14 +1079,14 @@
 		{/if}
 	{:else}
 		<div class="course-dashboard-heading">
-			<span class="gpa-kicker font-mono">Course grade dashboard</span>
+			<span class="gpa-kicker">Course grade dashboard</span>
 			<h2 class="gpa-title">Current Term Dashboard</h2>
 			<p>Choose a course to view its grade analytics, projection, and import tools.</p>
 		</div>
 
 		{#if courses.length === 0}
 			<section class="surface empty-course-state" aria-label="No courses available">
-				<span class="gpa-kicker font-mono">No courses imported</span>
+				<span class="gpa-kicker">No courses imported</span>
 				<h2>No course dashboard yet</h2>
 				<p>
 					Import courses during setup or upload a syllabus before course-specific grade analytics
@@ -1097,9 +1097,9 @@
 			<section class="surface course-link" aria-label="Course dashboard selector">
 				<div class="course-link-main">
 					<div>
-						<span class="course-link-label font-mono">Course dashboard selector</span>
+						<span class="course-link-label">Course dashboard selector</span>
 						<h2 class="course-link-title">
-							<span class="course-code font-mono">{activeCourse.code}</span>
+							<span class="course-code">{activeCourse.code}</span>
 							{activeCourse.name}
 						</h2>
 					</div>
@@ -1111,7 +1111,7 @@
 				</div>
 
 				<div class="course-select-box">
-					<label class="field-label font-mono" for="course-select">Switch course</label>
+					<label class="field-label" for="course-select">Switch course</label>
 					<div class="select-shell">
 						<select id="course-select" value={selectedCourseId} onchange={changeCourse}>
 							{#each courses as course (course.id)}
@@ -1130,14 +1130,14 @@
 
 			<section class="course-analytics" aria-label="Selected course grade analytics">
 				<div class="course-analytics-head">
-					<span class="gpa-kicker font-mono">Specific course analytics + projection</span>
+					<span class="gpa-kicker">Specific course analytics + projection</span>
 					<h2>{activeCourse.code} Dashboard</h2>
 					<p>The cards below only use grades and syllabus weights from the selected course.</p>
 				</div>
 
 				<section class="course-facts" aria-label="Grade analytics overview">
 					<div class="course-fact">
-						<span class="fact-label font-mono">Current standing</span>
+						<span class="fact-label">Current standing</span>
 						<strong class="fact-value"
 							>{hasGradeEntries ? `${currentAverage.toFixed(1)}%` : '--'}</strong
 						>
@@ -1148,7 +1148,7 @@
 						</span>
 					</div>
 					<div class="course-fact">
-						<span class="fact-label font-mono">Projected result</span>
+						<span class="fact-label">Projected result</span>
 						{#if hasGradeEntries}
 							<strong class={`fact-value trend-value ${courseProjectionDirection}`}>
 								{projectedFinal.toFixed(1)}%
@@ -1168,7 +1168,7 @@
 						</span>
 					</div>
 					<div class="course-fact">
-						<span class="fact-label font-mono">Projected GPA</span>
+						<span class="fact-label">Projected GPA</span>
 						{#if hasGradeEntries}
 							<strong class={`fact-value trend-value ${projectedGpaDirection}`}>
 								{projectedGpa.toFixed(2)}
@@ -1185,7 +1185,7 @@
 						</span>
 					</div>
 					<div class="course-fact">
-						<span class="fact-label font-mono">Needed on final</span>
+						<span class="fact-label">Needed on final</span>
 						<strong
 							class="fact-value {finalNeeded > 85 ? 'crit' : finalNeeded > 70 ? 'warn' : 'ok'}"
 						>
@@ -1194,7 +1194,7 @@
 						<span class="fact-sub">{finalCategory?.weight ?? 0}% final weight</span>
 					</div>
 					<div class="course-fact">
-						<span class="fact-label font-mono">Imported weights</span>
+						<span class="fact-label">Imported weights</span>
 						<strong class="fact-value">{syllabusWeights.length}</strong>
 						<span class="fact-sub">{activeCourse.code} categories</span>
 					</div>
@@ -1204,7 +1204,7 @@
 			<section class="gpa-projection-panel term-gpa-projection" aria-label="GPA target projection">
 				<div class="target-gpa-box">
 					<div class="target-head">
-						<label class="target-label font-mono" for="target-gpa">Target GPA</label>
+						<label class="target-label" for="target-gpa">Target GPA</label>
 						<span class="target-value">{targetGpa.toFixed(1)}</span>
 					</div>
 					<input
@@ -1217,7 +1217,7 @@
 					/>
 				</div>
 				<div class="gpa-projection-copy">
-					<span class="index-label">GPA target projection</span>
+					<span class="source-label">GPA target projection</span>
 					<p>
 						{targetGpaDelta <= 0
 							? 'Your projected GPA is already meeting the target.'
@@ -1231,7 +1231,7 @@
 							></b>
 							<i style="left: {Math.min(100, (targetGpa / gpaScaleMaximum) * 100)}%"></i>
 						</div>
-						<div class="scale-labels font-mono">
+						<div class="scale-labels">
 							<span>total {dashboardTotalGpa.toFixed(2)}</span>
 							<span>projected {dashboardProjectedGpa.toFixed(2)}</span>
 							<span>target {targetGpa.toFixed(1)}</span>
@@ -1244,10 +1244,10 @@
 				<section class="surface import-panel" aria-label="Import grades">
 					<div class="import-panel-head">
 						<div>
-							<span class="gpa-kicker font-mono">Grade import</span>
+							<span class="gpa-kicker">Grade import</span>
 							<h2>Update {activeCourse.code}</h2>
 						</div>
-						<span class="import-badge font-mono">{gradeItems.length} entries</span>
+						<span class="import-badge">{gradeItems.length} entries</span>
 					</div>
 					<p class="panel-copy">
 						Add a score here and the course projection plus GPA projection update immediately.
@@ -1255,7 +1255,7 @@
 
 					<div class="grade-form">
 						<label>
-							<span class="field-label font-mono">Category</span>
+							<span class="field-label">Category</span>
 							<select bind:value={selectedCategory}>
 								{#each syllabusWeights as item (item.category)}
 									<option value={item.category}>{item.category} - {item.weight}%</option>
@@ -1263,16 +1263,16 @@
 							</select>
 						</label>
 						<label>
-							<span class="field-label font-mono">Grade name</span>
+							<span class="field-label">Grade name</span>
 							<input bind:value={gradeLabel} placeholder="e.g. Quiz 2" />
 						</label>
 						<div class="score-row">
 							<label>
-								<span class="field-label font-mono">Score</span>
+								<span class="field-label">Score</span>
 								<input bind:value={gradeScore} inputmode="decimal" placeholder="18" />
 							</label>
 							<label>
-								<span class="field-label font-mono">Out of</span>
+								<span class="field-label">Out of</span>
 								<input bind:value={gradeMax} inputmode="decimal" />
 							</label>
 						</div>
@@ -1286,10 +1286,10 @@
 				</section>
 
 				<section class="surface projection-panel">
-					<SectionHead title="Grade Projection" meta="what-if" />
+					<SectionHead title="Grade Projection" />
 					<div class="target-box course-target-box">
 						<div class="target-head">
-							<label class="target-label font-mono" for="target-grade">Target grade</label>
+							<label class="target-label" for="target-grade">Target grade</label>
 							<span class="target-value">{targetGrade}%</span>
 						</div>
 						<input id="target-grade" type="range" min="50" max="100" bind:value={targetGrade} />
@@ -1312,7 +1312,7 @@
 							{/if}
 							<i style="left: {Math.min(100, targetGrade)}%"></i>
 						</div>
-						<div class="scale-labels font-mono">
+						<div class="scale-labels">
 							<span>current {hasGradeEntries ? `${currentAverage.toFixed(0)}%` : '--'}</span>
 							<span>target {targetGrade}%</span>
 						</div>
@@ -1323,10 +1323,10 @@
 							<div class="weight-row">
 								<div>
 									<span class="weight-name">{item.category}</span>
-									<span class="weight-source font-mono">{item.source}</span>
+									<span class="weight-source">{item.source}</span>
 								</div>
 								<div class="weight-right">
-									<span class="weight-num font-mono">{item.weight}%</span>
+									<span class="weight-num">{item.weight}%</span>
 									<span class="status-chip {item.status}">
 										{item.average === null ? 'missing' : item.average.toFixed(0) + '%'}
 									</span>
@@ -1338,20 +1338,17 @@
 			</div>
 
 			<section class="surface-polaroid gradebook">
-				<SectionHead
-					title="Gradebook"
-					meta={`${activeCourse.code} - ${gradeItems.length} entries`}
-				/>
+				<SectionHead title="Gradebook" />
 				<div class="gradebook-list">
 					{#if gradeItems.length > 0}
 						{#each gradeItems as item (item.id)}
 							<div class="grade-row">
 								<div class="grade-main">
-									<span class="grade-category font-mono">{item.category}</span>
+									<span class="grade-category">{item.category}</span>
 									<span class="grade-name">{item.label}</span>
 								</div>
 								<div class="grade-score">
-									<span class="font-mono">{item.score}/{item.max}</span>
+									<span class="font-numeric">{item.score}/{item.max}</span>
 									<span>{((item.score / item.max) * 100).toFixed(1)}%</span>
 									<button
 										type="button"
@@ -1385,7 +1382,7 @@
 	class="history-dialog"
 >
 	{#if selectedHistoryCourse}
-		<span class="gpa-kicker history-kicker font-mono">
+		<span class="gpa-kicker history-kicker">
 			{selectedHistoryHasDetailedGrades ? 'Finished course gradebook' : 'Finished course record'}
 		</span>
 		<div class="history-modal-meta">
@@ -1402,7 +1399,7 @@
 				{#each selectedHistoryCourse.historyGrades ?? [] as grade (grade.label)}
 					<div class="history-grade-item">
 						<span>{grade.label}</span>
-						<span class="font-mono">{grade.category}</span>
+						<span>{grade.category}</span>
 						<strong>{grade.score}/{grade.max}</strong>
 						<span>{((grade.score / grade.max) * 100).toFixed(0)}%</span>
 					</div>
@@ -1434,10 +1431,10 @@
 	.target-label,
 	.field-label {
 		display: block;
-		font-size: 0.68rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		text-transform: none;
+		letter-spacing: normal;
 		margin-bottom: 0.35rem;
 	}
 
@@ -1504,13 +1501,13 @@
 
 	.digest-tabs span {
 		color: var(--ink-faint);
-		font-size: 0.68rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.digest-tabs strong {
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.35rem;
 		line-height: 1;
@@ -1534,7 +1531,7 @@
 	.performance-head h2 {
 		margin: 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.7rem;
 		line-height: 1;
@@ -1616,14 +1613,14 @@
 		color: var(--ink);
 		font-family: var(--font-body);
 		font-weight: 600;
-		font-size: 0.88rem;
+		font-size: var(--text-small);
 		line-height: 1;
 		white-space: nowrap;
 	}
 
 	.term-bar small {
 		color: var(--ink-faint);
-		font-size: 0.68rem;
+		font-size: var(--text-caption);
 		letter-spacing: 0;
 	}
 
@@ -1645,7 +1642,7 @@
 		border: 1px solid var(--rule-soft);
 		background: var(--paper);
 		color: var(--ink-soft);
-		font-size: 0.76rem;
+		font-size: var(--text-caption);
 		padding: 0.42rem 0.55rem;
 	}
 
@@ -1726,7 +1723,7 @@
 		display: inline-flex;
 		gap: 0.15rem;
 		align-items: center;
-		font-family: var(--font-mono);
+		font-family: var(--font-body);
 		font-size: 0.65em;
 		line-height: 1;
 		white-space: nowrap;
@@ -1734,12 +1731,12 @@
 
 	.term-bar .trend-change {
 		display: block;
-		font-size: 0.68rem;
+		font-size: var(--text-caption);
 	}
 
 	.term-bar > .trend-icon {
 		justify-self: center;
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 	}
 
 	/* Compact facts line that replaced the course-analytics index-bar strip. */
@@ -1765,9 +1762,9 @@
 	}
 
 	.fact-label {
-		font-size: 0.62rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		color: var(--ink-faint);
 	}
 
@@ -1800,7 +1797,7 @@
 	}
 
 	.fact-sub {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 	}
 
@@ -1823,7 +1820,7 @@
 	.term-performance-head h3 {
 		margin: 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.45rem;
 		line-height: 1;
@@ -1860,12 +1857,12 @@
 
 	.term-course-bar span {
 		color: var(--ink);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 	}
 
 	.term-course-bar strong {
 		color: var(--ink-soft);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		font-weight: 500;
 		white-space: nowrap;
 	}
@@ -1898,7 +1895,7 @@
 		max-width: 34rem;
 		margin: 0.55rem 0 0;
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		line-height: 1.5;
 	}
 
@@ -1923,9 +1920,9 @@
 	.course-link-label {
 		display: block;
 		color: var(--ink-faint);
-		font-size: 0.68rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		margin-bottom: 0.35rem;
 	}
 
@@ -1935,7 +1932,7 @@
 		gap: 0.65rem;
 		margin: 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.5rem;
 		line-height: 1.1;
@@ -1943,9 +1940,9 @@
 
 	.course-code {
 		color: var(--accent);
-		font-size: 0.78rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.course-link-meta {
@@ -1958,7 +1955,7 @@
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink-soft);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		padding: 0.25rem 0.5rem;
 	}
 
@@ -1978,7 +1975,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		font: inherit;
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		padding: 0.55rem 2.2rem 0.55rem 0.65rem;
 		appearance: none;
 		cursor: pointer;
@@ -1994,7 +1991,7 @@
 		border: 1px solid var(--ink);
 		background: var(--highlight-soft);
 		color: var(--ink);
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		line-height: 1.1rem;
 		text-align: center;
 		pointer-events: none;
@@ -2029,16 +2026,16 @@
 	.gpa-kicker {
 		display: block;
 		color: var(--accent);
-		font-size: 0.68rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		margin-bottom: 0.4rem;
 	}
 
 	.gpa-title {
 		margin: 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: clamp(1.9rem, 4vw, 2.5rem);
 		line-height: 1;
@@ -2048,7 +2045,7 @@
 		max-width: 28rem;
 		margin: 0.55rem 0 0;
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		line-height: 1.5;
 	}
 
@@ -2070,9 +2067,9 @@
 
 	.gpa-scale-control span {
 		color: var(--ink-faint);
-		font-size: 0.65rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.gpa-scale-control select {
@@ -2080,7 +2077,7 @@
 		background: transparent;
 		color: var(--ink);
 		font: inherit;
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		cursor: pointer;
 	}
 
@@ -2099,17 +2096,31 @@
 
 	.source-note {
 		color: var(--ink-faint);
-		font-size: 0.72rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.upload-error {
 		margin: 0;
 		color: var(--accent);
-		font-size: 0.72rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
+	}
+
+	.page-subtitle-label {
+		font-family: var(--font-body);
+		font-size: var(--text-small);
+		color: var(--ink-soft);
+	}
+
+	.source-label {
+		font-family: var(--font-body);
+		font-size: var(--text-small);
+		color: var(--ink-soft);
+		display: block;
+		margin-bottom: 0.25rem;
 	}
 
 	.digest-source-strip {
@@ -2127,7 +2138,7 @@
 		display: block;
 		margin-top: 0.25rem;
 		color: var(--ink);
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		font-weight: 500;
 	}
 
@@ -2161,9 +2172,9 @@
 	}
 
 	.gpa-facts dt {
-		font-family: var(--font-mono);
-		font-size: 0.66rem;
-		text-transform: uppercase;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		text-transform: none;
 		letter-spacing: 0.1em;
 		color: var(--ink-faint);
 	}
@@ -2183,7 +2194,7 @@
 
 	.gpa-facts dd span:not(.trend-icon) {
 		color: var(--ink-soft);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		font-weight: 500;
 	}
 
@@ -2226,8 +2237,8 @@
 		align-items: center;
 		border-bottom: 1px solid var(--rule-soft);
 		color: var(--ink-faint);
-		font-size: 0.68rem;
-		text-transform: uppercase;
+		font-size: var(--text-caption);
+		text-transform: none;
 		letter-spacing: 0.1em;
 		padding-bottom: 0.45rem;
 	}
@@ -2263,7 +2274,7 @@
 		border: 1px solid var(--rule-soft);
 		background: var(--paper);
 		color: var(--ink-soft);
-		font-size: 0.76rem;
+		font-size: var(--text-caption);
 		min-height: 2.25rem;
 		padding: 0.35rem 0.55rem;
 		width: 100%;
@@ -2309,9 +2320,9 @@
 
 	.history-open-label {
 		color: var(--warn);
-		font-size: 0.66rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	:global(.ui-dialog-content.history-dialog) {
@@ -2327,7 +2338,7 @@
 		gap: 0.5rem;
 		align-items: center;
 		color: var(--ink-soft);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 	}
 
 	.history-modal-meta strong {
@@ -2336,7 +2347,7 @@
 		color: var(--ink);
 		font-family: var(--font-body);
 		font-weight: 600;
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		line-height: 1;
 		padding: 0.25rem 0.45rem;
 	}
@@ -2359,14 +2370,14 @@
 		border: 1px solid var(--rule-soft);
 		background: var(--paper);
 		color: var(--ink-soft);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		padding: 0.5rem 0.6rem;
 	}
 
 	.history-grade-item strong {
 		color: var(--ink);
-		font-family: var(--font-mono);
-		font-size: 0.74rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 	}
 
 	.history-empty-note,
@@ -2375,7 +2386,7 @@
 		border: 1px dashed var(--ink-faint);
 		background: var(--paper-shelf);
 		color: var(--ink-soft);
-		font-size: 0.86rem;
+		font-size: var(--text-caption);
 		line-height: 1.5;
 		padding: 0.8rem;
 	}
@@ -2401,7 +2412,7 @@
 	.gpa-projection-copy p {
 		margin: 0.3rem 0 0.9rem;
 		color: var(--ink);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		line-height: 1.5;
 	}
 
@@ -2417,7 +2428,7 @@
 	.empty-course-state h2 {
 		margin: 0.35rem 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.8rem;
 	}
@@ -2440,7 +2451,7 @@
 	.course-analytics-head h2 {
 		margin: 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.65rem;
 		line-height: 1.1;
@@ -2449,14 +2460,14 @@
 	.course-analytics-head p {
 		margin: 0.35rem 0 0;
 		color: var(--ink-soft);
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		line-height: 1.45;
 	}
 
 	.panel-copy {
 		margin: 1rem 0;
 		color: var(--ink-soft);
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		line-height: 1.55;
 	}
 
@@ -2477,7 +2488,7 @@
 	.import-panel-head h2 {
 		margin: 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.75rem;
 		line-height: 1;
@@ -2487,8 +2498,8 @@
 		border: 1px solid var(--ink);
 		background: var(--highlight-soft);
 		color: var(--ink);
-		font-size: 0.68rem;
-		text-transform: uppercase;
+		font-size: var(--text-caption);
+		text-transform: none;
 		letter-spacing: 0.1em;
 		padding: 0.35rem 0.5rem;
 		white-space: nowrap;
@@ -2506,7 +2517,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		font: inherit;
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		padding: 0.55rem 0.65rem;
 	}
 
@@ -2541,7 +2552,7 @@
 
 	.projection-note p {
 		margin: 0;
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		line-height: 1.55;
 	}
 
@@ -2583,9 +2594,9 @@
 		justify-content: space-between;
 		margin-top: 0.5rem;
 		color: var(--ink-faint);
-		font-size: 0.68rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.weight-list,
@@ -2613,7 +2624,7 @@
 	.grade-name {
 		display: block;
 		color: var(--ink);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		font-weight: 500;
 	}
 
@@ -2621,9 +2632,9 @@
 	.grade-category {
 		display: block;
 		color: var(--ink-faint);
-		font-size: 0.65rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		margin-top: 0.2rem;
 	}
 
@@ -2636,7 +2647,7 @@
 	}
 
 	.weight-num {
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 	}
 
@@ -2665,7 +2676,7 @@
 
 	.grade-score {
 		color: var(--ink);
-		font-size: 0.88rem;
+		font-size: var(--text-small);
 	}
 
 	.remove-btn {

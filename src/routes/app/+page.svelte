@@ -77,7 +77,7 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Today's focus</title></svelte:head>
+<svelte:head><title>Dashboard · Synapse</title></svelte:head>
 
 <div class="page">
 	{#if !dashboardDataAvailable}
@@ -139,7 +139,7 @@
 				</div>
 			</section>
 		{:else}
-			<main class="focus-main">
+			<div class="focus-main">
 				{#if hero}
 					<section aria-label="Next up">
 						<button
@@ -231,7 +231,7 @@
 						</div>
 					</section>
 				{/if}
-			</main>
+			</div>
 		{/if}
 	{/if}
 </div>
@@ -298,7 +298,7 @@
 		margin: 0;
 	}
 	.section-count {
-		font: 500 var(--text-caption)/1 var(--font-mono);
+		font: 500 var(--text-caption)/1 var(--font-body);
 		color: var(--ink-faint);
 	}
 

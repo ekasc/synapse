@@ -9,205 +9,85 @@
 		$props();
 </script>
 
-<section class="timeline" aria-labelledby="timeline-title">
-	<div class="section-title">
-		<span>Schedule</span>
-		<h2 id="timeline-title">This week</h2>
+<section class="grid gap-3" aria-labelledby="timeline-title">
+	<div class="flex items-baseline gap-[0.7rem]">
+		<span class=" tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]"
+			>Schedule</span
+		>
+		<h2
+			id="timeline-title"
+			class="m-0 [font-family:var(--font-body)] text-[1.35rem] text-[var(--ink)]"
+		>
+			This week
+		</h2>
 	</div>
 	{#if overdue.length}
-		<div class="overdue" aria-label="Overdue deadlines">
-			<strong>Overdue</strong>
+		<div
+			class="flex flex-wrap items-center gap-[0.4rem] border border-[color-mix(in_srgb,var(--pen-red)_50%,var(--rule))] px-[0.65rem] py-[0.55rem]"
+			aria-label="Overdue deadlines"
+		>
+			<strong class=" text-[var(--pen-red)] text-[var(--text-caption)]">Overdue</strong>
 			{#each overdue as item (item.id)}
-				<button onclick={() => onnavigate(item.link.href)}
-					><span>{item.courseCode}</span>{item.title}</button
+				<button
+					class="cursor-pointer border-0 bg-[var(--paper-shelf)] px-[0.45rem] py-[0.28rem] text-xs text-[var(--ink)]"
+					onclick={() => onnavigate(item.link.href)}
+					><span class="mr-[0.35rem] text-[var(--pen-red)] text-[var(--text-caption)]"
+						>{item.courseCode}</span
+					>{item.title}</button
 				>
 			{/each}
 		</div>
 	{/if}
-	<div class="days">
+	<div
+		class="grid grid-cols-7 border-t border-l border-[var(--rule)] max-[52rem]:grid-cols-1 max-[52rem]:border-t-0"
+	>
 		{#each days as day (day.key)}
-			<article class:today={day.isToday}>
-				<header aria-current={day.isToday ? 'date' : undefined}>
-					<strong>{day.weekday}</strong><span>{day.dateLabel}</span>{#if day.isToday}<em>Today</em
+			<article
+				class="min-h-40 min-w-0 border-r border-b border-[var(--rule)] bg-[var(--paper)] max-[52rem]:grid max-[52rem]:min-h-0 max-[52rem]:grid-cols-[5.5rem_1fr] {day.isToday
+					? 'bg-[color-mix(in_srgb,var(--highlight)_25%,var(--paper))]'
+					: ''}"
+			>
+				<header
+					class="grid min-h-[3.2rem] gap-[0.05rem] border-b border-[var(--rule-soft)] px-[0.6rem] py-[0.55rem] max-[52rem]:border-t max-[52rem]:border-r max-[52rem]:border-b-0 max-[52rem]:border-t-[var(--rule)] max-[52rem]:border-r-[var(--rule-soft)]"
+					aria-current={day.isToday ? 'date' : undefined}
+				>
+					<strong class=" text-[var(--ink)] text-[var(--text-caption)]">{day.weekday}</strong><span
+						class=" text-[var(--ink-faint)] text-[var(--text-caption)] not-italic"
+						>{day.dateLabel}</span
+					>{#if day.isToday}<em class=" text-[var(--accent)] text-[var(--text-caption)] not-italic"
+							>Today</em
 						>{/if}
 				</header>
-				{#if day.crunchCount}<div class="crunch">Crunch window</div>{/if}
-				<div class="items">
+				{#if day.crunchCount}<div
+						class="bg-[var(--paper-shelf)] px-[0.35rem] py-[0.2rem] text-[var(--text-caption)] text-[var(--warn)] max-[52rem]:col-start-2"
+					>
+						Crunch window
+					</div>{/if}
+				<div
+					class="grid gap-[0.35rem] p-[0.35rem] max-[52rem]:col-start-2 max-[52rem]:min-h-[3.2rem]"
+				>
 					{#each day.deadlines as item (item.id)}
-						<button class="event" onclick={() => onnavigate(item.link.href)}>
-							<span>{item.courseCode}</span><strong>{item.title}</strong>
-							<small
+						<button
+							class="grid w-full cursor-pointer gap-[0.15rem] border border-[var(--rule-soft)] bg-[var(--paper)] p-[0.45rem] text-left hover:border-[var(--ink)]"
+							onclick={() => onnavigate(item.link.href)}
+						>
+							<span class=" text-[var(--ink-soft)] text-[var(--text-caption)]"
+								>{item.courseCode}</span
+							><strong class="text-xs leading-[1.25] [overflow-wrap:anywhere] text-[var(--ink)]"
+								>{item.title}</strong
+							>
+							<small class=" text-[var(--ink-soft)] text-[var(--text-caption)]"
 								>{item.time ?? item.typeLabel}{item.gradeWeight != null
 									? ` · ${item.gradeWeight}%`
 									: ''}</small
 							>
 						</button>
 					{:else}
-						<span class="empty">Clear</span>
+						<span class="p-[0.35rem] text-[var(--text-caption)] text-[var(--ink-faint)]">Clear</span
+						>
 					{/each}
 				</div>
 			</article>
 		{/each}
 	</div>
 </section>
-
-<style>
-	.timeline {
-		display: grid;
-		gap: 0.75rem;
-	}
-	.section-title {
-		display: flex;
-		align-items: baseline;
-		gap: 0.7rem;
-	}
-	.section-title > span {
-		font-family: var(--font-mono);
-		font-size: 0.62rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--ink-faint);
-	}
-	h2 {
-		margin: 0;
-		font-family: var(--font-hand);
-		font-size: 1.35rem;
-		color: var(--ink);
-	}
-	.days {
-		display: grid;
-		grid-template-columns: repeat(7, minmax(0, 1fr));
-		border-top: 1px solid var(--rule);
-		border-left: 1px solid var(--rule);
-	}
-	article {
-		min-width: 0;
-		min-height: 10rem;
-		border-right: 1px solid var(--rule);
-		border-bottom: 1px solid var(--rule);
-		background: var(--paper);
-	}
-	article.today {
-		background: color-mix(in srgb, var(--highlight) 25%, var(--paper));
-	}
-	header {
-		min-height: 3.2rem;
-		padding: 0.55rem 0.6rem;
-		display: grid;
-		gap: 0.05rem;
-		border-bottom: 1px solid var(--rule-soft);
-	}
-	header strong {
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
-		text-transform: uppercase;
-		color: var(--ink);
-	}
-	header span,
-	header em {
-		font-family: var(--font-mono);
-		font-size: 0.58rem;
-		color: var(--ink-faint);
-		font-style: normal;
-	}
-	header em {
-		color: var(--accent);
-		text-transform: uppercase;
-	}
-	.items {
-		padding: 0.35rem;
-		display: grid;
-		gap: 0.35rem;
-	}
-	.event {
-		width: 100%;
-		padding: 0.45rem;
-		border: 1px solid var(--rule-soft);
-		background: var(--paper);
-		display: grid;
-		gap: 0.15rem;
-		text-align: left;
-		cursor: pointer;
-	}
-	.event:hover {
-		border-color: var(--ink);
-	}
-	.event span,
-	.event small {
-		font-family: var(--font-mono);
-		font-size: 0.56rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-	}
-	.event strong {
-		font-size: 0.75rem;
-		line-height: 1.25;
-		color: var(--ink);
-		overflow-wrap: anywhere;
-	}
-	.empty {
-		padding: 0.35rem;
-		font-family: var(--font-mono);
-		font-size: 0.6rem;
-		color: var(--ink-faint);
-	}
-	.crunch {
-		padding: 0.2rem 0.35rem;
-		background: var(--paper-shelf);
-		font-family: var(--font-mono);
-		font-size: 0.55rem;
-		color: var(--warn);
-		text-transform: uppercase;
-	}
-	.overdue {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.55rem 0.65rem;
-		border: 1px solid color-mix(in srgb, var(--pen-red) 50%, var(--rule));
-	}
-	.overdue > strong {
-		font-family: var(--font-mono);
-		font-size: 0.65rem;
-		color: var(--pen-red);
-		text-transform: uppercase;
-	}
-	.overdue button {
-		border: 0;
-		background: var(--paper-shelf);
-		padding: 0.28rem 0.45rem;
-		color: var(--ink);
-		cursor: pointer;
-		font-size: 0.75rem;
-	}
-	.overdue button span {
-		margin-right: 0.35rem;
-		font-family: var(--font-mono);
-		font-size: 0.58rem;
-		color: var(--pen-red);
-	}
-	@media (max-width: 52rem) {
-		.days {
-			grid-template-columns: 1fr;
-			border-top: 0;
-		}
-		article {
-			min-height: 0;
-			display: grid;
-			grid-template-columns: 5.5rem 1fr;
-		}
-		header {
-			border-top: 1px solid var(--rule);
-			border-bottom: 0;
-			border-right: 1px solid var(--rule-soft);
-		}
-		.crunch {
-			grid-column: 2;
-		}
-		.items {
-			grid-column: 2;
-			min-height: 3.2rem;
-		}
-	}
-</style>

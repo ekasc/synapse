@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Select } from 'bits-ui';
+	import { onMount } from 'svelte';
 	import type { CourseColor } from './types';
 
 	let {
@@ -34,12 +36,19 @@
 		onClose: () => void;
 		onSubmit: () => void;
 	} = $props();
+
+	let editorElement: HTMLElement;
+	onMount(() => editorElement.querySelector<HTMLElement>('[data-select-trigger]')?.focus());
 </script>
 
-<section class="calendar-editor surface-polaroid" aria-labelledby="calendar-editor-title">
+<section
+	bind:this={editorElement}
+	class="calendar-editor surface-polaroid"
+	aria-labelledby="calendar-editor-title"
+>
 	<div class="calendar-editor-head">
 		<div>
-			<p class="font-mono">{editingEventId ? 'Edit event' : 'Add event'}</p>
+			<p>{editingEventId ? 'Edit event' : 'Add event'}</p>
 			<h2 id="calendar-editor-title">
 				{new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('en-US', {
 					weekday: 'long',
@@ -56,26 +65,54 @@
 			aria-label="Close event editor">×</button
 		>
 	</div>
-	<div class="cal-popover-form">
+	<form
+		class="cal-popover-form"
+		onsubmit={(event) => {
+			event.preventDefault();
+			onSubmit();
+		}}
+	>
 		<label class="cal-editor-field">
-			<span class="cal-editor-label font-mono">Course</span>
-			<select
-				class="cal-popover-select"
+			<span class="cal-editor-label">Course</span>
+			<Select.Root
+				type="single"
 				name="courseId"
-				bind:value={courseId}
-				onchange={() => {
-					course = courseColors.find((c) => c.id === courseId)?.code ?? '';
-				}}
 				required
+				items={courseColors.map((item) => ({
+					value: item.id,
+					label: `${item.code} · ${item.name}`
+				}))}
+				bind:value={courseId}
+				onValueChange={(value) => {
+					course = courseColors.find((item) => item.id === value)?.code ?? '';
+				}}
 			>
-				<option value="">Choose a course</option>
-				{#each courseColors as c (c.id)}
-					<option value={c.id}>{c.code} · {c.name}</option>
-				{/each}
-			</select>
+				<Select.Trigger
+					class="flex min-h-10 w-full items-center border border-[var(--border-input)] bg-[var(--paper)] px-2 py-1.5 text-left text-[var(--ink)] text-[var(--text-caption)] outline-none focus-visible:border-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--highlight)]"
+				>
+					<Select.Value placeholder="Choose a course" />
+				</Select.Trigger>
+				<Select.Portal>
+					<Select.Content
+						class="z-[var(--z-dropdown)] max-h-72 overflow-y-auto border border-[var(--ink)] bg-[var(--paper)] shadow-[3px_3px_0_var(--shadow-ink)]"
+					>
+						<Select.Viewport>
+							{#each courseColors as item (item.id)}
+								<Select.Item
+									value={item.id}
+									label={`${item.code} · ${item.name}`}
+									class="min-h-10 cursor-pointer px-2.5 py-2 text-[var(--text-caption)] outline-none data-[highlighted]:bg-[var(--highlight-soft)] data-[selected]:bg-[var(--highlight)]"
+								>
+									{item.code} · {item.name}
+								</Select.Item>
+							{/each}
+						</Select.Viewport>
+					</Select.Content>
+				</Select.Portal>
+			</Select.Root>
 		</label>
 		<label class="cal-editor-field">
-			<span class="cal-editor-label font-mono">Title</span>
+			<span class="cal-editor-label">Title</span>
 			<input
 				type="text"
 				class="cal-popover-input"
@@ -83,26 +120,54 @@
 				placeholder="Event title"
 				bind:value={title}
 				maxlength="160"
+				required
 			/>
 		</label>
 		<div class="cal-popover-form-row">
 			<label class="cal-editor-field">
-				<span class="cal-editor-label font-mono">Type</span>
-				<select class="cal-popover-select" name="type" bind:value={type}>
-					<option value="assignment">Assignment</option>
-					<option value="midterm">Midterm</option>
-					<option value="final">Final</option>
-					<option value="quiz">Quiz</option>
-					<option value="lecture">Lecture</option>
-					<option value="study_session">Study session</option>
-				</select>
+				<span class="cal-editor-label">Type</span>
+				<Select.Root
+					type="single"
+					name="type"
+					items={[
+						{ value: 'assignment', label: 'Assignment' },
+						{ value: 'midterm', label: 'Midterm' },
+						{ value: 'final', label: 'Final' },
+						{ value: 'quiz', label: 'Quiz' },
+						{ value: 'lecture', label: 'Lecture' },
+						{ value: 'study_session', label: 'Study session' }
+					]}
+					bind:value={type}
+				>
+					<Select.Trigger
+						class="flex min-h-10 w-full items-center border border-[var(--border-input)] bg-[var(--paper)] px-2 py-1.5 text-left text-[var(--ink)] text-[var(--text-caption)] outline-none focus-visible:border-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--highlight)]"
+						><Select.Value /></Select.Trigger
+					>
+					<Select.Portal>
+						<Select.Content
+							class="z-[var(--z-dropdown)] border border-[var(--ink)] bg-[var(--paper)] shadow-[3px_3px_0_var(--shadow-ink)]"
+						>
+							<Select.Viewport>
+								{#each [['assignment', 'Assignment'], ['midterm', 'Midterm'], ['final', 'Final'], ['quiz', 'Quiz'], ['lecture', 'Lecture'], ['study_session', 'Study session']] as item (item[0])}
+									<Select.Item
+										value={item[0]}
+										label={item[1]}
+										class="min-h-10 cursor-pointer px-2.5 py-2 text-[var(--text-caption)] outline-none data-[highlighted]:bg-[var(--highlight-soft)] data-[selected]:bg-[var(--highlight)]"
+									>
+										{item[1]}
+									</Select.Item>
+								{/each}
+							</Select.Viewport>
+						</Select.Content>
+					</Select.Portal>
+				</Select.Root>
 			</label>
 			<label class="cal-editor-field">
-				<span class="cal-editor-label font-mono">Time</span>
+				<span class="cal-editor-label">Time</span>
 				<input type="time" class="cal-popover-input" name="time" bind:value={time} />
 			</label>
 			<label class="cal-editor-field">
-				<span class="cal-editor-label font-mono">Weight %</span>
+				<span class="cal-editor-label">Weight %</span>
 				<input
 					type="number"
 					class="cal-popover-input"
@@ -113,17 +178,20 @@
 				/>
 			</label>
 		</div>
+		{#if mutationError}
+			<p class="calendar-editor-error" role="alert">{mutationError}</p>
+		{/if}
 		<div class="calendar-editor-actions">
 			<button
+				type="submit"
 				class="cal-popover-form-btn"
-				onclick={onSubmit}
 				disabled={savingEvent || !courseId || !title.trim()}
 			>
 				{savingEvent ? 'Saving…' : editingEventId ? 'Save changes' : 'Add event'}
 			</button>
-			<button type="button" class="cal-popover-add font-mono" onclick={onClose}>Cancel</button>
+			<button type="button" class="cal-popover-add" onclick={onClose}>Cancel</button>
 		</div>
-	</div>
+	</form>
 </section>
 
 <style>
@@ -151,14 +219,14 @@
 
 	.calendar-editor-head p {
 		color: var(--ink-faint);
-		font-size: 0.65rem;
+		font-size: var(--text-caption);
 		letter-spacing: 0.1em;
-		text-transform: uppercase;
+		text-transform: none;
 	}
 
 	.calendar-editor-head h2 {
 		margin-top: 0.2rem;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-size: 1.3rem;
 		font-weight: 700;
 		line-height: 1.1;
@@ -194,9 +262,9 @@
 		min-width: 0;
 	}
 	.cal-editor-label {
-		font-size: 0.58rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 	}
 	.cal-popover-input {
@@ -205,19 +273,11 @@
 		background: var(--paper);
 		color: var(--ink);
 		font: inherit;
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 	}
 	.cal-popover-input:focus {
 		border-color: var(--ink);
 		outline: 1px solid var(--highlight);
-	}
-	.cal-popover-select {
-		padding: 0.35rem 0.5rem;
-		border: 1px solid var(--border-input);
-		background: var(--paper);
-		color: var(--ink);
-		font: inherit;
-		font-size: 0.78rem;
 	}
 	.cal-popover-form-row {
 		display: flex;
@@ -233,17 +293,26 @@
 		color: var(--paper);
 		cursor: pointer;
 		font: inherit;
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 	}
 	.cal-popover-form-btn:hover {
 		opacity: 0.85;
+	}
+	.cal-popover-form-btn:disabled {
+		cursor: not-allowed;
+		opacity: 0.45;
+	}
+	.calendar-editor-error {
+		margin: 0;
+		color: var(--accent);
+		font-size: var(--text-caption);
 	}
 	.cal-popover-add {
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 0.68rem;
+		font-size: var(--text-caption);
 		padding: 0.25rem 0.5rem;
 	}
 	.cal-popover-add:hover {

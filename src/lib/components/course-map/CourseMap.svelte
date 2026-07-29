@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { cn } from '$lib/utils';
-	import { Combobox } from 'bits-ui';
+	import { Collapsible, Combobox, Popover } from 'bits-ui';
 	import { onMount, tick } from 'svelte';
 	import CourseMapEdge from './CourseMapEdge.svelte';
 	import CourseMapNode from './CourseMapNode.svelte';
@@ -272,8 +272,11 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="map-shell">
-	<div class="map-tools" aria-label="Course map navigation">
+<div class="grid max-w-full min-w-0 gap-[0.85rem]">
+	<div
+		class="grid max-w-full min-w-0 grid-cols-[minmax(16rem,32rem)_auto] items-end justify-between gap-[0.55rem] max-[768px]:grid-cols-[minmax(0,1fr)_auto]"
+		aria-label="Course map navigation"
+	>
 		<Combobox.Root
 			type="single"
 			bind:value={courseJumpId}
@@ -287,7 +290,7 @@
 				<Combobox.Input
 					id="map-course-search"
 					class={cn(
-						'w-full min-w-0 border-0 bg-transparent py-2 pr-[3.8rem] pl-2.5 text-[0.82rem] font-[var(--font-body)] text-[var(--ink)] outline-none placeholder:text-[var(--ink-faint)] focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--highlight)]'
+						'w-full min-w-0 border-0 bg-transparent py-2 pr-[3.8rem] pl-2.5 font-[var(--font-body)] text-[var(--ink)] text-[var(--text-caption)] outline-none placeholder:text-[var(--ink-faint)] focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--highlight)]'
 					)}
 					placeholder="Find a course…"
 					oninput={(event) => {
@@ -306,7 +309,7 @@
 				/>
 				{#if courseJumpId}
 					<button
-						class="absolute top-0 right-8 bottom-0 flex w-6 items-center justify-center border-0 bg-transparent text-[0.65rem] font-[var(--font-mono)] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+						class="absolute top-0 right-8 bottom-0 flex w-6 items-center justify-center border-0 bg-transparent text-[var(--ink-soft)] text-[var(--text-caption)] hover:text-[var(--ink)]"
 						onclick={clearCourseJump}
 						aria-label="Clear selected course"
 						type="button">✕</button
@@ -314,7 +317,7 @@
 				{/if}
 				<Combobox.Trigger
 					class={cn(
-						'absolute top-0 right-0 bottom-0 flex w-8 items-center justify-center border-0 bg-transparent text-[0.75rem] font-[var(--font-mono)] text-[var(--ink-faint)] transition-[color,transform] hover:text-[var(--ink)] data-[state=open]:rotate-180 data-[state=open]:text-[var(--ink)]'
+						'absolute top-0 right-0 bottom-0 flex w-8 items-center justify-center border-0 bg-transparent  text-[var(--ink-faint)] text-[var(--text-caption)] transition-[color,transform] hover:text-[var(--ink)] data-[state=open]:rotate-180 data-[state=open]:text-[var(--ink)]'
 					)}
 					aria-label="Show course choices">▾</Combobox.Trigger
 				>
@@ -326,9 +329,7 @@
 			>
 				<Combobox.Viewport>
 					{#if filteredJumpCourses.length === 0}
-						<p
-							class="m-0 p-3 text-[0.72rem] font-[var(--font-mono)] tracking-[0.08em] text-[var(--ink-faint)] uppercase"
-						>
+						<p class="m-0 p-3 text-[var(--ink-faint)] text-[var(--text-caption)]">
 							No matching courses
 						</p>
 					{:else}
@@ -339,11 +340,11 @@
 									'grid min-h-11 w-full grid-cols-[minmax(5.5rem,auto)_1fr] items-baseline gap-2.5 border-0 border-b border-dashed border-[var(--rule)] bg-transparent px-3 py-2 text-left text-[var(--ink)] last:border-b-0 hover:bg-[var(--highlight-soft)] hover:shadow-[inset_2px_0_0_var(--ink)] data-[highlighted]:bg-[var(--highlight-soft)] data-[highlighted]:shadow-[inset_2px_0_0_var(--ink)] data-[state=checked]:bg-[var(--highlight)] data-[state=checked]:shadow-[inset_2px_0_0_var(--ink)]'
 								)}
 							>
-								<span class="text-[0.68rem] font-[var(--font-mono)] font-bold tracking-[0.08em]">
+								<span class=" font-bold text-[var(--text-caption)]">
 									{course.code}
 								</span>
 								<span
-									class="overflow-hidden text-[0.82rem] leading-[1.35] text-ellipsis whitespace-nowrap text-[var(--ink-soft)]"
+									class="overflow-hidden leading-[1.35] text-ellipsis whitespace-nowrap text-[var(--ink-soft)] text-[var(--text-caption)]"
 								>
 									{course.name}
 								</span>
@@ -353,63 +354,123 @@
 				</Combobox.Viewport>
 			</Combobox.Content>
 		</Combobox.Root>
-		<details class="map-legend" name="course-map-panel">
-			<summary>Legend</summary>
-			<div aria-label="Course map legend">
-				<span><i class="legend-line accepted"></i> Confirmed prerequisite</span>
-				<span><i class="legend-line pending"></i> Pending review</span>
-				<span><i class="legend-box upstream"></i> Prerequisite of selected course</span>
-				<span><i class="legend-box downstream"></i> Depends on selected course</span>
-			</div>
-		</details>
+		<Popover.Root>
+			<Popover.Trigger
+				class="min-h-11 justify-self-end border-0 bg-transparent px-1 py-[0.55rem] font-semibold text-[var(--ink-soft)] text-[var(--text-caption)]"
+				>Legend</Popover.Trigger
+			>
+			<Popover.Portal>
+				<Popover.Content
+					sideOffset={4}
+					align="end"
+					class="z-[var(--z-dropdown)] box-border flex w-[min(36rem,calc(100vw-2rem))] flex-wrap gap-x-4 gap-y-[0.55rem] border border-[var(--ink)] bg-[var(--surface-paper)] p-3 text-[var(--text-caption)] shadow-[5px_5px_0_var(--shadow-ink)] [&_span]:inline-flex [&_span]:min-h-7 [&_span]:items-center [&_span]:gap-2"
+					aria-label="Course map legend"
+				>
+					<span
+						><i class="inline-block w-7 shrink-0 border-t-2 border-[var(--ink)]"></i> Confirmed prerequisite</span
+					>
+					<span
+						><i class="inline-block w-7 shrink-0 border-t-2 border-dashed border-[var(--ink)]"></i> Pending
+						review</span
+					>
+					<span
+						><i class="inline-block size-3.5 shrink-0 border-2 border-[var(--pen-blue)]"></i> Prerequisite
+						of selected course</span
+					>
+					<span
+						><i class="inline-block size-3.5 shrink-0 border-2 border-[var(--pen-red)]"></i> Depends on
+						selected course</span
+					>
+				</Popover.Content>
+			</Popover.Portal>
+		</Popover.Root>
 	</div>
 
-	<nav class="semester-overview" aria-label="Semester overview">
+	<nav
+		class="flex max-w-full min-w-0 gap-[0.4rem] overflow-x-auto pb-[0.2rem]"
+		aria-label="Semester overview"
+	>
 		{#each columns as column (column.id)}
 			{@const courseCount = orderedDisplayedCourses.filter(
 				(course) => columnIdFor(course) === column.id
 			).length}
-			<button type="button" onclick={() => jumpToSemester(column.id)}>
+			<button
+				type="button"
+				class="grid min-h-11 min-w-32 cursor-pointer border border-[var(--ink)] bg-[var(--surface-paper)] px-[0.65rem] py-[0.45rem] text-left text-[var(--ink)] [font:500_var(--text-small)/1.3_var(--font-body)]"
+				onclick={() => jumpToSemester(column.id)}
+			>
 				<strong>{column.label}</strong>
-				<span>{courseCount} course{courseCount === 1 ? '' : 's'}</span>
+				<span class="text-[length:var(--text-caption)] text-[var(--ink-soft)]"
+					>{courseCount} course{courseCount === 1 ? '' : 's'}</span
+				>
 			</button>
 		{/each}
 	</nav>
 
 	{#if scenario.moves.length > 0}
-		<div class="scenario-legend font-mono" aria-label="Draft plan legend">
-			<span><i class="preview-mark"></i> Changed course</span>
-			{#if conflictIds.size > 0}<span><i class="conflict-mark"></i> Plan conflict</span>{/if}
-			{#if resolvedIds.size > 0}<span><i class="resolved-mark"></i> Resolved conflict</span>{/if}
+		<div
+			class="mb-2 flex flex-wrap gap-x-4 gap-y-[0.45rem] text-[var(--ink-soft)] text-[var(--text-caption)] [&_span]:inline-flex [&_span]:items-center [&_span]:gap-[0.35rem]"
+			aria-label="Draft plan legend"
+		>
+			<span
+				><i class="inline-block size-3 border-2 border-double border-[var(--ok)]"></i> Changed course</span
+			>
+			{#if conflictIds.size > 0}<span
+					><i class="inline-block size-3 border-2 border-[var(--accent)]"></i> Plan conflict</span
+				>{/if}
+			{#if resolvedIds.size > 0}<span
+					><i class="inline-block size-3 border-2 border-[var(--ok)]"></i> Resolved conflict</span
+				>{/if}
 		</div>
 	{/if}
 
-	<p class:at-end={!canScrollFurther} class="scroll-cue font-mono">Swipe to see later semesters</p>
-	<div class:at-end={!canScrollFurther} class="scroll-frame">
+	<p
+		class={[
+			'mb-[0.45rem] hidden  text-[var(--ink-soft)] text-[var(--text-caption)] max-[768px]:block',
+			!canScrollFurther && 'invisible'
+		]}
+	>
+		Swipe to see later semesters
+	</p>
+	<div
+		class:at-end={!canScrollFurther}
+		class="scroll-frame relative max-w-full min-w-0 overflow-hidden"
+	>
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 		<div
 			bind:this={scrollRegion}
-			class="scroll-region"
+			class="w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain border border-[var(--ink)] bg-[var(--paper-shelf)]"
 			role="region"
 			tabindex="0"
 			aria-label="Course prerequisite map. Arrows point from a prerequisite to the course that requires it. Scroll horizontally to see later semesters."
 			onscroll={updateScrollCue}
 		>
-			<div class="canvas" style:width={`${layout.width}px`} style:height={`${layout.height}px`}>
+			<div
+				class="relative min-w-full bg-[image:linear-gradient(to_bottom,transparent_31px,var(--backdrop-faint)_32px)] bg-[length:100%_32px]"
+				style:width={`${layout.width}px`}
+				style:height={`${layout.height}px`}
+			>
 				{#each columns as column, index (column.id)}
 					<div
-						class="semester-heading"
+						class="absolute top-7 z-2 border-b-2 border-[var(--ink)] pb-[0.55rem]"
 						style:left={`${CANVAS_PADDING + index * (NODE_WIDTH + COLUMN_GAP)}px`}
 						style:width={`${NODE_WIDTH}px`}
 					>
-						<span class="font-mono">
+						<span class="block text-[var(--ink-faint)] text-[var(--text-caption)]">
 							{column.id === '__unplaced__' ? 'Not yet scheduled' : `Semester ${index + 1}`}
 						</span>
-						<strong>{column.label}</strong>
+						<strong class="mt-[0.15rem] block text-[1.1rem] font-[var(--font-body)]"
+							>{column.label}</strong
+						>
 					</div>
 				{/each}
 
-				<svg class="edges" width={layout.width} height={layout.height} aria-hidden="true">
+				<svg
+					class="pointer-events-none absolute inset-0 z-1 overflow-visible"
+					width={layout.width}
+					height={layout.height}
+					aria-hidden="true"
+				>
 					<defs>
 						<marker
 							id="course-map-arrow"
@@ -420,7 +481,7 @@
 							markerHeight="5"
 							orient="auto-start-reverse"
 						>
-							<path d="M 0 0 L 10 5 L 0 10 z" class="arrow" />
+							<path d="M 0 0 L 10 5 L 0 10 z" class="fill-[var(--ink-soft)]" />
 						</marker>
 					</defs>
 					{#each visibleRelations as relation (relation.id)}
@@ -464,219 +525,48 @@
 		{/key}
 	{/if}
 
-	<details class="planning-tools" name="course-map-panel">
-		<summary>
+	<Collapsible.Root class="relative min-w-0 border border-[var(--rule)] bg-[var(--surface-paper)]">
+		<Collapsible.Trigger
+			class="min-h-11 w-full cursor-pointer border-0 bg-transparent px-4 py-3 text-left font-bold"
+		>
 			Draft plans{scenario.moves.length
 				? ` · ${scenario.moves.length} unsaved change${scenario.moves.length === 1 ? '' : 's'}`
 				: ''}
-		</summary>
-		<div class="details-panel planning-panel">
-			<p class="planning-help">
+		</Collapsible.Trigger>
+		<Collapsible.Content
+			class="absolute top-[calc(100%+0.35rem)] left-0 z-100 box-border max-h-[min(70vh,42rem)] w-[min(56rem,calc(100vw-2rem))] max-w-full overflow-auto border border-[var(--ink)] bg-[var(--surface-paper)] shadow-[6px_6px_0_var(--shadow-ink)]"
+		>
+			<p class="m-0 px-4 py-[0.8rem] text-[length:var(--text-small)] text-[var(--ink-soft)]">
 				Draft plans are for comparison only. They never change your saved course schedule.
 			</p>
-			<SavedScenariosPanel
-				moves={storedMoves}
-				association={savedAssociation}
-				dirty={savedScenarioDirty}
-				onassociationchange={(association) => (savedAssociation = association)}
-				onloadscenario={loadSavedScenario}
-			/>
-			<PlanningScenarioPanel
-				{scenario}
-				{semesters}
-				{sharedSource}
-				onundo={(moveId) =>
-					updateScenario(undoPlanningMove(scenario, moveId, semesters, relations))}
-				onundolast={() => updateScenario(undoLastPlanningMove(scenario, semesters, relations))}
-				onreset={resetScenario}
-				onjump={jumpToCourse}
-				oncopy={copyScenarioLink}
-				onclearshared={clearSharedScenario}
-			/>
-		</div>
-	</details>
+			<div class="mx-[0.8rem] mb-[0.8rem]">
+				<SavedScenariosPanel
+					moves={storedMoves}
+					association={savedAssociation}
+					dirty={savedScenarioDirty}
+					onassociationchange={(association) => (savedAssociation = association)}
+					onloadscenario={loadSavedScenario}
+				/>
+			</div>
+			<div class="mx-[0.8rem] mb-[0.8rem]">
+				<PlanningScenarioPanel
+					{scenario}
+					{semesters}
+					{sharedSource}
+					onundo={(moveId) =>
+						updateScenario(undoPlanningMove(scenario, moveId, semesters, relations))}
+					onundolast={() => updateScenario(undoLastPlanningMove(scenario, semesters, relations))}
+					onreset={resetScenario}
+					onjump={jumpToCourse}
+					oncopy={copyScenarioLink}
+					onclearshared={clearSharedScenario}
+				/>
+			</div>
+		</Collapsible.Content>
+	</Collapsible.Root>
 </div>
 
 <style>
-	.map-shell {
-		display: grid;
-		min-width: 0;
-		max-width: 100%;
-		gap: 0.85rem;
-	}
-
-	.map-tools {
-		display: grid;
-		min-width: 0;
-		max-width: 100%;
-		grid-template-columns: minmax(16rem, 32rem) auto;
-		justify-content: space-between;
-		gap: 0.55rem;
-		align-items: end;
-	}
-
-	.map-legend {
-		position: relative;
-		z-index: 120;
-		justify-self: end;
-		font: 500 0.82rem/1.4 var(--font-body);
-		color: var(--ink);
-	}
-
-	.map-legend summary {
-		min-height: 44px;
-		padding: 0.55rem 0.25rem;
-		border: 0;
-		color: var(--ink-soft);
-		font-size: 0.78rem;
-		font-weight: 600;
-		cursor: pointer;
-	}
-
-	.map-legend > div {
-		position: absolute;
-		top: calc(100% + 0.25rem);
-		right: 0;
-		display: flex;
-		width: min(36rem, calc(100vw - 2rem));
-		flex-wrap: wrap;
-		gap: 0.55rem 1rem;
-		box-sizing: border-box;
-		padding: 0.75rem;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		box-shadow: 5px 5px 0 var(--shadow-ink);
-	}
-
-	.map-legend span {
-		display: inline-flex;
-		gap: 0.5rem;
-		align-items: center;
-		min-height: 1.75rem;
-	}
-
-	.legend-line {
-		display: inline-block;
-		width: 28px;
-		flex: 0 0 28px;
-		border-top: 2px solid var(--ink);
-	}
-
-	.legend-line.pending {
-		border-top-style: dashed;
-	}
-
-	.legend-box {
-		display: inline-block;
-		width: 14px;
-		height: 14px;
-		flex: 0 0 14px;
-		border: 2px solid;
-	}
-
-	.legend-box.upstream {
-		border-color: var(--pen-blue);
-	}
-
-	.legend-box.downstream {
-		border-color: var(--pen-red);
-	}
-
-	.map-tools .sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
-	}
-
-	.semester-overview button {
-		min-height: 44px;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		color: var(--ink);
-		font: 500 var(--text-small)/1.3 var(--font-body);
-	}
-
-	.semester-overview {
-		display: flex;
-		min-width: 0;
-		max-width: 100%;
-		gap: 0.4rem;
-		overflow-x: auto;
-		padding-bottom: 0.2rem;
-	}
-
-	.semester-overview button {
-		display: grid;
-		min-width: 8rem;
-		padding: 0.45rem 0.65rem;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.semester-overview span {
-		font-size: var(--text-caption);
-		color: var(--ink-soft);
-	}
-
-	.planning-tools {
-		position: relative;
-		min-width: 0;
-		border: 1px solid var(--rule);
-		background: var(--surface-paper);
-	}
-
-	.planning-tools > summary {
-		min-height: 44px;
-		padding: 0.75rem 1rem;
-		font-weight: 700;
-		cursor: pointer;
-	}
-
-	.details-panel {
-		position: absolute;
-		top: calc(100% + 0.35rem);
-		left: 0;
-		z-index: 100;
-		width: min(48rem, calc(100vw - 2rem));
-		max-width: 100%;
-		max-height: min(70vh, 42rem);
-		overflow: auto;
-		box-sizing: border-box;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		box-shadow: 6px 6px 0 var(--shadow-ink);
-	}
-
-	.details-panel > p,
-	.planning-help {
-		margin: 0;
-		padding: 0.8rem 1rem;
-		font-size: var(--text-small);
-		color: var(--ink-soft);
-	}
-
-	.planning-tools :global(.saved),
-	.planning-tools :global(.planning-workspace) {
-		margin: 0 0.8rem 0.8rem;
-	}
-
-	.planning-panel {
-		width: min(56rem, calc(100vw - 2rem));
-	}
-
-	.scroll-frame {
-		position: relative;
-		min-width: 0;
-		max-width: 100%;
-		overflow: hidden;
-	}
-
 	.scroll-frame::after {
 		position: absolute;
 		top: 1px;
@@ -692,117 +582,5 @@
 
 	.scroll-frame.at-end::after {
 		opacity: 0;
-	}
-
-	.scroll-cue {
-		display: none;
-		margin: 0 0 0.45rem;
-		font-size: 0.65rem;
-		letter-spacing: 0.07em;
-		text-transform: uppercase;
-		color: var(--ink-soft);
-	}
-
-	.scroll-cue.at-end {
-		visibility: hidden;
-	}
-
-	.scenario-legend {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.45rem 1rem;
-		margin: 0 0 0.5rem;
-		font-size: 0.62rem;
-		color: var(--ink-soft);
-	}
-
-	.scenario-legend span {
-		display: inline-flex;
-		gap: 0.35rem;
-		align-items: center;
-	}
-
-	.scenario-legend i {
-		display: inline-block;
-		width: 12px;
-		height: 12px;
-		border: 2px solid;
-	}
-
-	.preview-mark,
-	.resolved-mark {
-		border-color: var(--ok) !important;
-	}
-
-	.preview-mark {
-		border-style: double !important;
-	}
-
-	.conflict-mark {
-		border-color: var(--accent) !important;
-	}
-
-	.scroll-region {
-		width: 100%;
-		min-width: 0;
-		max-width: 100%;
-		overflow-x: auto;
-		border: 1px solid var(--ink);
-		background: var(--paper-shelf);
-		overscroll-behavior-inline: contain;
-	}
-
-	.canvas {
-		position: relative;
-		min-width: 100%;
-		background-image: linear-gradient(to bottom, transparent 31px, var(--backdrop-faint) 32px);
-		background-size: 100% 32px;
-	}
-
-	.semester-heading {
-		position: absolute;
-		top: 28px;
-		z-index: 2;
-		padding-bottom: 0.55rem;
-		border-bottom: 2px solid var(--ink);
-	}
-
-	.semester-heading span,
-	.semester-heading strong {
-		display: block;
-	}
-
-	.semester-heading span {
-		font-size: 0.65rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
-	}
-
-	.semester-heading strong {
-		margin-top: 0.15rem;
-		font-family: var(--font-body);
-		font-size: 1.1rem;
-	}
-
-	.edges {
-		position: absolute;
-		inset: 0;
-		z-index: 1;
-		overflow: visible;
-		pointer-events: none;
-	}
-
-	.arrow {
-		fill: var(--ink-soft);
-	}
-
-	@media (max-width: 768px) {
-		.scroll-cue {
-			display: block;
-		}
-		.map-tools {
-			grid-template-columns: minmax(0, 1fr) auto;
-		}
 	}
 </style>

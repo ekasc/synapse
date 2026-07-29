@@ -43,29 +43,52 @@
 	}
 </script>
 
-<section class="saved-practice" aria-labelledby="saved-practice-heading">
-	<div class="saved-practice-head">
+<section
+	class="my-[1.1rem] mb-5 border-y border-[var(--rule)] py-4"
+	aria-labelledby="saved-practice-heading"
+>
+	<div class="mb-3 flex items-end justify-between gap-4">
 		<div>
-			<div class="eyebrow font-mono">Course library</div>
-			<h2 id="saved-practice-heading">Saved practice</h2>
+			<div class="eyebrow">Course library</div>
+			<h2
+				id="saved-practice-heading"
+				class="mt-[0.15rem] mb-0 [font-family:var(--font-body)] text-[length:var(--text-subheading)] leading-[1.1] font-bold"
+			>
+				Saved practice
+			</h2>
 		</div>
 		{#if sessions.length > 0}
-			<span class="saved-count font-mono">{sessions.length} saved</span>
+			<span class=" text-[length:var(--text-small)] text-[var(--ink-faint)]"
+				>{sessions.length} saved</span
+			>
 		{/if}
 	</div>
 
 	{#if loading}
-		<p class="shelf-status font-mono">Loading saved practice…</p>
+		<p class="mt-0 mb-3 text-xs text-[var(--ink-faint)]">Loading saved practice…</p>
 	{:else if sessions.length === 0}
-		<p class="saved-empty">Generated quizzes and flashcards for this course will appear here.</p>
+		<p class="m-0 text-[var(--ink-soft)] text-[var(--text-caption)]">
+			Generated quizzes and flashcards for this course will appear here.
+		</p>
 	{:else}
-		<ul class="sessions-shelf">
+		<ul class="m-0 grid list-none gap-[0.55rem] p-0">
 			{#each sessions as session (session.id)}
-				<li class="session-row" class:session-active={activeSessionId === session.id}>
-					<div class="session-info">
-						<div class="session-title">{sessionTitle(session)}</div>
-						<div class="session-sources">{sessionSources(session)}</div>
-						<div class="session-meta font-mono">
+				<li
+					class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border border-[var(--rule)] bg-[var(--paper)] p-3 max-[700px]:grid-cols-[minmax(0,1fr)] {activeSessionId ===
+					session.id
+						? 'border-[var(--ink)] bg-[var(--paper-shelf)]'
+						: ''}"
+				>
+					<div class="min-w-0">
+						<div class="font-semibold text-[var(--ink)] text-[var(--text-small)]">
+							{sessionTitle(session)}
+						</div>
+						<div class="mt-[0.15rem] truncate text-[var(--ink-soft)] text-[var(--text-caption)]">
+							{sessionSources(session)}
+						</div>
+						<div
+							class="mt-[0.4rem] flex flex-wrap gap-x-3 gap-y-[0.3rem] text-[var(--ink-faint)] text-[var(--text-caption)]"
+						>
 							<span>{session.questionCount} questions</span>
 							<span>{session.flashcardCount} cards</span>
 							<span>{session.score}/{session.questionCount} correct</span>
@@ -79,7 +102,7 @@
 							>
 						</div>
 					</div>
-					<div class="session-actions">
+					<div class="flex flex-wrap justify-end gap-[0.4rem] max-[700px]:justify-start">
 						<button class="btn btn-secondary btn-sm" onclick={() => onresume(session.id, 'quiz')}
 							>review quiz</button
 						>
@@ -88,7 +111,7 @@
 							onclick={() => onresume(session.id, 'flashcards')}>review cards</button
 						>
 						<button
-							class="session-delete"
+							class="cursor-pointer border-0 bg-transparent px-[0.45rem] py-[0.35rem] text-[length:var(--text-micro)] leading-[1.4] text-[var(--pen-red)]"
 							onclick={() => ondelete(session.id)}
 							aria-label={`Delete ${sessionTitle(session)} practice set`}>delete</button
 						>
@@ -100,127 +123,8 @@
 </section>
 
 <style>
-	.shelf-status {
-		font-size: 0.75rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		margin: 0 0 0.75rem;
-	}
-
-	.saved-practice {
-		padding: 1rem 0;
-		margin: 1.1rem 0 1.25rem;
-		border-top: 1px solid var(--rule);
-		border-bottom: 1px solid var(--rule);
-	}
-
-	.saved-practice-head {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 1rem;
-		margin-bottom: 0.75rem;
-	}
-
-	.saved-practice-head h2 {
-		margin: 0.15rem 0 0;
-		font: 700 1.3rem var(--font-hand);
-		line-height: 1.1;
-	}
-
-	.saved-practice-head .eyebrow,
-	.saved-count {
-		color: var(--ink-faint);
-		font-size: 0.66rem;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-	}
-
-	.saved-empty {
-		margin: 0;
+	.eyebrow {
 		color: var(--ink-soft);
-		font-size: 0.86rem;
-	}
-
-	.sessions-shelf {
-		display: grid;
-		gap: 0.55rem;
-		padding: 0;
-		margin: 0;
-		list-style: none;
-	}
-
-	.session-row {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: 1rem;
-		align-items: center;
-		padding: 0.75rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-	}
-
-	.session-row.session-active {
-		border-color: var(--ink);
-		background: var(--paper-shelf);
-	}
-
-	.session-info {
-		min-width: 0;
-	}
-
-	.session-title {
-		color: var(--ink);
-		font-size: 0.92rem;
-		font-weight: 600;
-	}
-
-	.session-sources {
-		overflow: hidden;
-		margin-top: 0.15rem;
-		color: var(--ink-soft);
-		font-size: 0.8rem;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.session-meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.3rem 0.75rem;
-		margin-top: 0.4rem;
-		color: var(--ink-faint);
-		font-size: 0.65rem;
-		letter-spacing: 0.07em;
-		text-transform: uppercase;
-	}
-
-	.session-actions {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: flex-end;
-		gap: 0.4rem;
-	}
-
-	.session-delete {
-		padding: 0.35rem 0.45rem;
-		border: 0;
-		background: transparent;
-		color: var(--pen-red);
-		font: 0.65rem var(--font-mono);
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		cursor: pointer;
-	}
-
-	@media (max-width: 700px) {
-		.session-row {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.session-actions {
-			justify-content: flex-start;
-		}
+		font-size: var(--text-small);
 	}
 </style>

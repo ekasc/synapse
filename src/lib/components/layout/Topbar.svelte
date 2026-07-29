@@ -33,32 +33,35 @@
 
 <div class="topbar">
 	<div class="topbar-actions">
-		<div class="current-term">{currentTermLabel}</div>
-		<div class="today">{todayLabel}</div>
-		<div id="synapse-fab" class="mobile-nav">
+		<div class="current-term max-sm:max-w-32 max-sm:text-right">{currentTermLabel}</div>
+		<div class="today max-sm:hidden">{todayLabel}</div>
+		<div id="synapse-fab" class="mobile-nav relative hidden max-md:block">
 			<button
 				type="button"
 				onclick={() => (fabOpen = !fabOpen)}
-				class="fab-btn"
+				class="fab-btn flex h-11 w-11 cursor-pointer items-center justify-center border border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)] transition-[background,border-color] duration-150 ease-[var(--ease-out-quart)] hover:bg-[var(--ink)] hover:text-[var(--paper)] motion-reduce:transition-none"
 				aria-label={fabOpen ? 'Close navigation' : 'Open navigation'}
 				aria-expanded={fabOpen}
 				aria-controls="synapse-mobile-nav"
 			>
-				<span class="fab-btn-icon">{fabOpen ? '✕' : '☰'}</span>
+				<span class="fab-btn-icon text-base leading-none">{fabOpen ? '✕' : '☰'}</span>
 			</button>
 			{#if fabOpen}
-				<nav id="synapse-mobile-nav" class="mobile-nav-popup" aria-label="Mobile app navigation">
+				<nav
+					id="synapse-mobile-nav"
+					class="mobile-nav-popup absolute top-[calc(100%+8px)] right-0 z-[var(--z-fab)] max-h-[calc(100vh-5rem)] min-w-48 overflow-x-hidden overflow-y-auto border border-[var(--rule)] bg-[var(--surface-paper)]"
+					aria-label="Mobile app navigation"
+				>
 					{#each routes as route (route.href)}
 						<a
 							href={resolveRoute(route.href as Exclude<typeof route.href, `/app/courses/[id]`>)}
-							class="fab-item"
-							class:fab-active={isRouteActive(pathname, route)}
+							class="fab-item flex w-full cursor-pointer items-center gap-[0.65rem] border-0 border-b border-b-[rgba(26,26,23,0.05)] bg-transparent px-4 py-3 text-left font-[var(--font-body)] text-[var(--ink-soft)] text-[var(--text-caption)] no-underline transition-[background,color] duration-120 ease-[var(--ease-out-quart)] last:border-b-0 hover:bg-[var(--paper-shelf)] hover:text-[var(--ink)] aria-[current=page]:border-l-2 aria-[current=page]:border-l-[var(--accent)] aria-[current=page]:bg-[var(--paper-shelf)] aria-[current=page]:font-medium aria-[current=page]:text-[var(--ink)]"
 							aria-current={isRouteActive(pathname, route) ? 'page' : undefined}
 						>
-							<span class="fab-label">{route.label}</span>
+							<span class="fab-label text-[var(--text-small)]">{route.label}</span>
 						</a>
 					{/each}
-					<div class="mobile-semesters">
+					<div class="mobile-semesters border-t border-[var(--rule)]">
 						<TermList {semesters} {courses} {countsById} {onAddSemester} surface="paper" />
 					</div>
 				</nav>
@@ -66,115 +69,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	.mobile-nav {
-		display: none;
-		position: relative;
-	}
-
-	@media (max-width: 767px) {
-		.mobile-nav {
-			display: block;
-		}
-	}
-
-	.mobile-nav-popup {
-		position: absolute;
-		top: calc(100% + 8px);
-		right: 0;
-		min-width: 12rem;
-		max-height: calc(100vh - 5rem);
-		background: var(--surface-paper);
-		border: 1px solid var(--rule);
-		overflow-x: hidden;
-		overflow-y: auto;
-		z-index: var(--z-fab);
-	}
-
-	.fab-item {
-		display: flex;
-		align-items: center;
-		gap: 0.65rem;
-		width: 100%;
-		padding: 0.75rem 1rem;
-		color: var(--ink-soft);
-		text-align: left;
-		font-size: 0.85rem;
-		border: none;
-		border-bottom: 1px solid rgba(26, 26, 23, 0.05);
-		background: none;
-		cursor: pointer;
-		text-decoration: none;
-		font-family: var(--font-body);
-		transition:
-			background 0.12s var(--ease-out-quart),
-			color 0.12s var(--ease-out-quart);
-	}
-
-	.fab-item:last-child {
-		border-bottom: none;
-	}
-
-	.fab-item:hover {
-		background: var(--paper-shelf);
-		color: var(--ink);
-	}
-
-	.fab-active {
-		background: var(--paper-shelf);
-		color: var(--ink);
-		border-left: 2px solid var(--accent);
-		font-weight: 500;
-	}
-
-	.fab-label {
-		font-size: 0.9rem;
-	}
-
-	.mobile-semesters {
-		border-top: 1px solid var(--rule);
-	}
-
-	.fab-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.75rem;
-		height: 2.75rem;
-		border: 1px solid var(--ink);
-		background: var(--paper);
-		color: var(--ink);
-		cursor: pointer;
-		font-family: var(--font-mono);
-		transition:
-			background 0.15s var(--ease-out-quart),
-			border-color 0.15s var(--ease-out-quart);
-	}
-
-	.fab-btn:hover {
-		background: var(--ink);
-		color: var(--paper);
-	}
-
-	.fab-btn-icon {
-		font-size: 1rem;
-		line-height: 1;
-	}
-
-	@media (max-width: 640px) {
-		.today {
-			display: none;
-		}
-		.current-term {
-			max-width: 8rem;
-			text-align: right;
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.fab-btn {
-			transition: none;
-		}
-	}
-</style>

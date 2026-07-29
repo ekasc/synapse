@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { weekNumber } from '$lib/calendar/week';
+	import { DropdownMenu } from 'bits-ui';
+	import { MoreHorizontal, X } from '@lucide/svelte';
 	import type { CalendarEvent } from './types';
 
 	const MONTHS = [
@@ -36,7 +37,6 @@
 		eventsByDay = new Map<string, CalendarEvent[]>(),
 		colorByCode = new Map<string, string>(),
 		isSelectedDay = (_day: number) => false,
-		typeBadge = (_t: string) => '•',
 		eventIsOverdue = (_event: CalendarEvent) => false,
 		onPrevMonth = () => {},
 		onNextMonth = () => {},
@@ -47,7 +47,6 @@
 		onYearChange = (_year: number) => {},
 		onMonthChange = (_month: number) => {},
 		onGridKeydown = (_e: KeyboardEvent) => {},
-		onAddEvent = (_day: number) => {},
 		onEditEvent = (_event: CalendarEvent) => {},
 		onUpdateEventStatus = (_id: string, _status: string) => {},
 		onDeleteEvent = (_id: string) => {},
@@ -70,7 +69,6 @@
 		eventsByDay: Map<string, CalendarEvent[]>;
 		colorByCode: Map<string, string>;
 		isSelectedDay: (day: number) => boolean;
-		typeBadge: (t: string) => string;
 		eventIsOverdue: (event: CalendarEvent) => boolean;
 		onPrevMonth: () => void;
 		onNextMonth: () => void;
@@ -81,7 +79,6 @@
 		onYearChange: (year: number) => void;
 		onMonthChange: (month: number) => void;
 		onGridKeydown: (e: KeyboardEvent) => void;
-		onAddEvent: (day: number) => void;
 		onEditEvent: (event: CalendarEvent) => void;
 		onUpdateEventStatus: (id: string, status: string) => void;
 		onDeleteEvent: (id: string) => void;
@@ -91,6 +88,12 @@
 	// O(1) color lookup — the Map is precomputed once per render in the workspace.
 	function colorFor(code: string): string {
 		return colorByCode.get(code) ?? 'var(--ink)';
+	}
+
+	function typeLabel(type: string): string {
+		return type === 'study_session'
+			? 'Study session'
+			: type.charAt(0).toUpperCase() + type.slice(1);
 	}
 
 	// Roving tabindex: exactly one day cell is tabbable. Falls back to day 1
@@ -103,30 +106,25 @@
 <div class="cal-grid surface-polaroid">
 	<div class="cal-header">
 		<div class="cal-month-nav">
-			<button class="cal-nav-btn font-mono" onclick={onPrevMonth} aria-label="Previous month"
-				>←</button
-			>
+			<button class="cal-nav-btn" onclick={onPrevMonth} aria-label="Previous month">←</button>
 			<button
 				class="cal-month-label cal-month-label-btn"
 				onclick={onToggleYearPicker}
-				aria-label="Select month">{monthName} {viewYear}</button
+				aria-label="Select month"
+				aria-expanded={showYearPicker}
+				aria-controls="calendar-date-picker">{monthName} {viewYear}</button
 			>
-			<button class="cal-nav-btn font-mono" onclick={onNextMonth} aria-label="Next month">→</button>
-			<button class="cal-today-btn font-mono" onclick={onGoToday}>today</button>
-			<button
-				class="cal-nav-btn-wide font-mono"
-				onclick={() => onAddEvent(focusedDay ?? today)}
-				style="margin-left: 0.25rem">+ event</button
-			>
+			<button class="cal-nav-btn" onclick={onNextMonth} aria-label="Next month">→</button>
+			<button class="cal-today-btn" onclick={onGoToday}>today</button>
 		</div>
 	</div>
 
 	{#if showYearPicker}
-		<div class="cal-year-picker">
+		<div id="calendar-date-picker" class="cal-year-picker">
 			<div class="cal-year-picker-grid">
 				{#each Array.from({ length: 12 }, (_, m) => m) as m (m)}
 					<button
-						class="cal-year-picker-month font-mono"
+						class="cal-year-picker-month"
 						class:cal-year-picker-active={viewMonth === m}
 						onclick={() => onMonthChange(m)}>{MONTHS[m].slice(0, 3)}</button
 					>
@@ -134,13 +132,13 @@
 			</div>
 			<div class="cal-year-picker-years">
 				<button
-					class="cal-nav-btn font-mono"
+					class="cal-nav-btn"
 					onclick={() => onYearChange(viewYear - 1)}
 					aria-label="Previous year">←</button
 				>
-				<span class="cal-year-picker-year font-mono">{viewYear}</span>
+				<span class="cal-year-picker-year font-numeric">{viewYear}</span>
 				<button
-					class="cal-nav-btn font-mono"
+					class="cal-nav-btn"
 					onclick={() => onYearChange(viewYear + 1)}
 					aria-label="Next year">→</button
 				>
@@ -149,9 +147,8 @@
 	{/if}
 
 	<div class="cal-weekdays">
-		<span class="cal-weekday cal-week-num-header font-mono">#</span>
 		{#each DAYS_SHORT as day, i (i)}
-			<span class="cal-weekday font-mono">{day}</span>
+			<span class="cal-weekday">{day}</span>
 		{/each}
 	</div>
 
@@ -163,9 +160,7 @@
 		onkeydown={onGridKeydown}
 	>
 		{#each Array.from({ length: calendarRows }, (_, row) => row) as row (row)}
-			{@const rn = weekNumber(new Date(viewYear, viewMonth, Math.max(1, row * 7 + 1 - startDay)))}
 			<div class="cal-grid-row" role="row">
-				<span class="cal-week-num font-mono" title="Week {rn}" aria-hidden="true">{rn}</span>
 				{#each Array.from({ length: 7 }, (_, col) => col) as col (col)}
 					{@const day = row * 7 + col - startDay + 1}
 					{@const dayEvents =
@@ -185,21 +180,38 @@
 							tabindex={tabbableDay === day ? 0 : -1}
 							aria-selected={isSelectedDay(day)}
 							data-cal-day={day}
-							aria-label={`${day} — ${dayEvents.map((e) => `${e.title} (${e.courseCode})`).join(', ')}`}
+							aria-label={`${new Date(viewYear, viewMonth, day).toLocaleDateString('en-US', {
+								weekday: 'long',
+								month: 'long',
+								day: 'numeric',
+								year: 'numeric'
+							})}. ${dayEvents.length ? dayEvents.map((event) => `${event.title} (${event.courseCode})`).join(', ') : 'No events'}`}
 							onclick={() => onSelectDay(day)}
 							onfocus={() => onFocusedDay(day)}
 						>
-							<span class="cal-day-num font-mono">{day}</span>
+							<span class="cal-day-num font-numeric">{day}</span>
 							{#if dayEvents.length > 0}
-								<div class="cal-dot-group" aria-hidden="true">
-									{#each dayEvents.slice(0, 4) as e (e.id)}
+								<div class="cal-event-chips" aria-hidden="true">
+									{#each dayEvents.slice(0, 2) as event (event.id)}
 										<span
-											class="cal-dot"
-											style="background: {colorFor(e.courseCode)}"
-											title="{e.title} — {e.courseCode}"
-										></span>
+											class="cal-event-chip"
+											class:cal-event-chip-done={event.status === 'completed'}
+											class:cal-event-chip-risk={event.status === 'at_risk'}
+											style="border-left-color: {colorFor(event.courseCode)}"
+										>
+											<strong>{event.courseCode}</strong>
+											<span>{event.title}</span>
+										</span>
 									{/each}
-									{#if dayEvents.length > 4}<span class="cal-dot-more font-mono"
+									{#if dayEvents.length > 2}<span class="cal-event-more font-numeric"
+											>+{dayEvents.length - 2} more</span
+										>{/if}
+								</div>
+								<div class="cal-dot-group" aria-hidden="true">
+									{#each dayEvents.slice(0, 4) as event (event.id)}
+										<span class="cal-dot" style="background: {colorFor(event.courseCode)}"></span>
+									{/each}
+									{#if dayEvents.length > 4}<span class="cal-dot-more font-numeric"
 											>+{dayEvents.length - 4}</span
 										>{/if}
 								</div>
@@ -225,84 +237,115 @@
 
 	<!-- Day popover -->
 	{#if selectedDay !== null}
-		<div class="cal-day-popover">
+		<div
+			class="cal-day-popover"
+			role="region"
+			aria-label={`Events for ${new Date(viewYear, viewMonth, selectedDay).toLocaleDateString(
+				'en-US',
+				{
+					month: 'long',
+					day: 'numeric',
+					year: 'numeric'
+				}
+			)}`}
+		>
 			<div class="cal-popover-head">
-				<span class="cal-popover-date font-mono"
+				<span class="cal-popover-date"
 					>{new Date(viewYear, viewMonth, selectedDay).toLocaleDateString('en-US', {
 						weekday: 'short',
 						month: 'short',
 						day: 'numeric'
 					})}</span
 				>
-				<span class="cal-popover-count font-mono"
+				<span class="cal-popover-count font-numeric"
 					>{selectedDayEvents.length} event{selectedDayEvents.length !== 1 ? 's' : ''}</span
 				>
-				<button class="cal-popover-close" onclick={onDismissPopover} aria-label="Close">×</button>
+				<button
+					class="cal-popover-close"
+					onclick={onDismissPopover}
+					aria-label="Close selected day"
+					title="Close"
+				>
+					<X class="size-[var(--icon-sm)]" aria-hidden="true" />
+				</button>
 			</div>
 			<div class="cal-popover-list">
-				{#each selectedDayEvents as ev (ev.id)}
-					<div class="cal-popover-item" class:cal-popover-item-overdue={eventIsOverdue(ev)}>
-						<span class="cal-popover-dot" style="background: {colorFor(ev.courseCode)}"></span>
+				{#if selectedDayEvents.length === 0}
+					<div class="cal-empty-day">
+						<span aria-hidden="true">✓</span>
+						<strong>Nothing due.</strong>
+						<small>A clear page for now.</small>
+					</div>
+				{/if}
+				{#each selectedDayEvents as event (event.id)}
+					<article class="cal-popover-item" class:cal-popover-item-overdue={eventIsOverdue(event)}>
 						<div class="cal-popover-item-body">
 							<div class="cal-popover-item-head">
-								<span class="cal-popover-item-title"
-									>{ev.title}
-									<span class="cal-popover-type font-mono">{typeBadge(ev.type)}</span>
-								</span>
+								<div>
+									<h3 class="cal-popover-item-title">{event.title}</h3>
+									<div class="cal-popover-item-meta">
+										<span class="cal-course-swatch" style="background: {colorFor(event.courseCode)}"
+										></span>
+										<span class="cal-popover-item-course">{event.courseCode}</span>
+										<span>{typeLabel(event.type)}</span>
+										{#if event.time}<span class="font-numeric">{event.time}</span>{/if}
+										{#if event.gradeWeight != null && event.gradeWeight > 0}
+											<span>{event.gradeWeight}% of grade</span>
+										{/if}
+										{#if event.status === 'completed'}
+											<span class="cal-popover-item-badge cal-badge-done">Done</span>
+										{:else if event.status === 'at_risk'}
+											<span class="cal-popover-item-badge cal-badge-risk">At risk</span>
+										{/if}
+									</div>
+								</div>
 								<div class="cal-popover-item-actions">
-									<button
-										class="cal-popover-action-btn"
-										onclick={() => onEditEvent(ev)}
-										aria-label="Edit event"
-										title="Edit event">edit</button
-									>
-									{#if ev.status !== 'completed'}
+									{#if event.status !== 'completed'}
 										<button
-											class="cal-popover-action-btn"
-											onclick={() => onUpdateEventStatus(ev.id, 'completed')}
-											aria-label="Mark done"
-											title="Mark done">✓</button
+											class="cal-popover-done"
+											onclick={() => onUpdateEventStatus(event.id, 'completed')}>Mark done</button
 										>
 									{/if}
-									{#if ev.status !== 'at_risk'}
-										<button
-											class="cal-popover-action-btn cal-popover-action-danger"
-											onclick={() => onUpdateEventStatus(ev.id, 'at_risk')}
-											aria-label="Flag at risk"
-											title="Flag at risk">!</button
+									<DropdownMenu.Root>
+										<DropdownMenu.Trigger
+											class="cal-event-menu-trigger"
+											aria-label={`More actions for ${event.title}`}
+											><MoreHorizontal
+												class="size-[var(--icon-sm)]"
+												aria-hidden="true"
+											/></DropdownMenu.Trigger
 										>
-									{/if}
-									<button
-										class="cal-popover-action-btn cal-popover-action-del"
-										onclick={() => onDeleteEvent(ev.id)}
-										aria-label="Delete"
-										title="Delete">×</button
-									>
+										<DropdownMenu.Portal>
+											<DropdownMenu.Content
+												sideOffset={4}
+												class="z-[var(--z-dropdown)] grid w-40 border border-[var(--ink)] bg-[var(--paper)] shadow-[3px_3px_0_var(--shadow-ink)]"
+											>
+												<DropdownMenu.Item
+													class="min-h-9 cursor-pointer border-b border-[var(--rule)] px-2.5 py-2 text-[var(--text-caption)] outline-none data-[highlighted]:bg-[var(--highlight-soft)]"
+													onclick={() => onEditEvent(event)}>Edit</DropdownMenu.Item
+												>
+												<DropdownMenu.Item
+													class="min-h-9 cursor-pointer border-b border-[var(--rule)] px-2.5 py-2 text-[var(--text-caption)] outline-none data-[highlighted]:bg-[var(--highlight-soft)]"
+													onclick={() =>
+														onUpdateEventStatus(
+															event.id,
+															event.status === 'at_risk' ? 'pending' : 'at_risk'
+														)}
+												>
+													{event.status === 'at_risk' ? 'Clear risk flag' : 'Flag as at risk'}
+												</DropdownMenu.Item>
+												<DropdownMenu.Item
+													class="min-h-9 cursor-pointer px-2.5 py-2 text-[var(--accent)] text-[var(--text-caption)] outline-none data-[highlighted]:bg-[var(--highlight-soft)]"
+													onclick={() => onDeleteEvent(event.id)}>Delete</DropdownMenu.Item
+												>
+											</DropdownMenu.Content>
+										</DropdownMenu.Portal>
+									</DropdownMenu.Root>
 								</div>
 							</div>
-							<div class="cal-popover-item-meta">
-								<span class="cal-popover-item-course font-mono">{ev.courseCode}</span>
-								{#if ev.time}<span class="cal-popover-item-time font-mono">{ev.time}</span>{/if}
-								{#if ev.gradeWeight != null && ev.gradeWeight > 0}
-									<span
-										class="cal-popover-item-weight"
-										style="background: {colorFor(ev.courseCode)}">{ev.gradeWeight}%</span
-									>
-								{/if}
-								{#if ev.status === 'completed'}
-									<span class="cal-popover-item-badge cal-badge-done">done</span>
-								{:else if ev.status === 'at_risk'}
-									<span class="cal-popover-item-badge cal-badge-risk">at risk</span>
-								{/if}
-							</div>
 						</div>
-					</div>
+					</article>
 				{/each}
-			</div>
-			<div class="cal-popover-actions">
-				<button class="cal-popover-add font-mono" onclick={() => onAddEvent(selectedDay!)}>
-					+ add event
-				</button>
 			</div>
 		</div>
 	{/if}
@@ -330,7 +373,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		cursor: pointer;
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		line-height: 1;
 		transition:
 			border-color 0.12s var(--ease-out-quart),
@@ -353,9 +396,9 @@
 		background: var(--paper);
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 0.65rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		transition:
 			border-color 0.12s var(--ease-out-quart),
 			color 0.12s var(--ease-out-quart);
@@ -363,19 +406,6 @@
 	.cal-today-btn:hover {
 		border-color: var(--ink);
 		color: var(--ink);
-	}
-	.cal-nav-btn-wide {
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink);
-		cursor: pointer;
-		font-size: 0.8rem;
-		padding: 0.35rem 0.65rem;
-		line-height: 1;
-		transition: border-color 0.12s var(--ease-out-quart);
-	}
-	.cal-nav-btn-wide:hover {
-		border-color: var(--ink);
 	}
 	/* ── End shared toolbar ── */
 
@@ -418,8 +448,8 @@
 		background: transparent;
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 0.75rem;
-		text-transform: uppercase;
+		font-size: var(--text-caption);
+		text-transform: none;
 		letter-spacing: 0.1em;
 	}
 	.cal-year-picker-month:hover {
@@ -437,7 +467,7 @@
 		gap: 0.5rem;
 	}
 	.cal-year-picker-year {
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 		font-weight: 500;
 		min-width: 3rem;
@@ -447,22 +477,17 @@
 	/* Weekday headers */
 	.cal-weekdays {
 		display: grid;
-		grid-template-columns: 1.5rem repeat(7, 1fr);
+		grid-template-columns: repeat(7, minmax(0, 1fr));
 		gap: 2px;
 		margin-bottom: 4px;
 	}
-	.cal-week-num-header {
-		font-size: 0.62rem;
-		color: var(--ink-faint);
-		text-align: center;
-	}
 	.cal-weekday {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		text-align: center;
 		padding: 4px 0;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	/* Grid cells — each week is a role="row" wrapper so the grid exposes a
@@ -474,15 +499,8 @@
 	}
 	.cal-grid-row {
 		display: grid;
-		grid-template-columns: 1.5rem repeat(7, 1fr);
+		grid-template-columns: repeat(7, minmax(0, 1fr));
 		gap: 2px;
-	}
-	.cal-week-num {
-		font-size: 0.68rem;
-		color: var(--ink-faint);
-		text-align: center;
-		padding: 2px;
-		padding-top: 8px;
 	}
 	.cal-day {
 		position: relative;
@@ -524,7 +542,7 @@
 		outline-offset: -2px;
 	}
 	.cal-day-num {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		margin-bottom: 1px;
 	}
@@ -539,8 +557,55 @@
 		text-decoration: line-through;
 		color: var(--accent);
 	}
-	.cal-dot-group {
+	.cal-event-chips {
+		display: grid;
+		width: 100%;
+		gap: 2px;
+		margin-top: 2px;
+	}
+	.cal-event-chip {
 		display: flex;
+		min-width: 0;
+		gap: 0.25rem;
+		padding: 2px 3px;
+		overflow: hidden;
+		border-left: 2px solid var(--ink);
+		background: var(--paper-shelf);
+		font-size: var(--text-caption);
+		line-height: 1.25;
+		text-align: left;
+		transition:
+			transform 140ms var(--ease-out-quart),
+			background 140ms var(--ease-out-quart);
+	}
+	.cal-day:hover .cal-event-chip {
+		transform: translateX(1px);
+		background: var(--highlight-soft);
+	}
+	.cal-event-chip strong {
+		flex: 0 0 auto;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+	}
+	.cal-event-chip span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.cal-event-chip-done {
+		opacity: 0.55;
+		text-decoration: line-through;
+	}
+	.cal-event-chip-risk {
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+	.cal-event-more {
+		color: var(--ink-faint);
+		font-size: var(--text-caption);
+		text-align: left;
+	}
+	.cal-dot-group {
+		display: none;
 		flex-wrap: wrap;
 		justify-content: center;
 		gap: 2px;
@@ -551,7 +616,7 @@
 		height: 4px;
 	}
 	.cal-dot-more {
-		font-size: 0.5rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		line-height: 1;
 	}
@@ -571,6 +636,7 @@
 		background: var(--surface-paper);
 		margin-top: 0.75rem;
 		padding: 0.75rem;
+		animation: calendar-reveal 180ms var(--ease-out-quart);
 	}
 	.cal-popover-head {
 		display: flex;
@@ -581,157 +647,165 @@
 		border-bottom: 1px solid var(--rule);
 	}
 	.cal-popover-date {
-		font-size: 0.82rem;
+		font-size: var(--text-caption);
 		color: var(--ink);
 		font-weight: 500;
 	}
 	.cal-popover-count {
 		margin-left: auto;
-		font-size: 0.68rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 	}
 	.cal-popover-close {
-		border: none;
+		display: grid;
+		width: var(--control-sm);
+		height: var(--control-sm);
+		place-items: center;
+		padding: 0;
+		border: 1px solid transparent;
 		background: none;
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 1.1rem;
-		line-height: 1;
-		padding: 0;
 	}
 	.cal-popover-close:hover {
 		color: var(--ink);
 	}
 	.cal-popover-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
+		display: grid;
+		gap: 0.6rem;
+	}
+	.cal-empty-day {
+		display: grid;
+		justify-items: center;
+		padding: 1.25rem;
+		border: 1px dashed var(--rule);
+		color: var(--ink-soft);
+		text-align: center;
+	}
+	.cal-empty-day > span {
+		display: grid;
+		width: 1.8rem;
+		height: 1.8rem;
+		place-items: center;
+		margin-bottom: 0.4rem;
+		border: 1px solid var(--ink);
+		border-radius: 50%;
+		color: var(--ink);
+		font-weight: 700;
+	}
+	.cal-empty-day strong {
+		color: var(--ink);
+	}
+	.cal-empty-day small {
+		margin-top: 0.15rem;
+		font-size: var(--text-caption);
 	}
 	.cal-popover-item {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.5rem;
-		padding: 0.35rem 0;
+		padding: 0.8rem;
+		border: 1px solid var(--rule);
+		background: var(--paper);
 	}
 	.cal-popover-item-overdue {
-		opacity: 0.5;
-	}
-	.cal-popover-dot {
-		width: 7px;
-		height: 7px;
-		flex-shrink: 0;
-		margin-top: 4px;
-	}
-	.cal-popover-item-body {
-		flex: 1;
-		min-width: 0;
+		opacity: 0.6;
 	}
 	.cal-popover-item-head {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
+		gap: 1rem;
 	}
 	.cal-popover-item-title {
-		font-size: 0.82rem;
+		margin: 0;
 		color: var(--ink);
-		line-height: 1.3;
-	}
-	.cal-popover-item-actions {
-		display: flex;
-		gap: 0.15rem;
-		flex-shrink: 0;
-	}
-	.cal-popover-action-btn {
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink-soft);
-		cursor: pointer;
-		font-size: 0.65rem;
-		width: 1.3rem;
-		height: 1.3rem;
-		display: grid;
-		place-items: center;
-	}
-	.cal-popover-action-btn:hover {
-		border-color: var(--ink);
-		color: var(--ink);
-	}
-	.cal-popover-action-danger:hover {
-		border-color: var(--accent);
-		color: var(--accent);
-	}
-	.cal-popover-action-del:hover {
-		border-color: var(--accent);
-		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: var(--text-small);
+		font-weight: 700;
+		line-height: 1.25;
 	}
 	.cal-popover-item-meta {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.35rem;
-		margin-top: 2px;
+		gap: 0.2rem 0.5rem;
 		align-items: center;
+		margin-top: 0.3rem;
+		color: var(--ink-soft);
+		font-size: var(--text-caption);
+	}
+	.cal-course-swatch {
+		width: 0.5rem;
+		height: 0.5rem;
+		flex: 0 0 0.5rem;
 	}
 	.cal-popover-item-course {
-		font-size: 0.65rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-	}
-	.cal-popover-item-time {
-		font-size: 0.65rem;
-		color: var(--ink-soft);
-	}
-	.cal-popover-item-weight {
-		font-size: 0.6rem;
-		color: var(--paper);
-		padding: 0 4px;
-		line-height: 1.3;
+		color: var(--ink);
+		font-weight: 700;
+		letter-spacing: normal;
 	}
 	.cal-popover-item-badge {
-		font-size: 0.62rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		padding: 0 4px;
+		padding: 0.1rem 0.35rem;
+		font-size: var(--text-caption);
+		font-weight: 700;
+		text-transform: none;
+		letter-spacing: normal;
 	}
 	.cal-badge-done {
-		background: var(--ok);
-		color: var(--paper);
+		background: color-mix(in srgb, var(--ok) 12%, transparent);
+		color: var(--ok);
+		animation: calendar-check 240ms var(--ease-out-quart);
 	}
 	.cal-badge-risk {
-		background: var(--accent);
-		color: var(--paper);
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		color: var(--accent);
 	}
-	.cal-popover-type {
-		display: inline-block;
-		margin-left: 0.2rem;
-		padding: 0 0.25rem;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		color: var(--ink-soft);
-		font-size: 0.62rem;
-		letter-spacing: 0.06em;
-		line-height: 1.2;
-		vertical-align: middle;
-	}
-	.cal-popover-actions {
+	.cal-popover-item-actions {
 		display: flex;
-		justify-content: flex-end;
-		padding-top: 0.5rem;
-		margin-top: 0.5rem;
-		border-top: 1px solid var(--rule);
+		gap: 0.4rem;
+		align-items: center;
+		flex: 0 0 auto;
 	}
-	.cal-popover-add {
+	.cal-popover-done,
+	:global(.cal-event-menu-trigger) {
+		min-height: 32px;
+		padding: 0.4rem 0.55rem;
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink-soft);
+		font-size: var(--text-caption);
+		font-weight: 600;
 		cursor: pointer;
-		font-size: 0.68rem;
-		padding: 0.25rem 0.5rem;
 	}
-	.cal-popover-add:hover {
+	.cal-popover-done:hover,
+	:global(.cal-event-menu-trigger:hover) {
 		border-color: var(--ink);
 		color: var(--ink);
+	}
+	:global(.cal-event-menu-trigger) {
+		display: grid;
+		min-width: 32px;
+		place-items: center;
+		padding-inline: 0.4rem;
+	}
+
+	@keyframes calendar-reveal {
+		from {
+			transform: translateY(-3px);
+			opacity: 0;
+		}
+	}
+	@keyframes calendar-check {
+		50% {
+			transform: scale(1.08);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.cal-day-popover,
+		.cal-badge-done {
+			animation: none;
+		}
+		.cal-event-chip {
+			transition: none;
+		}
 	}
 
 	@media (max-width: 768px) {
@@ -741,43 +815,53 @@
 	}
 	@media (max-width: 480px) {
 		.cal-weekdays {
-			grid-template-columns: repeat(7, 1fr);
+			grid-template-columns: repeat(7, minmax(0, 1fr));
 			gap: 1px;
 		}
 		.cal-grid-row {
-			grid-template-columns: repeat(7, 1fr);
+			grid-template-columns: repeat(7, minmax(0, 1fr));
 			gap: 1px;
-		}
-		.cal-week-num {
-			display: none;
-		}
-		.cal-week-num-header {
-			display: none;
 		}
 		.cal-day {
 			min-height: 36px;
 			padding: 1px;
-			font-size: 0.65rem;
+			font-size: var(--text-caption);
 		}
 		.cal-day-num {
-			font-size: 0.6rem;
+			font-size: var(--text-caption);
+		}
+		.cal-event-chips,
+		.cal-weight-bar {
+			display: none;
+		}
+		.cal-dot-group {
+			display: flex;
 		}
 		.cal-grid {
 			padding: 0.75rem;
+		}
+		.cal-popover-item-head {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+		.cal-popover-item-actions {
+			width: 100%;
+		}
+		.cal-popover-done {
+			flex: 1;
 		}
 	}
 
 	/* Touch: raise toolbar + popover actions to the 44px WCAG hit-area floor. */
 	@media (pointer: coarse) {
 		.cal-nav-btn,
-		.cal-today-btn,
-		.cal-nav-btn-wide {
+		.cal-today-btn {
 			min-width: 2.75rem;
 			min-height: 2.75rem;
 		}
-		.cal-popover-action-btn {
-			width: 2.75rem;
-			height: 2.75rem;
+		.cal-popover-done,
+		:global(.cal-event-menu-trigger) {
+			min-height: 2.75rem;
 		}
 		.cal-popover-close {
 			min-width: 2.75rem;

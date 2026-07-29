@@ -225,24 +225,33 @@
 	}
 </script>
 
-<section class="saved" aria-labelledby="saved-title">
-	<div class="saved-heading">
-		<h3 id="saved-title">Saved drafts</h3>
+<section
+	class="mb-[0.8rem] border border-[var(--ink)] bg-[var(--surface-paper)] p-4 [&_button]:min-h-11 [&_button]:cursor-pointer [&_button]:border [&_button]:border-[var(--ink)] [&_button]:bg-[var(--surface-paper)] [&_button]:px-[0.7rem] [&_button]:font-[inherit] [&_button]:text-[var(--ink)] [&_button]:disabled:cursor-not-allowed [&_button]:disabled:opacity-50 [&_input]:min-h-11 [&_input]:border [&_input]:border-[var(--ink)] [&_input]:bg-[var(--surface-paper)] [&_input]:font-[inherit] [&_input]:text-[var(--ink)] [&_p]:m-0"
+	aria-labelledby="saved-title"
+>
+	<div
+		class="flex items-center justify-between gap-4 max-[600px]:flex-col max-[600px]:items-stretch"
+	>
+		<h3 id="saved-title" class="m-0 font-[var(--font-body)]">Saved drafts</h3>
 		{#if moves.length > 0 && !association}
 			<button type="button" onclick={openSave}>Save draft plan</button>
 		{:else if association && dirty}
 			<button type="button" onclick={saveChanges} disabled={busyOperation !== null}
 				>Save changes</button
 			>
-		{:else if association}<span class="saved-state">Saved</span>{/if}
+		{:else if association}<span class="text-[var(--ink-soft)] text-[var(--text-caption)]"
+				>Saved</span
+			>{/if}
 	</div>
 	<div aria-live="polite">{operationState.kind === 'success' ? operationState.message : ''}</div>
-	{#if association}<p class="association">
+	{#if association}<p class="text-[var(--ink-soft)] text-[var(--text-caption)]">
 			<strong>{association.name}</strong> · revision {association.revision}{dirty
 				? ' · Unsaved changes'
 				: ''}
 		</p>{/if}
-	{#if loadIssues && loadIssues.skippedCount > 0}<div class="replace">
+	{#if loadIssues && loadIssues.skippedCount > 0}<div
+			class="mt-3 grid gap-[0.45rem] bg-[var(--paper-shelf)] p-3"
+		>
 			<strong>Saved draft plan compatibility issues</strong>
 			<p>
 				{loadIssues.appliedCount} moves loaded into the preview · {loadIssues.skippedCount} moves skipped
@@ -250,6 +259,7 @@
 			</p>
 		</div>{/if}
 	{#if showSaveForm}<form
+			class="mt-3 grid gap-[0.45rem] bg-[var(--paper-shelf)] p-3 [&_div]:flex [&_div]:flex-wrap [&_div]:gap-[0.35rem] [&_input]:box-border [&_input]:w-full [&_input]:px-[0.6rem]"
 			onsubmit={(event) => {
 				event.preventDefault();
 				createSaved();
@@ -269,8 +279,11 @@
 			</div>
 		</form>{/if}
 	{#if operationState.kind === 'failure'}<div
-			class:conflict={operationState.conflict}
-			class="failure"
+			class={[
+				'mt-3 grid gap-[0.45rem] bg-[var(--paper-shelf)] p-3',
+				operationState.conflict &&
+					'border-t-dashed border border-t-2 border-[var(--accent)] border-t-[var(--ink)]'
+			]}
 			role="alert"
 		>
 			<strong
@@ -302,7 +315,7 @@
 							)}>Save current plan as new</button
 					>{/if}{/if}
 		</div>{/if}
-	{#if pendingLoad}<div class="replace">
+	{#if pendingLoad}<div class="mt-3 grid gap-[0.45rem] bg-[var(--paper-shelf)] p-3">
 			<strong>Replace the current draft plan?</strong>
 			<p>Your unsaved planning changes will be discarded.</p>
 			<button type="button" onclick={() => load(pendingLoad!, true)}>Replace</button><button
@@ -311,23 +324,29 @@
 			>
 		</div>{/if}
 	{#if status === 'loading'}<p aria-live="polite">Loading saved draft plans…</p>
-	{:else if status === 'error'}<p class="list-error" role="alert">
+	{:else if status === 'error'}<p class="mt-3 font-semibold text-[var(--pen-red)]" role="alert">
 			Could not load saved draft plans.
 		</p>{:else if scenarios.length === 0}<p>
 			No saved draft plans yet.<br />Make a course move, then save the draft here.
 		</p>
-	{:else}<details open>
-			<summary>{scenarios.length} saved draft plan{scenarios.length === 1 ? '' : 's'}</summary>
-			<ul>
-				{#each scenarios as stored (stored.id)}<li>
+	{:else}<details class="mt-3" open>
+			<summary class="cursor-pointer p-2 font-bold"
+				>{scenarios.length} saved draft plan{scenarios.length === 1 ? '' : 's'}</summary
+			>
+			<ul class="m-0 list-none p-0">
+				{#each scenarios as stored (stored.id)}<li
+						class="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-t border-[var(--rule)] py-3 max-[600px]:grid-cols-1 max-[600px]:items-stretch"
+					>
 						<div>
 							<strong>{stored.name}</strong><span
+								class="block text-[var(--ink-soft)] text-[var(--text-caption)]"
 								>{stored.moves.length} moves · Updated {new Date(
 									stored.updatedAt
 								).toLocaleDateString()}</span
 							>
 						</div>
 						{#if renameId === stored.id}<form
+								class="mt-3 grid gap-[0.45rem] bg-[var(--paper-shelf)] p-3 [&_div]:flex [&_div]:flex-wrap [&_div]:gap-[0.35rem] [&_input]:box-border [&_input]:w-full [&_input]:px-[0.6rem]"
 								onsubmit={(event) => {
 									event.preventDefault();
 									rename(stored);
@@ -341,7 +360,7 @@
 									>Cancel</button
 								>
 							</form>
-						{:else if deleteId === stored.id}<div class="delete-confirm">
+						{:else if deleteId === stored.id}<div class="col-span-full">
 								<strong>Delete “{stored.name}”?</strong>
 								<p>
 									This removes the saved draft plan. Your current on-screen plan will remain open.
@@ -351,7 +370,7 @@
 									onclick={() => (deleteId = null)}>Cancel</button
 								>
 							</div>
-						{:else}<div class="actions">
+						{:else}<div class="flex flex-wrap gap-[0.35rem] max-[600px]:[&_button]:flex-auto">
 								<button
 									type="button"
 									aria-label={`Preview ${stored.name}`}
@@ -378,110 +397,3 @@
 			</ul>
 		</details>{/if}
 </section>
-
-<style>
-	.saved {
-		margin-bottom: 0.8rem;
-		padding: 1rem;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-	}
-	.saved-heading {
-		display: flex;
-		gap: 1rem;
-		align-items: center;
-		justify-content: space-between;
-	}
-	h3,
-	p {
-		margin: 0;
-	}
-	h3 {
-		font-family: var(--font-body);
-	}
-	button,
-	input {
-		min-height: 44px;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		color: var(--ink);
-		font: inherit;
-	}
-	button {
-		padding: 0 0.7rem;
-		cursor: pointer;
-	}
-	.saved-state,
-	.association {
-		font-size: 0.78rem;
-		color: var(--ink-soft);
-	}
-	form,
-	.failure,
-	.replace {
-		display: grid;
-		gap: 0.45rem;
-		margin-top: 0.75rem;
-		padding: 0.75rem;
-		background: var(--paper-shelf);
-	}
-	form input {
-		box-sizing: border-box;
-		width: 100%;
-		padding: 0 0.6rem;
-	}
-	form div,
-	.actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.35rem;
-	}
-	details {
-		margin-top: 0.75rem;
-	}
-	summary {
-		padding: 0.5rem;
-		font-weight: 700;
-		cursor: pointer;
-	}
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-	li {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: 0.75rem;
-		padding: 0.75rem 0;
-		border-top: 1px solid var(--rule);
-	}
-	li span {
-		display: block;
-		font-size: 0.72rem;
-		color: var(--ink-soft);
-	}
-	.delete-confirm {
-		grid-column: 1/-1;
-	}
-	.conflict {
-		border: 1px solid var(--accent);
-		border-top: 2px dashed var(--ink);
-	}
-	.list-error {
-		margin-top: 0.75rem;
-		font-weight: 600;
-		color: var(--pen-red);
-	}
-	@media (max-width: 600px) {
-		.saved-heading,
-		li {
-			align-items: stretch;
-			grid-template-columns: 1fr;
-			flex-direction: column;
-		}
-		.actions button {
-			flex: 1 1 auto;
-		}
-	}
-</style>

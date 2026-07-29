@@ -94,40 +94,50 @@
 </script>
 
 <svelte:head><title>{data.semester.term} {data.semester.year} · Synapse</title></svelte:head>
-<div class="page page-enter">
-	<header class="cover">
+<div class="page-enter m-auto max-w-[var(--page-width)] pt-8 pb-16">
+	<header
+		class="flex items-start justify-between gap-4 border-b border-[var(--ink)] pb-5 max-sm:flex-col"
+	>
 		<div>
-			<h1 class="page-title">{data.semester.term} {data.semester.year}</h1>
-			<p class="meta font-mono">{courses.length} course{courses.length === 1 ? '' : 's'}</p>
+			<h1 class="page-title !m-0">{data.semester.term} {data.semester.year}</h1>
+			<p class=" tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]">
+				{courses.length} course{courses.length === 1 ? '' : 's'}
+			</p>
 		</div>
-		<div class="actions">
+		<div class="flex flex-wrap gap-2">
 			<button class="btn btn-primary btn-sm" onclick={openAdd}>+ add course</button>
 		</div>
 	</header>
-	{#if error}<p class="form-error" role="alert">{error}</p>{/if}
-	{#if courses.length === 0}<section class="empty">
+	{#if error}<p class="text-[var(--pen-red)] text-[var(--text-caption)]" role="alert">
+			{error}
+		</p>{/if}
+	{#if courses.length === 0}<section class="py-12 text-[var(--ink-soft)]">
 			<p>No courses in this semester yet.</p>
 			<button class="btn btn-primary" onclick={openAdd}>Add your first course</button>
-		</section>{:else}<ul class="course-list">
-			{#each courses as course (course.id)}<li>
-					<a href={courseHref(course.id)}
-						><strong class="font-mono">{course.code}</strong><span>{course.name}</span></a
-					><span class="meta font-mono">{status(course)} · {course.credits ?? '—'} credits</span
+		</section>{:else}<ul class="my-6 list-none p-0">
+			{#each courses as course (course.id)}<li
+					class="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 border-b border-[var(--rule)] p-[0.8rem] max-sm:grid-cols-[1fr_auto]"
+				>
+					<a class="flex gap-4 text-[var(--ink)] no-underline" href={courseHref(course.id)}
+						><strong class="min-w-24">{course.code}</strong><span>{course.name}</span></a
+					><span
+						class=" tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)] max-sm:col-start-1"
+						>{status(course)} · {course.credits ?? '—'} credits</span
 					><button
-						class="btn btn-ghost btn-sm"
+						class="btn btn-ghost btn-sm max-sm:row-start-2"
 						disabled={saving}
 						onclick={() => {
 							editing = course;
 							showCourse = true;
 						}}>edit</button
 					><button
-						class="btn btn-ghost btn-sm"
+						class="btn btn-ghost btn-sm max-sm:row-start-2"
 						disabled={saving}
 						onclick={() => (deleteCourse = course)}>delete</button
 					>
 				</li>{/each}
 		</ul>{/if}
-	<div class="semester-actions">
+	<div class="flex flex-wrap gap-2 border-t border-[var(--rule)] pt-4">
 		<button class="btn btn-danger btn-sm" disabled={saving} onclick={() => (deleteSemester = true)}
 			>delete semester</button
 		>
@@ -158,83 +168,3 @@
 	onConfirm={removeSemester}
 	onCancel={() => (deleteSemester = false)}
 />
-
-<style>
-	/* The app shell already pads horizontally — only pad the block axis. */
-	.page {
-		max-width: var(--page-width);
-		margin: auto;
-		padding-block: 2rem 4rem;
-	}
-	.cover {
-		display: flex;
-		justify-content: space-between;
-		gap: 1rem;
-		align-items: flex-start;
-		border-bottom: 1px solid var(--ink);
-		padding-bottom: 1.25rem;
-	}
-	.page-title {
-		margin: 0;
-	}
-	.meta {
-		color: var(--ink-faint);
-		font-size: 0.72rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-	.actions,
-	.semester-actions {
-		display: flex;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-	.course-list {
-		list-style: none;
-		padding: 0;
-		margin: 1.5rem 0;
-	}
-	.course-list li {
-		display: grid;
-		grid-template-columns: 1fr auto auto auto;
-		gap: 0.75rem;
-		align-items: center;
-		padding: 0.8rem;
-		border-bottom: 1px solid var(--rule);
-	}
-	.course-list a {
-		display: flex;
-		gap: 1rem;
-		color: var(--ink);
-		text-decoration: none;
-	}
-	.course-list a strong {
-		min-width: 6rem;
-	}
-	.empty {
-		padding: 3rem 0;
-		color: var(--ink-soft);
-	}
-	.semester-actions {
-		border-top: 1px solid var(--rule);
-		padding-top: 1rem;
-	}
-	.form-error {
-		color: var(--pen-red);
-		font-size: 0.85rem;
-	}
-	@media (max-width: 640px) {
-		.cover {
-			flex-direction: column;
-		}
-		.course-list li {
-			grid-template-columns: 1fr auto;
-		}
-		.course-list .meta {
-			grid-column: 1;
-		}
-		.course-list button {
-			grid-row: 2;
-		}
-	}
-</style>

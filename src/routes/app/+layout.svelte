@@ -12,6 +12,14 @@
 	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 
 	let { data, children } = $props();
+
+	// ── Auth guard ──
+	$effect(() => {
+		if (!data.user) {
+			goto('/auth/error?reason=unauthenticated', { replaceState: true });
+		}
+	});
+
 	const semesters = $derived(data.semesters ?? []);
 	const courses = $derived(data.courses ?? []);
 	const countsById = $derived(data.countsById ?? {});
@@ -295,16 +303,14 @@
 	});
 
 	const todayLabel = $derived(
-		now
-			.toLocaleString('en-US', {
-				weekday: 'short',
-				day: '2-digit',
-				month: 'short',
-				hour: '2-digit',
-				minute: '2-digit',
-				hour12: false
-			})
-			.toUpperCase()
+		now.toLocaleString('en-US', {
+			weekday: 'short',
+			day: '2-digit',
+			month: 'short',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false
+		})
 	);
 
 	const termContext = $derived(resolveTermContext(now, semesters));
@@ -317,7 +323,7 @@
 
 <svelte:document onclick={handleDocumentClick} onkeydown={handleDocumentKeydown} />
 
-<div class="app-grid">
+<div class="app-grid grid min-h-screen grid-cols-[var(--sidebar-width)_1fr] max-md:grid-cols-1">
 	<DesktopSidebar
 		pathname={$page.url.pathname}
 		{routes}
@@ -332,7 +338,7 @@
 		onAddSemester={openAddSemester}
 	/>
 
-	<div class="app-content">
+	<div class="app-content flex min-w-0 flex-col">
 		<Topbar
 			{currentTermLabel}
 			{todayLabel}
@@ -348,13 +354,29 @@
 
 		<DigestBanner job={academicDigestJob} ondismiss={dismissAcademicDigestJob} />
 
-		<main class="app-main" class:canvas-main={$page.url.pathname === '/app/courses'}>
+		<main
+			class="app-main relative min-w-0 flex-1 bg-[var(--paper)] p-0 data-[canvas=true]:flex data-[canvas=true]:flex-col [&>*]:mx-auto [&>*]:px-[var(--page-gutter)] [&>*]:max-w-[var(--page-width)] [&>*]:py-10 max-sm:[&>*]:px-5"
+			data-canvas={$page.url.pathname === '/app/courses'}
+		>
 			{#if weeklyPlanPending}
-				<section class="weekly-plan-loading" role="status" aria-live="polite">
-					<div class="weekly-plan-loading-card">
-						<span class="weekly-plan-loading-kicker">The next seven days</span>
-						<h1>Building your weekly plan</h1>
-						<p>Collecting deadlines, study activity, practice sessions, and course materials.</p>
+				<section
+					class="weekly-plan-loading grid min-h-[calc(100vh-var(--topbar-height,0px))] place-items-center py-16"
+					role="status"
+					aria-live="polite"
+				>
+					<div
+						class="weekly-plan-loading-card grid w-[min(100%,34rem)] justify-items-center gap-[0.8rem] border border-dashed border-[var(--rule)] bg-[var(--paper)] px-8 py-12 text-center [&_.loading-dots]:mt-2"
+					>
+						<span
+							class="weekly-plan-loading-kicker text-[var(--ink-faint)] text-[var(--text-caption)]"
+							>The next seven days</span
+						>
+						<h1 class="m-0 text-[2rem] leading-[1.1] font-[var(--font-body)] text-[var(--ink)]">
+							Building your weekly plan
+						</h1>
+						<p class="m-0 max-w-md leading-[1.55] text-[var(--ink-soft)] text-[var(--text-small)]">
+							Collecting deadlines, study activity, practice sessions, and course materials.
+						</p>
 						<LoadingDots label="Loading weekly plan" />
 					</div>
 				</section>
@@ -374,94 +396,3 @@
 	{termChoices}
 	onsave={saveSemester}
 />
-
-<style>
-	.app-grid {
-		display: grid;
-		grid-template-columns: var(--sidebar-width) 1fr;
-		min-height: 100vh;
-	}
-
-	@media (max-width: 767px) {
-		.app-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.app-content {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-
-	.app-main {
-		flex: 1;
-		padding: 0;
-		min-width: 0;
-		position: relative;
-		background: var(--paper);
-	}
-
-	.app-main > :global(*) {
-		padding-left: 2rem;
-		padding-right: 2rem;
-	}
-
-	.app-main.canvas-main {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.weekly-plan-loading {
-		min-height: calc(100vh - var(--topbar-height, 0px));
-		display: grid;
-		place-items: center;
-		padding-block: 4rem;
-	}
-
-	.weekly-plan-loading-card {
-		width: min(100%, 34rem);
-		display: grid;
-		justify-items: center;
-		gap: 0.8rem;
-		padding: 3rem 2rem;
-		border: 1px dashed var(--rule);
-		background: var(--paper);
-		text-align: center;
-	}
-
-	.weekly-plan-loading-kicker {
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
-	}
-
-	.weekly-plan-loading h1 {
-		margin: 0;
-		font-family: var(--font-hand);
-		font-size: 2rem;
-		line-height: 1.1;
-		color: var(--ink);
-	}
-
-	.weekly-plan-loading p {
-		max-width: 28rem;
-		margin: 0;
-		font-size: 0.92rem;
-		line-height: 1.55;
-		color: var(--ink-soft);
-	}
-
-	.weekly-plan-loading :global(.loading-dots) {
-		margin-top: 0.5rem;
-	}
-
-	@media (max-width: 640px) {
-		.app-main > :global(*) {
-			padding-left: 1.25rem;
-			padding-right: 1.25rem;
-		}
-	}
-</style>

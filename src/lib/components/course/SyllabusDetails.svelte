@@ -25,8 +25,8 @@
 {#if professor || dates.length > 0}
 	<section class="block">
 		<header class="block-head">
-			<h2 class="block-title font-mono">Syllabus intelligence</h2>
-			<span class="block-meta font-mono">saved to this course</span>
+			<h2 class="block-title">Syllabus intelligence</h2>
+			<span class="block-meta">saved to this course</span>
 		</header>
 		{#if professor}
 			<dl class="activity">
@@ -61,7 +61,7 @@
 				{#each dates as item (`${item.label}-${item.date}`)}
 					<div class="syllabus-date">
 						<span>{item.label}</span>
-						<time class="font-mono">{item.date}{item.needsReview ? ' · review' : ''}</time>
+						<time>{item.date}{item.needsReview ? ' · review' : ''}</time>
 					</div>
 				{/each}
 			</div>
@@ -88,13 +88,13 @@
 	}
 
 	.activity-row dt {
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		margin: 0;
 	}
 
 	.activity-row dd {
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--ink);
 		margin: 0;
 		font-variant-numeric: tabular-nums;
@@ -116,12 +116,12 @@
 		gap: 1rem;
 		padding: 0.5rem 0;
 		border-bottom: 1px dashed var(--rule);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 	}
 
 	.syllabus-date time {
 		color: var(--ink-soft);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		white-space: nowrap;
 	}
 </style>

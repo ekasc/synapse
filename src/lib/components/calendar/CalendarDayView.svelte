@@ -6,14 +6,11 @@
 		viewMonth,
 		viewDay,
 		todayEvents = [] as CalendarEvent[],
-		focusedDay = null as number | null,
-		today,
 		courseColor = (_code: string) => 'var(--ink)',
 		typeBadge = (_t: string) => '•',
 		onPrevDay = () => {},
 		onNextDay = () => {},
 		onGoToday = () => {},
-		onAddEvent = (_day: number) => {},
 		onEditEvent = (_event: CalendarEvent) => {},
 		onUpdateEventStatus = (_id: string, _status: string) => {},
 		onDeleteEvent = (_id: string) => {}
@@ -22,14 +19,11 @@
 		viewMonth: number;
 		viewDay: number;
 		todayEvents: CalendarEvent[];
-		focusedDay: number | null;
-		today: number;
 		courseColor: (code: string) => string;
 		typeBadge: (t: string) => string;
 		onPrevDay: () => void;
 		onNextDay: () => void;
 		onGoToday: () => void;
-		onAddEvent: (day: number) => void;
 		onEditEvent: (event: CalendarEvent) => void;
 		onUpdateEventStatus: (id: string, status: string) => void;
 		onDeleteEvent: (id: string) => void;
@@ -39,7 +33,7 @@
 <div class="surface-polaroid" style="padding: 1.5rem">
 	<div class="cal-header" style="margin-bottom: 0.75rem">
 		<div class="cal-month-nav">
-			<button class="cal-nav-btn font-mono" onclick={onPrevDay} aria-label="Previous day">←</button>
+			<button class="cal-nav-btn" onclick={onPrevDay} aria-label="Previous day">←</button>
 			<span class="cal-month-label"
 				>{new Date(viewYear, viewMonth, viewDay).toLocaleDateString('en-US', {
 					weekday: 'long',
@@ -47,27 +41,22 @@
 					day: 'numeric'
 				})}</span
 			>
-			<button class="cal-nav-btn font-mono" onclick={onNextDay} aria-label="Next day">→</button>
-			<button class="cal-today-btn font-mono" onclick={onGoToday}>today</button>
-			<button
-				class="cal-nav-btn-wide font-mono"
-				onclick={() => onAddEvent(focusedDay ?? today)}
-				style="margin-left: 0.25rem">+ event</button
-			>
+			<button class="cal-nav-btn" onclick={onNextDay} aria-label="Next day">→</button>
+			<button class="cal-today-btn" onclick={onGoToday}>today</button>
 		</div>
 	</div>
 	{#if todayEvents.length === 0}
 		<div style="padding: 2rem; text-align: center">
-			<span class="font-mono" style="color: var(--ink-faint)">No events for this day</span>
+			<span style="color: var(--ink-faint)">No events for this day</span>
 		</div>
 	{:else}
 		<div class="cal-day-view-list">
 			{#each todayEvents as ev (ev.id)}
 				<div class="cal-day-view-item" style="border-color: {courseColor(ev.courseCode)}">
 					<div class="cal-day-view-item-head">
-						<span class="cal-popover-type font-mono">{typeBadge(ev.type)}</span>
-						<span class="cal-day-view-item-time font-mono">{ev.time ?? 'all day'}</span>
-						<span class="cal-day-view-item-course font-mono">{ev.courseCode}</span>
+						<span class="cal-popover-type">{typeBadge(ev.type)}</span>
+						<span class:font-numeric={Boolean(ev.time)}>{ev.time ?? 'all day'}</span>
+						<span class="cal-day-view-item-course">{ev.courseCode}</span>
 						{#if ev.gradeWeight != null && ev.gradeWeight > 0}
 							<span class="cal-day-view-item-weight">{ev.gradeWeight}%</span>
 						{/if}
@@ -82,6 +71,13 @@
 							>
 						{/if}
 						<button
+							class="cal-day-view-action"
+							onclick={() =>
+								onUpdateEventStatus(ev.id, ev.status === 'at_risk' ? 'pending' : 'at_risk')}
+						>
+							{ev.status === 'at_risk' ? 'clear risk' : 'flag risk'}
+						</button>
+						<button
 							class="cal-day-view-action cal-day-view-action-del"
 							onclick={() => onDeleteEvent(ev.id)}>delete</button
 						>
@@ -91,8 +87,8 @@
 		</div>
 	{/if}
 	<div style="display: flex; justify-content: space-between; margin-top: 1rem">
-		<button class="cal-nav-btn-wide font-mono" onclick={onPrevDay}>← Previous day</button>
-		<button class="cal-nav-btn-wide font-mono" onclick={onNextDay}>Next day →</button>
+		<button class="cal-nav-btn-wide" onclick={onPrevDay}>← Previous day</button>
+		<button class="cal-nav-btn-wide" onclick={onNextDay}>Next day →</button>
 	</div>
 </div>
 
@@ -115,7 +111,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		cursor: pointer;
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		line-height: 1;
 		transition:
 			border-color 0.12s var(--ease-out-quart),
@@ -138,9 +134,9 @@
 		background: var(--paper);
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 0.65rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		transition:
 			border-color 0.12s var(--ease-out-quart),
 			color 0.12s var(--ease-out-quart);
@@ -154,7 +150,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		cursor: pointer;
-		font-size: 0.8rem;
+		font-size: var(--text-caption);
 		padding: 0.35rem 0.65rem;
 		line-height: 1;
 		transition: border-color 0.12s var(--ease-out-quart);
@@ -187,24 +183,24 @@
 		margin-bottom: 0.25rem;
 	}
 	.cal-day-view-item-time {
-		font-size: 0.65rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 	}
 	.cal-day-view-item-course {
-		font-size: 0.65rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		text-transform: none;
+		letter-spacing: normal;
 		margin-left: auto;
 	}
 	.cal-day-view-item-weight {
-		font-size: 0.62rem;
+		font-size: var(--text-caption);
 		background: var(--ink);
 		color: var(--paper);
 		padding: 0 4px;
 	}
 	.cal-day-view-item-title {
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 		line-height: 1.3;
 		display: block;
@@ -219,7 +215,7 @@
 		background: transparent;
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		padding: 0.15rem 0.4rem;
 	}
 	.cal-day-view-action:hover {
@@ -237,8 +233,8 @@
 		border: 1px solid var(--rule);
 		background: var(--paper-shelf);
 		color: var(--ink-soft);
-		font-size: 0.62rem;
-		letter-spacing: 0.06em;
+		font-size: var(--text-caption);
+		letter-spacing: normal;
 		line-height: 1.2;
 		vertical-align: middle;
 	}

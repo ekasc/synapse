@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 
 	type SessionState = 'ready' | 'running' | 'paused' | 'complete';
 	type SiteKind = 'allowed' | 'blocked';
@@ -281,16 +280,14 @@
 
 <svelte:head><title>Study timer · Synapse</title></svelte:head>
 
-<CatalogHeader term="Focus" />
-
 <div class="page page-enter">
 	<div class="page-cover">
-		<h1 class="page-title font-hand">Study Timer</h1>
+		<h1 class="page-title">Study Timer</h1>
 		<p class="page-tagline">Choose the work. Protect the time. Notice the distractions.</p>
 	</div>
 
 	<div class="control-bar">
-		<span class="control-label font-mono">
+		<span class="control-label">
 			{selectedCourse?.code ?? 'general study'} · {durationMinutes} minute session
 		</span>
 		<div class="session-status" data-state={sessionState}>
@@ -323,7 +320,7 @@
 			<div class="duration-tabs" aria-label="Timer duration">
 				{#each [25, 45, 60] as minutes}
 					<button
-						class="font-mono"
+						class="font-numeric"
 						class:active={durationMinutes === minutes}
 						onclick={() => setDuration(minutes)}
 						disabled={sessionState !== 'ready'}>{minutes} min</button
@@ -389,7 +386,7 @@
 				</div>
 			</div>
 			<div class="score-rule"><span style={`transform: scaleX(${focusScore / 100})`}></span></div>
-			<p class="status-line font-mono">
+			<p class="status-line">
 				focused {formatCompactMinutes(Math.floor(elapsedSeconds / 60))} · distractions
 				{distractionCount} · today {formatCompactMinutes(todayMinutes)} · score {focusScore}/100
 			</p>
@@ -453,9 +450,12 @@
 			<ul>
 				{#each allowedSites as site (site)}<li>
 						<a href={`https://${site}`} target="_blank" rel="noreferrer">{site}</a><button
+							class="icon-btn"
 							onclick={() => removeSite('allowed', site)}
-							aria-label={`Remove ${site}`}>×</button
+							aria-label={`Remove ${site}`}
 						>
+							<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+						</button>
 					</li>{/each}
 			</ul>
 		</div>
@@ -478,9 +478,12 @@
 			<ul>
 				{#each blockedSites as site (site)}<li>
 						<span>{site}</span><button
+							class="icon-btn"
 							onclick={() => removeSite('blocked', site)}
-							aria-label={`Remove ${site}`}>×</button
+							aria-label={`Remove ${site}`}
 						>
+							<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+						</button>
 					</li>{/each}
 			</ul>
 		</div>
@@ -510,7 +513,7 @@
 	}
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0.35rem 0 0;
 	}
 	.control-bar {
@@ -523,7 +526,7 @@
 		border-bottom: 1px solid var(--ink);
 	}
 	.control-label {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
@@ -537,18 +540,15 @@
 	}
 	h2 {
 		margin: 0;
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-size: 1.35rem;
 		font-weight: 700;
 		line-height: 1.1;
 	}
 	.eyebrow {
 		margin: 0 0 0.35rem;
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
+		font-size: var(--text-small);
+		color: var(--ink-soft);
 	}
 	.session-status {
 		display: flex;
@@ -556,8 +556,8 @@
 		gap: 0.45rem;
 		border: 1px solid var(--rule);
 		padding: 0.45rem 0.65rem;
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 	}
 	.status-dot {
@@ -592,8 +592,8 @@
 	label span {
 		display: block;
 		margin-bottom: 0.35rem;
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 		color: var(--ink-soft);
@@ -608,7 +608,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		padding: 0.55rem 0.65rem;
-		font: 0.8rem var(--font-body);
+		font: var(--text-small)/1.4 var(--font-body);
 	}
 	input:disabled,
 	select:disabled {
@@ -640,7 +640,7 @@
 		background: transparent;
 		padding: 0.45rem 0.75rem;
 		color: var(--ink-soft);
-		font: 0.7rem var(--font-mono);
+		font: var(--text-caption)/1.4 var(--font-body);
 		text-transform: uppercase;
 	}
 	.duration-tabs button.active {
@@ -686,18 +686,18 @@
 		gap: 0.45rem;
 	}
 	.clock-copy strong {
-		font: 500 clamp(2.8rem, 7vw, 4.5rem) var(--font-mono);
+		font: 500 clamp(2.8rem, 7vw, 4.5rem)/1 var(--font-numeric);
 		letter-spacing: -0.08em;
 	}
 	.clock-copy > span:last-child {
 		color: var(--ink-soft);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 	.clock-label {
-		font: 0.68rem var(--font-mono);
+		font: var(--text-micro)/1.4 var(--font-body);
 		letter-spacing: 0.14em;
 		color: var(--ink-faint);
 	}
@@ -729,7 +729,7 @@
 		padding-bottom: 0.9rem;
 		border-bottom: 1px solid var(--rule);
 		color: var(--ink-soft);
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		letter-spacing: 0.02em;
 		line-height: 1.7;
 	}
@@ -740,7 +740,7 @@
 		display: flex;
 		justify-content: space-between;
 		margin-bottom: 0.5rem;
-		font: 0.67rem var(--font-mono);
+		font: var(--text-micro)/1.4 var(--font-body);
 		text-transform: uppercase;
 		color: var(--ink-soft);
 	}
@@ -767,7 +767,7 @@
 	.focus-note p,
 	.extension-note {
 		color: var(--ink-faint);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		line-height: 1.5;
 	}
 	.focus-note {
@@ -788,7 +788,7 @@
 		margin-top: 1rem;
 	}
 	.site-title > span {
-		font: 0.7rem var(--font-mono);
+		font: var(--text-caption)/1.4 var(--font-body);
 		border: 1px solid var(--rule);
 		padding: 0.25rem 0.45rem;
 	}
@@ -812,7 +812,7 @@
 		gap: 1rem;
 		padding: 0.55rem 0.25rem;
 		border-bottom: 1px dashed var(--rule);
-		font: 0.75rem var(--font-mono);
+		font: var(--text-caption)/1.4 var(--font-body);
 	}
 	li a {
 		color: var(--ink);
@@ -829,6 +829,17 @@
 		color: var(--ink-faint);
 		font-size: 1rem;
 	}
+	li .icon-btn {
+		display: grid;
+		width: var(--control-sm);
+		height: var(--control-sm);
+		place-items: center;
+		padding: 0;
+		color: var(--ink-faint);
+	}
+	li .icon-btn:hover {
+		color: var(--ink);
+	}
 	.blocked {
 		border-top: 2px solid var(--ink);
 	}
@@ -837,13 +848,13 @@
 	}
 	.form-error {
 		color: var(--pen-red);
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		margin: 0.5rem 0 0;
 	}
 	.extension-error {
 		margin: 0.75rem 0 0;
 		color: var(--pen-red);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		line-height: 1.45;
 		text-align: center;
 	}

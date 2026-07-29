@@ -19,13 +19,15 @@
 
 {#if job}
 	<div
-		class="digest-job-banner"
-		class:failed={job.status === 'failed'}
-		class:completed={job.status === 'completed'}
+		class="digest-job-banner group flex items-center gap-[0.8rem] border-b border-[var(--ink)] bg-[var(--highlight-soft)] px-4 py-[0.6rem] text-[var(--ink)] data-[status=completed]:bg-[color-mix(in_srgb,var(--ok)_18%,var(--paper))] data-[status=failed]:bg-[color-mix(in_srgb,var(--accent)_16%,var(--paper))]"
+		data-status={job.status}
 		role={job.status === 'failed' ? 'alert' : 'status'}
 	>
-		<div>
-			<span class="digest-job-pulse" aria-hidden="true"></span>
+		<div class="flex min-w-0 flex-1 items-center gap-[0.55rem]">
+			<span
+				class="digest-job-pulse h-[0.55rem] w-[0.55rem] flex-none animate-[digest-pulse_1.2s_ease-in-out_infinite] bg-[var(--warn)] group-data-[status=completed]:animate-none group-data-[status=completed]:bg-[var(--ok)] group-data-[status=failed]:animate-none group-data-[status=failed]:bg-[var(--accent)]"
+				aria-hidden="true"
+			></span>
 			<strong>
 				{job.status === 'completed'
 					? 'Transcript ready'
@@ -33,83 +35,31 @@
 						? 'Transcript digestion failed'
 						: 'Digesting transcript'}
 			</strong>
-			<span>{job.fileName}</span>
-			{#if job.error}<span>{job.error}</span>{/if}
+			<span class="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-caption)]"
+				>{job.fileName}</span
+			>
+			{#if job.error}<span
+					class="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-caption)]"
+					>{job.error}</span
+				>{/if}
 		</div>
-		<a href={resolveRoute('/app/digest')}>Weekly digest</a>
+		<a
+			class="font-semibold text-[var(--text-caption)] text-inherit"
+			href={resolveRoute('/app/digest')}>Grades & GPA</a
+		>
 		{#if job.status === 'completed' || job.status === 'failed'}
-			<button type="button" aria-label="Dismiss transcript status" onclick={ondismiss}>x</button>
+			<button
+				type="button"
+				class="cursor-pointer border-0 bg-transparent font-semibold text-[var(--text-caption)] text-inherit"
+				aria-label="Dismiss transcript status"
+				onclick={ondismiss}>x</button
+			>
 		{/if}
 	</div>
 {/if}
 
 <style>
-	.digest-job-banner {
-		display: flex;
-		align-items: center;
-		gap: 0.8rem;
-		border-bottom: 1px solid var(--ink);
-		background: var(--highlight-soft);
-		padding: 0.6rem 1rem;
-		color: var(--ink);
-	}
-
-	.digest-job-banner > div {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		min-width: 0;
-		flex: 1;
-	}
-
-	.digest-job-banner span {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		font-size: 0.78rem;
-	}
-
-	.digest-job-banner a,
-	.digest-job-banner button {
-		color: inherit;
-		font: inherit;
-		font-size: 0.76rem;
-		font-weight: 600;
-	}
-
-	.digest-job-banner button {
-		border: 0;
-		background: transparent;
-		cursor: pointer;
-	}
-
-	.digest-job-banner.completed {
-		background: color-mix(in srgb, var(--ok) 18%, var(--paper));
-	}
-
-	.digest-job-banner.failed {
-		background: color-mix(in srgb, var(--accent) 16%, var(--paper));
-	}
-
-	.digest-job-pulse {
-		width: 0.55rem;
-		height: 0.55rem;
-		flex: 0 0 auto;
-		background: var(--warn);
-		animation: digest-pulse 1.2s ease-in-out infinite;
-	}
-
-	.completed .digest-job-pulse {
-		background: var(--ok);
-		animation: none;
-	}
-
-	.failed .digest-job-pulse {
-		background: var(--accent);
-		animation: none;
-	}
-
-	@keyframes digest-pulse {
+	@keyframes -global-digest-pulse {
 		50% {
 			opacity: 0.3;
 		}

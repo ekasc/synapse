@@ -61,7 +61,7 @@
 		</ol>
 		<aside class="timeline-index" aria-label="Week index">
 			<span class="stamp" style="transform: rotate(-2.4deg);">the log</span>
-			<ol class="week-index font-mono">
+			<ol class="week-index">
 				<li>step 01</li>
 				<li>step 02</li>
 				<li>step 03</li>
@@ -122,8 +122,8 @@
 	}
 
 	.week-index li {
-		font-family: var(--font-hand);
-		font-size: 0.95rem;
+		font-family: var(--font-body);
+		font-size: var(--text-small);
 		color: var(--ink-soft);
 		padding: 8px 0;
 		border-bottom: 1.5px dashed var(--ink-faint);

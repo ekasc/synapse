@@ -3,7 +3,6 @@
 	import { resolveRoute } from '$app/paths';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import StatusChip from '$lib/components/catalog/StatusChip.svelte';
-	import { prepareSyllabusEvents } from '$lib/calendar/syllabus-sync';
 
 	type ExtractedData = {
 		professor: {
@@ -78,15 +77,14 @@
 	// Calendar sync state
 	let syncing = $state(false);
 	let syncResult = $state<{
-		added: number;
-		duplicates: number;
+		inserted: number;
+		unchanged: number;
 		old: number;
 		invalid: number;
-		failed: number;
+		needsReview: number;
+		failed: boolean;
 	} | null>(null);
 	let syncError = $state('');
-	let syncMonth = $state<number | null>(null);
-	let syncYear = $state<number | null>(null);
 
 	let activeCourse = $derived(data.course);
 	let activeSemester = $derived(data.semester);
@@ -134,88 +132,60 @@
 					: 'Empty'
 	);
 
-	/** Map syllabus type + label to a calendar event type. */
-	function toCalendarType(syllabusType: string, label: string): string {
-		if (syllabusType === 'quiz') return 'quiz';
-		if (syllabusType === 'exam') {
-			const lower = label.toLowerCase();
-			if (lower.includes('midterm')) return 'midterm';
-			if (lower.includes('final')) return 'final';
-			return 'midterm';
-		}
-		return 'assignment';
-	}
-
 	async function syncToCalendar() {
 		if (!extracted || dateRows.length === 0) return;
 
 		syncing = true;
 		syncResult = null;
 		syncError = '';
-		const courseCode = activeCourse?.code || data.course.id;
-		const prepared = prepareSyllabusEvents({
-			courseId: activeCourse.id,
-			semesterYear: activeSemester?.year ?? new Date().getFullYear(),
-			rows: dateRows,
-			toCalendarType
-		});
-		let added = 0;
-		let duplicates = prepared.skippedDuplicate;
-		let firstMonth: number | null = null;
-		let firstYear: number | null = null;
-		let failed = 0;
+		const idempotencyKey = crypto.randomUUID();
 
-		for (const event of prepared.events) {
-			const gradeItem = gradingRows.find((grade) =>
-				event.title.toLowerCase().includes(grade.label.toLowerCase())
-			);
-			try {
-				const res = await fetch('/api/calendar/events', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						courseId: activeCourse.id,
-						courseCode,
-						title: event.title,
-						type: event.type,
-						date: event.date,
-						month: event.month,
-						year: event.year,
-						gradeWeight: gradeItem?.weight ?? undefined
-					})
-				});
-				if (res.ok) {
-					const body = (await res.json()) as { created?: boolean };
-					if (body.created === false) duplicates++;
-					else {
-						added++;
-						if (firstMonth === null) {
-							firstMonth = event.month;
-							firstYear = event.year;
-						}
-					}
-				} else {
-					failed++;
-					const body = (await res.json().catch(() => null)) as { error?: string } | null;
-					syncError ||= body?.error ?? 'Could not sync one or more syllabus dates.';
-				}
-			} catch {
-				failed++;
+		try {
+			const res = await fetch('/api/syllabus/calendar-import', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					courseId: activeCourse.id,
+					idempotencyKey
+				})
+			});
+			if (res.ok) {
+				const body = (await res.json()) as {
+					inserted?: number;
+					unchanged?: number;
+					old?: number;
+					invalid?: number;
+					inputDuplicates?: number;
+					needsReview?: number;
+					replayed?: boolean;
+				};
+				syncResult = {
+					inserted: body.inserted ?? 0,
+					unchanged: (body.unchanged ?? 0) + (body.inputDuplicates ?? 0),
+					old: body.old ?? 0,
+					invalid: body.invalid ?? 0,
+					needsReview: body.needsReview ?? 0,
+					failed: false
+				};
+				if ((body.inserted ?? 0) > 0) await invalidateAll();
+			} else {
+				const body = (await res.json().catch(() => null)) as { error?: string } | null;
+				syncError = body?.error ?? 'Could not import syllabus dates.';
+				syncResult = {
+					inserted: 0,
+					unchanged: 0,
+					old: 0,
+					invalid: 0,
+					needsReview: 0,
+					failed: true
+				};
 			}
+		} catch {
+			syncError = 'Could not reach the import endpoint.';
+			syncResult = { inserted: 0, unchanged: 0, old: 0, invalid: 0, needsReview: 0, failed: true };
 		}
 
-		syncResult = {
-			added,
-			duplicates,
-			old: prepared.skippedOld,
-			invalid: prepared.invalid,
-			failed
-		};
-		syncMonth = firstMonth;
-		syncYear = firstYear;
 		syncing = false;
-
-		if (added > 0) await invalidateAll();
 	}
 
 	async function loadSyllabus() {
@@ -272,7 +242,7 @@
 					{syllabus ? `· ${syllabus.fileName}` : ''}
 				</p>
 			</div>
-			<a href={uploadHref} class="btn btn-sm btn-ghost font-mono">back to upload</a>
+			<a href={uploadHref} class="btn btn-sm btn-ghost">back to upload</a>
 		</div>
 		<div class="page-status">
 			<StatusChip variant={statusVariant} label={statusLabel} />
@@ -280,11 +250,9 @@
 	</div>
 
 	{#if loading}
-		<div class="loading-state font-mono" role="status" aria-live="polite">
-			Loading extraction...
-		</div>
+		<div class="loading-state" role="status" aria-live="polite">Loading extraction...</div>
 	{:else if apiError}
-		<div class="error-banner font-mono" role="alert">{apiError}</div>
+		<div class="error-banner" role="alert">{apiError}</div>
 	{:else if !syllabus}
 		<section class="surface-polaroid empty-state">
 			<h2 class="empty-head font-hand">No extraction found</h2>
@@ -295,7 +263,7 @@
 		{#if dateRows.length > 0}
 			<section class="sync-bar surface-polaroid">
 				<div class="sync-bar-copy">
-					<div class="sync-bar-title font-mono">Calendar sync</div>
+					<div class="sync-bar-title">Calendar sync</div>
 					<p class="sync-bar-text">
 						Add upcoming, unique dates from this syllabus. Past dates and events already on your
 						calendar are skipped.
@@ -306,39 +274,25 @@
 				</div>
 				<div class="sync-bar-action">
 					{#if syncResult}
-						<span
-							class="sync-result font-mono"
-							class:sync-ok={syncResult.failed === 0}
-							class:sync-partial={syncResult.failed > 0 && syncResult.added > 0}
-						>
-							{syncResult.added} added
-							{#if syncResult.duplicates > 0}
-								· {syncResult.duplicates} already present{/if}
+						<span class="sync-result" class:sync-ok={!syncResult.failed}>
+							{syncResult.inserted} added
+							{#if syncResult.unchanged > 0}
+								· {syncResult.unchanged} already present{/if}
 							{#if syncResult.old > 0}
 								· {syncResult.old} past skipped{/if}
 							{#if syncResult.invalid > 0}
 								· {syncResult.invalid} invalid{/if}
-							{#if syncResult.failed > 0}
-								· {syncResult.failed} failed{/if}
+							{#if syncResult.needsReview > 0}
+								· {syncResult.needsReview} need review{/if}
+							{#if syncResult.failed}
+								· request failed{/if}
 						</span>
-						<button
-							class="btn btn-sm btn-ghost font-mono"
-							disabled={syncing}
-							onclick={syncToCalendar}
-						>
+						<button class="btn btn-sm btn-ghost" disabled={syncing} onclick={syncToCalendar}>
 							sync again
 						</button>
-						{#if syncMonth !== null}
-							<a
-								href="/app/calendar?month={syncMonth}&year={syncYear}"
-								class="btn btn-sm btn-ghost font-mono"
-							>
-								view in calendar
-							</a>
-						{/if}
 					{:else}
 						<button class="btn btn-primary btn-sm" disabled={syncing} onclick={syncToCalendar}>
-							{syncing ? 'checking syllabus dates...' : `add upcoming dates to calendar`}
+							{syncing ? 'importing...' : `add upcoming dates to calendar`}
 						</button>
 					{/if}
 				</div>
@@ -346,7 +300,7 @@
 		{/if}
 
 		{#if syncError}
-			<div class="error-banner font-mono" role="alert" style="margin-bottom: 1rem;">
+			<div class="error-banner" role="alert" style="margin-bottom: 1rem;">
 				{syncError}
 			</div>
 		{/if}
@@ -407,7 +361,7 @@
 					{#each gradingRows as row, i (i)}
 						<div class="data-row">
 							<dt>{row.label}</dt>
-							<dd class="font-mono">{row.weight}%</dd>
+							<dd class="font-numeric">{row.weight}%</dd>
 						</div>
 					{/each}
 				</dl>
@@ -415,12 +369,12 @@
 		</div>
 
 		<section class="knowledge surface-polaroid">
-			<SectionHead title="Key knowledge" meta={extracted.keyKnowledge.source} />
+			<SectionHead title="Key knowledge" />
 
 			<div class="topic-list" aria-label="Study topics extracted from syllabus">
 				{#each knowledgeTopics as topic, i (i)}
 					<span
-						class="topic-chip font-mono"
+						class="topic-chip"
 						class:topic-highlight={topic === extracted?.keyKnowledge.highlightedTopic}
 					>
 						{topic}
@@ -429,11 +383,11 @@
 			</div>
 
 			<div class="outline">
-				<div class="outline-head font-mono">Study from outline</div>
+				<div class="outline-head">Study from outline</div>
 				<ol>
 					{#each outlineRows as row, i (i)}
 						<li>
-							<span class="outline-week font-mono">{row.range}</span>
+							<span class="outline-week">{row.range}</span>
 							<span class="outline-topic">{row.topic}</span>
 						</li>
 					{/each}
@@ -449,7 +403,7 @@
 						{extracted?.requiredMaterials.textbookTitle}
 					</p>
 				{:else}
-					<p class="materials-empty font-mono">No textbook uploaded yet</p>
+					<p class="materials-empty">No textbook uploaded yet</p>
 				{/if}
 			</div>
 			{#if textbookUploaded && extracted?.requiredMaterials.textbookPdfUrl}
@@ -477,11 +431,7 @@
 
 		{#if dateRows.length > 0}
 			<section class="timeline surface-polaroid" aria-label="Extracted syllabus timeline">
-				<SectionHead
-					eyebrow={`${dateRows.length} ${dateRows.length === 1 ? 'date' : 'dates'}`}
-					title="Extracted timeline"
-					meta="SORTED"
-				/>
+				<SectionHead title="Extracted timeline" />
 
 				<ol class="timeline-list">
 					{#each dateRows as row, i (i)}
@@ -490,7 +440,7 @@
 							class:review={row.needsReview}
 							class:highlighted={row.label === 'Midterm exam'}
 						>
-							<span class="date font-mono">{row.date}</span>
+							<span class="date">{row.date}</span>
 							<span class="timeline-label">{row.label}</span>
 							{#if row.needsReview}
 								<StatusChip variant="warn" label="Review" />
@@ -517,7 +467,7 @@
 
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0.35rem 0 0;
 		overflow-wrap: anywhere;
 	}
@@ -549,7 +499,7 @@
 		padding: 2rem;
 		text-align: center;
 		color: var(--ink-faint);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 	}
 
 	.error-banner {
@@ -558,7 +508,7 @@
 		border: 1px solid var(--pen-red);
 		background: rgba(194, 54, 42, 0.05);
 		color: var(--pen-red);
-		font-size: 0.8rem;
+		font-size: var(--text-caption);
 	}
 
 	.empty-state {
@@ -575,7 +525,7 @@
 	}
 
 	.empty-text {
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		color: var(--ink-soft);
 		margin: 0 0 1rem;
 	}
@@ -596,7 +546,7 @@
 	}
 
 	.sync-bar-title {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		text-transform: uppercase;
 		letter-spacing: 0.14em;
@@ -605,7 +555,7 @@
 
 	.sync-bar-text {
 		margin: 0;
-		font-size: 0.88rem;
+		font-size: var(--text-small);
 		color: var(--ink-soft);
 		overflow-wrap: anywhere;
 	}
@@ -625,7 +575,7 @@
 	}
 
 	.sync-result {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ok);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
@@ -634,9 +584,6 @@
 
 	.sync-ok {
 		color: var(--ok);
-	}
-	.sync-partial {
-		color: var(--warn);
 	}
 
 	.results-grid {
@@ -665,7 +612,7 @@
 	.group-title {
 		margin: 0;
 		color: var(--ink);
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-size: 1.1rem;
 		font-weight: 700;
 		line-height: 1.1;
@@ -694,7 +641,7 @@
 
 	.data-row dt {
 		color: var(--ink-faint);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 		min-width: 0;
@@ -704,7 +651,7 @@
 	.data-row dd {
 		margin: 0;
 		color: var(--ink);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -738,7 +685,7 @@
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink-soft);
-		font-size: 0.8rem;
+		font-size: var(--text-caption);
 		padding: 0.35rem 0.65rem;
 		text-transform: none;
 		letter-spacing: 0;
@@ -760,7 +707,7 @@
 	}
 
 	.outline-head {
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
@@ -781,7 +728,7 @@
 		gap: 0.85rem;
 		align-items: baseline;
 		color: var(--ink);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		padding: 0.5rem 0;
 		border-bottom: 1px solid var(--rule);
 	}
@@ -791,7 +738,7 @@
 	}
 
 	.outline-week {
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
@@ -800,7 +747,7 @@
 	}
 
 	.outline-topic {
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 		min-width: 0;
 		overflow-wrap: anywhere;
@@ -837,7 +784,7 @@
 	.materials-empty {
 		margin: 0.5rem 0 0;
 		color: var(--ink-faint);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 	}
@@ -894,7 +841,7 @@
 	}
 
 	.date {
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
@@ -902,7 +849,7 @@
 	}
 
 	.timeline-label {
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 		overflow-wrap: anywhere;
 	}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { ToggleGroup } from 'bits-ui';
+	import { resolveRoute } from '$app/paths';
+	import { onMount, tick } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import {
 		gradeWeightByCourse,
@@ -10,9 +12,8 @@
 		weekDates,
 		type CalendarDate
 	} from '$lib/calendar/domain';
-	import { daysBetween } from '$lib/calendar/week';
 	import { AlertDialog } from '$lib/components/ui';
-	import type { CalendarEvent, CrunchPeriod, GradeStakesGroup } from './types';
+	import type { CalendarEvent, GradeStakesGroup } from './types';
 	import CalendarEditor from './CalendarEditor.svelte';
 	import CalendarMonthView from './CalendarMonthView.svelte';
 	import CalendarWeekView from './CalendarWeekView.svelte';
@@ -135,19 +136,12 @@
 			selectedDay = today;
 			focusedDay = today;
 			showYearPicker = false;
-			viewMode = 'month';
 		});
 	}
 
 	const events = $derived(data.events ?? []);
 	const allCourseCodes = $derived([...new Set(events.map((e) => e.courseCode))].sort());
 	const hasActiveFilter = $derived(filterCourses.length > 0);
-
-	function toggleCourseFilter(code: string) {
-		filterCourses = filterCourses.includes(code)
-			? filterCourses.filter((item) => item !== code)
-			: [...filterCourses, code];
-	}
 
 	function clearFilters() {
 		filterCourses = [];
@@ -198,66 +192,6 @@
 
 	// ── Intelligence: crunch, stakes, gaps ──
 	const upcoming = $derived(upcomingEvents(filteredEvents, currentDate));
-
-	const crunchPeriods = $derived.by(() => {
-		const periods: {
-			start: string;
-			end: string;
-			events: CalendarEvent[];
-			weight: number;
-			courses: string[];
-			days: number;
-		}[] = [];
-		for (let i = 0; i < upcoming.length - 1; i++) {
-			const c = upcoming[i],
-				n = upcoming[i + 1];
-			const cd = new Date(c.year, c.month, c.date),
-				nd = new Date(n.year, n.month, n.date);
-			const diff = daysBetween(cd, nd);
-			if (diff > 0 && diff <= 4) {
-				const fmt = (d: number, m: number) => {
-					const ms = [
-						'Jan',
-						'Feb',
-						'Mar',
-						'Apr',
-						'May',
-						'Jun',
-						'Jul',
-						'Aug',
-						'Sep',
-						'Oct',
-						'Nov',
-						'Dec'
-					];
-					return `${ms[m]} ${d}`;
-				};
-				const existing = periods.find((p) => {
-					const pe = new Date(p.end);
-					return Math.abs(daysBetween(cd, pe)) <= 4;
-				});
-				if (existing) {
-					if (!existing.events.find((e) => e.id === c.id)) existing.events.push(c);
-					if (!existing.events.find((e) => e.id === n.id)) existing.events.push(n);
-					existing.end = fmt(n.date, n.month);
-				} else {
-					periods.push({
-						start: fmt(c.date, c.month),
-						end: fmt(n.date, n.month),
-						events: [c, n],
-						weight: 0,
-						courses: [],
-						days: diff
-					});
-				}
-			}
-		}
-		return periods.map((p) => ({
-			...p,
-			weight: p.events.reduce((s, e) => s + (e.gradeWeight ?? 0), 0),
-			courses: [...new Set(p.events.map((e) => e.courseCode))]
-		}));
-	});
 
 	const gradeStakes = $derived(upcoming.filter((e) => e.gradeWeight != null && e.gradeWeight > 0));
 	const gradeStakesByCourse = $derived(gradeWeightByCourse(gradeStakes));
@@ -366,6 +300,7 @@
 
 	// ── CRUD ──
 	let addingEvent = $state(false);
+	let editorReturnFocus: HTMLElement | null = null;
 	let addFormTitle = $state('');
 	let addFormCourseId = $state('');
 	let addFormCourse = $state('');
@@ -374,7 +309,19 @@
 	let addFormWeight = $state('');
 	let editingEventId = $state<string | null>(null);
 	let mutationError = $state<string | null>(null);
+	let actionNotice = $state('');
+	let undoAction = $state<(() => Promise<void>) | null>(null);
 	let savingEvent = $state(false);
+
+	function showNotice(message: string, undo: (() => Promise<void>) | null = null) {
+		actionNotice = message;
+		undoAction = undo;
+	}
+
+	function completionMessage(id: string) {
+		const messages = ['Done — one less thing.', 'Checked off.', 'Deadline cleared.'];
+		return messages[id.length % messages.length];
+	}
 
 	function resetEventForm() {
 		addFormTitle = '';
@@ -385,9 +332,18 @@
 		addFormWeight = '';
 		editingEventId = null;
 		addingEvent = false;
+		const returnTarget = editorReturnFocus;
+		editorReturnFocus = null;
+		if (returnTarget) void tick().then(() => returnTarget.focus());
 	}
 
 	function openAddEvent(day = focusedDay ?? today) {
+		if (courseColors.length === 0) {
+			mutationError = 'Add a course before creating calendar events.';
+			return;
+		}
+		editorReturnFocus =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		selectedDay = day;
 		focusedDay = day;
 		editingEventId = null;
@@ -396,6 +352,8 @@
 	}
 
 	function openEditEvent(event: CalendarEvent) {
+		editorReturnFocus =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		viewYear = event.year;
 		viewMonth = event.month;
 		selectedDay = event.date;
@@ -442,17 +400,20 @@
 				mutationError = body?.error ?? 'Could not save this event.';
 				return;
 			}
+			const wasEditing = editingEventId !== null;
 			resetEventForm();
 			await invalidateAll();
+			showNotice(wasEditing ? 'Changes saved.' : 'Pinned to your calendar.');
 		} catch {
-			mutationError = 'Network error. Is the server running?';
+			mutationError = 'Couldn’t save the event. Check your connection and try again.';
 		} finally {
 			savingEvent = false;
 		}
 	}
 
-	async function updateEventStatus(id: string, status: string) {
+	async function updateEventStatus(id: string, status: string, announce = true) {
 		mutationError = null;
+		const previousStatus = events.find((event) => event.id === id)?.status ?? 'pending';
 		try {
 			const response = await fetch(`/api/calendar/events/${encodeURIComponent(id)}`, {
 				method: 'PUT',
@@ -465,8 +426,14 @@
 				return;
 			}
 			await invalidateAll();
+			if (announce) {
+				showNotice(status === 'completed' ? completionMessage(id) : 'Status updated.', async () => {
+					await updateEventStatus(id, previousStatus, false);
+					showNotice('Change undone.');
+				});
+			}
 		} catch {
-			mutationError = 'Network error. Is the server running?';
+			mutationError = 'Couldn’t update the event. Check your connection and try again.';
 		}
 	}
 
@@ -481,8 +448,38 @@
 		deleteTargetId = id;
 	}
 
+	async function restoreDeletedEvent(event: CalendarEvent) {
+		const response = await fetch('/api/calendar/events', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				courseId: event.courseId,
+				courseCode: event.courseCode,
+				title: event.title,
+				type: event.type,
+				date: event.date,
+				month: event.month,
+				year: event.year,
+				time: event.time ?? undefined,
+				gradeWeight: event.gradeWeight ?? undefined
+			})
+		});
+		if (!response.ok) throw new Error('restore failed');
+		const body = (await response.json()) as { id: string };
+		if (event.status && event.status !== 'pending') {
+			await fetch(`/api/calendar/events/${encodeURIComponent(body.id)}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ status: event.status })
+			});
+		}
+		await invalidateAll();
+		showNotice('Event restored.');
+	}
+
 	async function confirmDeleteEvent() {
 		const id = deleteTargetId;
+		const deletedEvent = deleteTargetEvent;
 		deleteTargetId = null;
 		if (id === null) return;
 		mutationError = null;
@@ -496,8 +493,12 @@
 				return;
 			}
 			await invalidateAll();
+			showNotice(
+				'Removed from your calendar.',
+				deletedEvent?.courseId ? () => restoreDeletedEvent(deletedEvent) : null
+			);
 		} catch {
-			mutationError = 'Network error. Is the server running?';
+			mutationError = 'Couldn’t delete the event. Check your connection and try again.';
 		}
 	}
 
@@ -505,6 +506,10 @@
 	// the day cell that opened it. The delete dialog manages its own Escape.
 	function onWindowKeydown(e: KeyboardEvent) {
 		if (e.key !== 'Escape' || deleteTargetId !== null) return;
+		if (showYearPicker) {
+			showYearPicker = false;
+			return;
+		}
 		if (addingEvent) {
 			const day = selectedDay;
 			resetEventForm();
@@ -557,8 +562,8 @@
 		viewYear = day.year;
 		viewMonth = day.month;
 		focusedDay = day.date;
-		viewMode = 'month';
-		selectDay(day.date);
+		viewMode = 'day';
+		selectedDay = day.date;
 	}
 </script>
 
@@ -582,22 +587,84 @@
 					{:else}Track your deadlines across every course{/if}
 				</p>
 			</div>
-			<div class="page-cover-stamps">
-				{#each ['month', 'week', 'day'] as mode (mode)}
-					<button
-						class="stamp-sm font-mono"
-						class:stamp-active={viewMode === mode}
-						onclick={() => (viewMode = mode as 'month' | 'week' | 'day')}>{mode}</button
-					>
-				{/each}
+			<div class="page-cover-actions">
+				<button
+					class="primary-calendar-action"
+					disabled={courseColors.length === 0}
+					onclick={() => openAddEvent()}>+ Add event</button
+				>
+				<ToggleGroup.Root
+					type="single"
+					bind:value={viewMode}
+					class="page-cover-stamps"
+					aria-label="Calendar view"
+				>
+					{#each ['month', 'week', 'day'] as mode (mode)}
+						<ToggleGroup.Item value={mode} class="stamp-btn">{mode}</ToggleGroup.Item>
+					{/each}
+				</ToggleGroup.Root>
 			</div>
 		</div>
 	</div>
 
+	{#if allCourseCodes.length > 0}
+		<div class="calendar-filters">
+			<span>Courses</span>
+			<ToggleGroup.Root
+				type="multiple"
+				bind:value={filterCourses}
+				aria-label="Filter calendar by course"
+			>
+				{#each allCourseCodes as code (code)}
+					<ToggleGroup.Item value={code}>{code}</ToggleGroup.Item>
+				{/each}
+			</ToggleGroup.Root>
+			{#if hasActiveFilter}<button class="clear-filter" onclick={clearFilters}
+					>Clear course filters</button
+				>{/if}
+		</div>
+	{/if}
+
+	{#if hasActiveFilter && filteredEvents.length === 0}
+		<div class="calendar-setup-notice">
+			<span>No events match the selected courses.</span>
+			<button onclick={clearFilters}>Clear course filters</button>
+		</div>
+	{/if}
+
+	{#if courseColors.length === 0}
+		<div class="calendar-setup-notice">
+			<span>Add a course before creating calendar events.</span>
+			<a href={resolveRoute('/app/semesters')}>Add a course</a>
+		</div>
+	{/if}
+
 	<div class="cal-layout">
 		<div class="cal-main" class:cal-fade={transitioning}>
+			{#if actionNotice}
+				<div class="calendar-notice" role="status" aria-live="polite">
+					<span>{actionNotice}</span>
+					{#if undoAction}
+						<button
+							onclick={() => {
+								const action = undoAction;
+								undoAction = null;
+								void action?.();
+							}}>Undo</button
+						>
+					{/if}
+					<button
+						class="icon-btn"
+						aria-label="Dismiss notification"
+						title="Dismiss"
+						onclick={() => showNotice('')}
+					>
+						<X class="size-[var(--icon-sm)]" aria-hidden="true" />
+					</button>
+				</div>
+			{/if}
 			{#if mutationError}
-				<p class="calendar-error font-mono" role="alert">{mutationError}</p>
+				<p class="calendar-error" role="alert">{mutationError}</p>
 			{/if}
 
 			{#if addingEvent && selectedDay !== null}
@@ -639,7 +706,6 @@
 					{eventsByDay}
 					{colorByCode}
 					{isSelectedDay}
-					{typeBadge}
 					{eventIsOverdue}
 					onPrevMonth={prevMonth}
 					onNextMonth={nextMonth}
@@ -650,7 +716,6 @@
 					onYearChange={setYear}
 					onMonthChange={setMonth}
 					{onGridKeydown}
-					onAddEvent={openAddEvent}
 					onEditEvent={openEditEvent}
 					onUpdateEventStatus={updateEventStatus}
 					onDeleteEvent={requestDeleteEvent}
@@ -666,10 +731,8 @@
 					{today}
 					{eventsByDay}
 					{colorByCode}
-					{focusedDay}
 					onShiftWeek={shiftWeek}
 					onGoToday={goToday}
-					onAddEvent={openAddEvent}
 					onNavigateToDay={navigateToDay}
 				/>
 			{/if}
@@ -680,14 +743,11 @@
 					{viewMonth}
 					{viewDay}
 					{todayEvents}
-					{focusedDay}
-					{today}
 					{courseColor}
 					{typeBadge}
 					onPrevDay={prevDay}
 					onNextDay={nextDay}
 					onGoToday={goToday}
-					onAddEvent={openAddEvent}
 					onEditEvent={openEditEvent}
 					onUpdateEventStatus={updateEventStatus}
 					onDeleteEvent={requestDeleteEvent}
@@ -697,17 +757,10 @@
 
 		<CalendarSidebar
 			{events}
-			{allCourseCodes}
-			{filterCourses}
-			{hasActiveFilter}
 			{upcoming}
-			crunchPeriods={crunchPeriods as CrunchPeriod[]}
 			gradeStakesByCourse={gradeStakesByCourse as GradeStakesGroup[]}
 			{courseColor}
-			{typeBadge}
 			{eventIsOverdue}
-			onToggleCourseFilter={toggleCourseFilter}
-			onClearFilters={clearFilters}
 		/>
 	</div>
 </div>
@@ -729,25 +782,143 @@
 		margin-inline: auto;
 		padding-block: 2rem 4rem;
 	}
-	.page-title {
-		font-size: clamp(2.4rem, 4vw, 3rem);
-		color: var(--ink);
-		margin: 0.25rem 0 0;
-		line-height: 1;
-	}
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0.5rem 0 0;
 	}
 	.crit {
 		color: var(--accent);
 	}
-	.stamp-active {
+	.page-cover-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		align-items: center;
+		justify-content: flex-end;
+	}
+	.primary-calendar-action {
+		min-height: 40px;
+		padding: 0.55rem 0.9rem;
+		border: 1px solid var(--ink);
+		background: var(--ink);
+		color: var(--paper);
+		font-weight: 700;
+		cursor: pointer;
+		transition:
+			transform 120ms var(--ease-out-quart),
+			box-shadow 120ms var(--ease-out-quart);
+	}
+	.primary-calendar-action:hover:not(:disabled) {
+		transform: translateY(-1px);
+		box-shadow: 2px 2px 0 var(--shadow-ink);
+	}
+	.primary-calendar-action:active:not(:disabled) {
+		transform: translateY(1px);
+		box-shadow: none;
+	}
+	.primary-calendar-action:disabled {
+		cursor: not-allowed;
+		opacity: 0.4;
+	}
+	:global(.stamp-btn) {
+		min-height: 32px;
+		background: none;
+		border: 1px solid var(--rule);
+		padding: 0.22rem 0.6rem;
+		font-family: var(--font-body);
+		font-size: var(--text-small);
+		color: var(--ink-soft);
+		cursor: pointer;
+		line-height: 1;
+	}
+	:global(.stamp-btn:hover) {
+		border-color: var(--ink);
+		color: var(--ink);
+	}
+	:global(.stamp-btn[data-state='on']) {
 		background: var(--highlight) !important;
 		border-color: var(--ink) !important;
 		color: var(--ink) !important;
 		font-weight: 600;
+	}
+
+	.calendar-filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+	.calendar-filters > span {
+		margin-right: 0.25rem;
+		color: var(--ink-faint);
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
+	}
+	.calendar-filters :global([data-toggle-group-item]),
+	.calendar-filters .clear-filter,
+	.calendar-setup-notice a,
+	.calendar-setup-notice button {
+		min-height: 32px;
+		padding: 0.35rem 0.55rem;
+		border: 1px solid var(--rule);
+		background: var(--paper);
+		color: var(--ink-soft);
+		font: 600 0.68rem/1 var(--font-body);
+		cursor: pointer;
+	}
+	.calendar-filters :global([data-toggle-group-item][data-state='on']) {
+		border-color: var(--ink);
+		background: var(--highlight);
+		color: var(--ink);
+	}
+	.calendar-filters .clear-filter {
+		border-color: transparent;
+		background: transparent;
+		font-family: var(--font-body);
+	}
+	.calendar-setup-notice {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.75rem;
+		padding: 0.75rem;
+		border: 1px dashed var(--rule);
+		color: var(--ink-soft);
+		font-size: var(--text-caption);
+	}
+	.calendar-setup-notice a,
+	.calendar-setup-notice button {
+		flex: 0 0 auto;
+		color: var(--ink);
+		text-decoration: none;
+	}
+
+	.calendar-notice {
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+		margin-bottom: 0.75rem;
+		padding: 0.65rem 0.75rem;
+		border: 1px solid var(--ink);
+		background: var(--highlight-soft);
+		color: var(--ink);
+		font-size: var(--text-caption);
+		animation: notice-arrive 180ms var(--ease-out-quart);
+	}
+	.calendar-notice span {
+		flex: 1;
+	}
+	.calendar-notice button {
+		min-height: 32px;
+		border: 0;
+		background: transparent;
+		color: var(--ink);
+		font-weight: 700;
+		cursor: pointer;
 	}
 
 	.calendar-error {
@@ -756,12 +927,12 @@
 		border: 1px solid var(--rule);
 		background: var(--paper-shelf);
 		color: var(--accent);
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 	}
 
 	.cal-layout {
 		display: grid;
-		grid-template-columns: 1fr 280px;
+		grid-template-columns: minmax(0, 1fr) 280px;
 		gap: 1.5rem;
 		align-items: start;
 	}
@@ -773,9 +944,43 @@
 		opacity: 0.6;
 	}
 
+	@keyframes notice-arrive {
+		from {
+			transform: translateY(-4px);
+			opacity: 0;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.calendar-notice {
+			animation: none;
+		}
+		.primary-calendar-action {
+			transition: none;
+		}
+	}
+
 	@media (max-width: 768px) {
 		.cal-layout {
 			grid-template-columns: 1fr;
+		}
+		.page-cover-actions {
+			width: 100%;
+			justify-content: space-between;
+		}
+		.calendar-setup-notice {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+	}
+
+	@media (pointer: coarse) {
+		:global(.stamp-btn),
+		.calendar-filters :global([data-toggle-group-item]),
+		.calendar-filters .clear-filter,
+		.calendar-setup-notice a,
+		.calendar-setup-notice button {
+			min-height: 44px;
 		}
 	}
 </style>

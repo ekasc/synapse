@@ -266,12 +266,12 @@
 	{#if topics.length > 0}
 		<section class="block">
 			<header class="block-head">
-				<h2 class="block-title font-mono">Topics</h2>
-				<span class="block-meta font-mono">{topics.length}</span>
+				<h2 class="block-title">Topics</h2>
+				<span class="block-meta">{topics.length}</span>
 			</header>
 			<div class="topic-list">
 				{#each topics as topic (topic)}
-					<span class="topic-chip font-mono">{topic}</span>
+					<span class="topic-chip">{topic}</span>
 				{/each}
 			</div>
 		</section>
@@ -279,12 +279,12 @@
 
 	<section class="block">
 		<header class="block-head">
-			<h2 class="block-title font-mono">Connections</h2>
-			<span class="block-meta font-mono">{incoming.length + outgoing.length}</span>
+			<h2 class="block-title">Connections</h2>
+			<span class="block-meta">{incoming.length + outgoing.length}</span>
 		</header>
 
 		<button
-			class="btn btn-secondary btn-sm conn-toggle font-mono"
+			class="btn btn-secondary btn-sm conn-toggle"
 			onclick={() => {
 				showConnForm = !showConnForm;
 			}}
@@ -314,7 +314,7 @@
 						<Combobox.Input
 							id="conn-search"
 							class={cn(
-								'w-full min-w-0 border-0 bg-transparent py-2 pr-[3.8rem] pl-2.5 text-[0.82rem] font-[var(--font-body)] text-[var(--ink)] outline-none placeholder:text-[var(--ink-faint)] focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--highlight)]'
+								'w-full min-w-0 border-0 bg-transparent py-2 pr-[3.8rem] pl-2.5 font-[var(--font-body)] text-[var(--ink)] text-[var(--text-caption)] outline-none placeholder:text-[var(--ink-faint)] focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--highlight)]'
 							)}
 							placeholder="Find a course…"
 							oninput={(event) => {
@@ -333,7 +333,7 @@
 						/>
 						{#if edgeFormTarget}
 							<button
-								class="absolute top-0 right-8 bottom-0 flex w-6 items-center justify-center border-0 bg-transparent text-[0.65rem] font-[var(--font-mono)] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+								class="absolute top-0 right-8 bottom-0 flex w-6 items-center justify-center border-0 bg-transparent text-[var(--ink-soft)] text-[var(--text-caption)] hover:text-[var(--ink)]"
 								onclick={clearEdgeSelection}
 								aria-label="Clear selected course"
 								type="button">✕</button
@@ -341,7 +341,7 @@
 						{/if}
 						<Combobox.Trigger
 							class={cn(
-								'absolute top-0 right-0 bottom-0 flex w-8 items-center justify-center border-0 bg-transparent text-[0.75rem] font-[var(--font-mono)] text-[var(--ink-faint)] transition-[color,transform] hover:text-[var(--ink)] data-[state=open]:rotate-180 data-[state=open]:text-[var(--ink)]'
+								'absolute top-0 right-0 bottom-0 flex w-8 items-center justify-center border-0 bg-transparent  text-[var(--ink-faint)] text-[var(--text-caption)] transition-[color,transform] hover:text-[var(--ink)] data-[state=open]:rotate-180 data-[state=open]:text-[var(--ink)]'
 							)}
 							aria-label="Show course choices">▾</Combobox.Trigger
 						>
@@ -353,9 +353,7 @@
 					>
 						<Combobox.Viewport>
 							{#if filteredConnectionCourses.length === 0}
-								<p
-									class="m-0 p-3 text-[0.72rem] font-[var(--font-mono)] tracking-[0.08em] text-[var(--ink-faint)] uppercase"
-								>
+								<p class="m-0 p-3 text-[var(--ink-faint)] text-[var(--text-caption)]">
 									Nothing matches — try a different code or name
 								</p>
 							{:else}
@@ -366,13 +364,11 @@
 											'grid min-h-11 w-full grid-cols-[minmax(5.5rem,auto)_1fr] items-baseline gap-2.5 border-0 border-b border-dashed border-[var(--rule)] bg-transparent px-3 py-2 text-left text-[var(--ink)] last:border-b-0 hover:bg-[var(--highlight-soft)] hover:shadow-[inset_2px_0_0_var(--ink)] data-[highlighted]:bg-[var(--highlight-soft)] data-[highlighted]:shadow-[inset_2px_0_0_var(--ink)] data-[state=checked]:bg-[var(--highlight)] data-[state=checked]:shadow-[inset_2px_0_0_var(--ink)]'
 										)}
 									>
-										<span
-											class="text-[0.68rem] font-[var(--font-mono)] font-bold tracking-[0.08em]"
-										>
+										<span class=" font-bold text-[var(--text-caption)]">
 											{candidate.code}
 										</span>
 										<span
-											class="overflow-hidden text-[0.82rem] leading-[1.35] text-ellipsis whitespace-nowrap text-[var(--ink-soft)]"
+											class="overflow-hidden leading-[1.35] text-ellipsis whitespace-nowrap text-[var(--ink-soft)] text-[var(--text-caption)]"
 										>
 											{candidate.name}
 										</span>
@@ -385,13 +381,13 @@
 
 				<div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
 					<label
-						class="flex flex-col gap-1 text-[0.65rem] font-[var(--font-mono)] tracking-[0.1em] text-[var(--ink-faint)] uppercase"
+						class="flex flex-col gap-1 tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]"
 						for="edge-direction"
 					>
 						Relationship
 						<select
 							id="edge-direction"
-							class="min-h-11 border border-[var(--rule)] bg-[var(--paper)] px-2.5 text-[0.78rem] font-[var(--font-mono)] text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-45"
+							class="min-h-11 border border-[var(--rule)] bg-[var(--paper)] px-2.5 text-[var(--ink)] text-[var(--text-caption)] disabled:cursor-not-allowed disabled:opacity-45"
 							bind:value={edgeFormDirection}
 							disabled={edgeFormSubmitting}
 						>
@@ -411,7 +407,7 @@
 
 				{#if selectedConnectionCourse}
 					<p
-						class="m-0 border-l-2 border-[var(--highlight)] pl-2.5 text-[0.82rem] text-[var(--ink-soft)]"
+						class="m-0 border-l-2 border-[var(--highlight)] pl-2.5 text-[var(--ink-soft)] text-[var(--text-caption)]"
 					>
 						Preview:
 						<strong class="text-[var(--ink)]">
@@ -423,7 +419,7 @@
 				{/if}
 
 				{#if edgeFormError}
-					<p class="m-0 text-[0.78rem] font-[var(--font-mono)] text-[var(--pen-red)]">
+					<p class="m-0 text-[var(--pen-red)] text-[var(--text-caption)]">
 						{edgeFormError}
 					</p>
 				{/if}
@@ -431,20 +427,20 @@
 		{/if}
 
 		{#if prerequisites.length === 0 && requiredFor.length === 0 && otherRelationships.length === 0}
-			<p class="empty font-mono">No prerequisite relationships have been added.</p>
+			<p class="empty">No prerequisite relationships have been added.</p>
 		{:else}
 			{#if prerequisites.length > 0}
 				<div class="conn-group">
-					<div class="conn-label font-mono">Prerequisites · this course requires</div>
+					<div class="conn-label">Prerequisites · this course requires</div>
 					<ul class="conn-list">
 						{#each prerequisites as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const source = coursesById.get(edge.source)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
-								<span class="conn-source font-mono">
+								<span class="conn-source">
 									{#if source}{source.code} · {source.name}{:else}—{/if}
 								</span>
-								<span class="conn-arrow font-mono" aria-hidden="true">→</span>
-								<span class="conn-this font-mono">required before this course</span>
+								<span class="conn-arrow" aria-hidden="true">→</span>
+								<span class="conn-this">required before this course</span>
 								{#if edge.id}
 									<select
 										class="conn-select"
@@ -466,7 +462,7 @@
 										{deletingEdgeId === edge.id ? '…' : 'remove'}
 									</button>
 								{:else}
-									<span class="conn-type font-mono">{edgeLabel(edge)}</span>
+									<span class="conn-type">{edgeLabel(edge)}</span>
 								{/if}
 							</li>
 						{/each}
@@ -476,14 +472,14 @@
 
 			{#if requiredFor.length > 0}
 				<div class="conn-group">
-					<div class="conn-label font-mono">Required for · these courses require this course</div>
+					<div class="conn-label">Required for · these courses require this course</div>
 					<ul class="conn-list">
 						{#each requiredFor as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const target = coursesById.get(edge.target)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
-								<span class="conn-this font-mono">this course</span>
-								<span class="conn-arrow font-mono" aria-hidden="true">→</span>
-								<span class="conn-source font-mono">
+								<span class="conn-this">this course</span>
+								<span class="conn-arrow" aria-hidden="true">→</span>
+								<span class="conn-source">
 									{#if target}{target.code} · {target.name}{:else}—{/if}
 								</span>
 								{#if edge.id}
@@ -507,7 +503,7 @@
 										{deletingEdgeId === edge.id ? '…' : 'remove'}
 									</button>
 								{:else}
-									<span class="conn-type font-mono">{edgeLabel(edge)}</span>
+									<span class="conn-type">{edgeLabel(edge)}</span>
 								{/if}
 							</li>
 						{/each}
@@ -517,17 +513,17 @@
 
 			{#if otherRelationships.length > 0}
 				<details class="conn-group">
-					<summary class="conn-label font-mono">Other relationships · legacy or imported</summary>
+					<summary class="conn-label">Other relationships · legacy or imported</summary>
 					<ul class="conn-list">
 						{#each otherRelationships as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const related = coursesById.get(
 								edge.source === course.id ? edge.target : edge.source
 							)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
-								<span class="conn-source font-mono">
+								<span class="conn-source">
 									{#if related}{related.code} · {related.name}{:else}—{/if}
 								</span>
-								<span class="conn-type font-mono">{edgeLabel(edge)}</span>
+								<span class="conn-type">{edgeLabel(edge)}</span>
 								{#if edge.id}
 									<select
 										class="conn-select"
@@ -557,7 +553,7 @@
 		{/if}
 
 		{#if edgeMutationError}
-			<p class="conn-error font-mono">{edgeMutationError}</p>
+			<p class="conn-error">{edgeMutationError}</p>
 		{/if}
 	</section>
 
@@ -593,7 +589,7 @@
 	.delete-error {
 		margin: 0.75rem 0 0;
 		color: var(--pen-red);
-		font-size: 0.8rem;
+		font-size: var(--text-caption);
 	}
 
 	.block {
@@ -613,16 +609,16 @@
 	}
 
 	.block-title {
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
+		text-transform: none;
+		letter-spacing: normal;
 		font-weight: 500;
 		margin: 0;
 	}
 
 	.block-meta {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 	}
 
@@ -636,12 +632,12 @@
 		padding: 0.25rem 0.6rem;
 		background: var(--paper);
 		border: 1px solid var(--rule);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink);
 	}
 
 	.empty {
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		margin: 0;
 	}
@@ -651,9 +647,9 @@
 	}
 
 	.conn-label {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 		margin-bottom: 0.5rem;
 	}
@@ -675,7 +671,7 @@
 		padding: 0.5rem 0.75rem;
 		background: var(--paper);
 		border: 1px solid var(--rule);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 	}
 
 	.conn-row.conn-row-editable {
@@ -696,27 +692,27 @@
 
 	.conn-this {
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		font-size: 0.7rem;
+		text-transform: none;
+		font-size: var(--text-caption);
 		letter-spacing: 0.1em;
 		white-space: nowrap;
 	}
 
 	.conn-type {
 		color: var(--ink-soft);
-		text-transform: uppercase;
-		font-size: 0.7rem;
+		text-transform: none;
+		font-size: var(--text-caption);
 		letter-spacing: 0.1em;
 	}
 
 	.conn-toggle {
 		margin-bottom: 0.875rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.conn-toggle-glyph {
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		line-height: 1;
 	}
 
@@ -725,10 +721,10 @@
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink);
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
 		min-height: 2.5rem;
 	}
 
@@ -738,13 +734,13 @@
 	}
 
 	.conn-remove {
-		font-family: var(--font-mono);
-		text-transform: uppercase;
+		font-family: var(--font-body);
+		text-transform: none;
 		letter-spacing: 0.1em;
 	}
 
 	.conn-error {
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		color: var(--pen-red);
 		margin: 0 0 0.85rem;
 	}

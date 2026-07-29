@@ -26,31 +26,49 @@
 	);
 </script>
 
-<svelte:head><title>Course Map · Synapse</title></svelte:head>
+<svelte:head><title>Course map · Synapse</title></svelte:head>
 
-<main class="courses-page">
+<main class="box-border max-w-full min-w-0 p-[clamp(1.25rem,3vw,2.5rem)] max-[720px]:p-4">
 	<header class="page-cover">
-		<h1 class="page-title">Course Map</h1>
+		<h1 class="page-title">Course map</h1>
 		<p class="page-tagline">Prerequisites by semester.</p>
 	</header>
 
 	{#if semesters.length === 0}
-		<section class="empty-panel" aria-labelledby="empty-title">
-			<h2 id="empty-title">Add a semester before building your course map.</h2>
-			<a class="btn empty-action" href={resolve('/app/semesters')}>Add semester</a>
+		<section
+			class="mt-8 border border-[var(--ink)] bg-[var(--surface-paper)] p-[clamp(1rem,3vw,1.5rem)] shadow-[6px_6px_0_var(--shadow-ink)]"
+			aria-labelledby="empty-title"
+		>
+			<h2
+				id="empty-title"
+				class="m-0 text-[1.35rem] font-[var(--font-body)] font-bold text-[var(--ink)]"
+			>
+				Add a semester before building your course map.
+			</h2>
+			<a class="btn mt-4" href={resolve('/app/semesters')}>Add semester</a>
 		</section>
 	{:else if courses.length === 0}
-		<section class="empty-panel" aria-labelledby="empty-title">
-			<h2 id="empty-title">Add courses to see your degree path.</h2>
-			<a class="btn empty-action" href={resolve('/app/semesters')}>Add course</a>
+		<section
+			class="mt-8 border border-[var(--ink)] bg-[var(--surface-paper)] p-[clamp(1rem,3vw,1.5rem)] shadow-[6px_6px_0_var(--shadow-ink)]"
+			aria-labelledby="empty-title"
+		>
+			<h2
+				id="empty-title"
+				class="m-0 text-[1.35rem] font-[var(--font-body)] font-bold text-[var(--ink)]"
+			>
+				Add courses to see your degree path.
+			</h2>
+			<a class="btn mt-4" href={resolve('/app/semesters')}>Add course</a>
 		</section>
 	{:else}
-		<section class="map-section" aria-label="Prerequisite plan">
+		<section class="mt-8 max-w-full min-w-0" aria-label="Prerequisite plan">
 			{#if !hasPrerequisites}
-				<div class="no-relations">
+				<div
+					class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-[0.45rem] border border-[var(--rule)] bg-[var(--paper-shelf)] p-[0.8rem] text-[var(--ink-soft)] text-[var(--text-caption)]"
+				>
 					<strong>No prerequisites yet.</strong>
 					<a
-						class="btn"
+						class="btn shrink-0"
 						href={resolve('/app/semesters/[semesterId]/courses/[courseId]', {
 							semesterId: courses[0].semesterId,
 							courseId: courses[0].id
@@ -63,64 +81,3 @@
 		</section>
 	{/if}
 </main>
-
-<style>
-	.courses-page {
-		box-sizing: border-box;
-		min-width: 0;
-		max-width: 100%;
-		padding: clamp(1.25rem, 3vw, 2.5rem);
-	}
-
-	.map-section {
-		min-width: 0;
-		max-width: 100%;
-		margin-top: 2rem;
-	}
-
-	.empty-panel h2 {
-		font-family: var(--font-body);
-		font-weight: 700;
-		color: var(--ink);
-	}
-
-	.empty-action {
-		margin-top: 1rem;
-	}
-
-	.no-relations {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.45rem 1rem;
-		align-items: center;
-		margin: 0 0 0.75rem;
-		padding: 0.8rem;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		font-size: 0.82rem;
-		color: var(--ink-soft);
-	}
-
-	.no-relations .btn {
-		flex: 0 0 auto;
-	}
-
-	.empty-panel {
-		margin-top: 2rem;
-		padding: clamp(1rem, 3vw, 1.5rem);
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		box-shadow: 6px 6px 0 var(--shadow-ink);
-	}
-
-	.empty-panel h2 {
-		margin: 0;
-		font-size: 1.35rem;
-	}
-
-	@media (max-width: 720px) {
-		.courses-page {
-			padding: 1rem;
-		}
-	}
-</style>

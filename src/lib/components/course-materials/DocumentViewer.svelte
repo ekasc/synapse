@@ -321,21 +321,42 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-	<div class="viewer-shell">
-		<div class="viewer-backdrop" onclick={onClose} aria-hidden="true"></div>
-		<div class="viewer-panel" role="dialog" aria-modal="true" aria-label={fileName}>
-			<header class="viewer-header">
-				<div class="viewer-title-wrap">
-					<p class="viewer-kicker font-mono">{fileType}</p>
-					<h2 class="viewer-title">{fileName}</h2>
+	<div class="fixed inset-0 z-[var(--z-viewer)]">
+		<div
+			class="absolute inset-0 bg-[var(--backdrop-overlay)]"
+			onclick={onClose}
+			aria-hidden="true"
+		></div>
+		<div
+			class="viewer-panel absolute inset-5 mx-auto flex max-w-[980px] flex-col border border-[var(--ink)] bg-[var(--paper)] shadow-[0_2px_6px_var(--shadow-ink)]"
+			role="dialog"
+			aria-modal="true"
+			aria-label={fileName}
+		>
+			<header
+				class="flex items-center justify-between gap-4 border-b border-[var(--rule)] bg-[var(--paper-shelf)] px-4 py-[0.8rem] max-[640px]:items-start"
+			>
+				<div class="min-w-0">
+					<p class="mt-0 mb-[0.18rem] text-[var(--ink-faint)] text-[var(--text-caption)]">
+						{fileType}
+					</p>
+					<h2
+						class="m-0 truncate [font-family:var(--font-body)] text-base leading-[1.2] font-bold text-[var(--ink)]"
+					>
+						{fileName}
+					</h2>
 				</div>
-				<div class="viewer-actions">
+				<div class="flex shrink-0 items-center gap-[0.6rem] max-[640px]:gap-[0.4rem]">
 					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- downloadUrl points to a generated file/API URL. -->
-					<a class="viewer-download font-mono" href={downloadUrl} download={fileName}>download</a>
+					<a
+						class=" text-[var(--ink)] text-[var(--text-caption)] underline decoration-[var(--border-faint)] underline-offset-[3px] transition-[text-decoration-color] duration-150 hover:decoration-[var(--ink)]"
+						href={downloadUrl}
+						download={fileName}>download</a
+					>
 					<button
 						type="button"
 						bind:this={closeRef}
-						class="viewer-close"
+						class="size-8 cursor-pointer border border-[var(--rule)] bg-[var(--paper)] text-[1.4rem] leading-none text-[var(--ink)] transition-colors duration-150 hover:border-[var(--ink)]"
 						onclick={onClose}
 						aria-label="Close document viewer"
 					>
@@ -344,54 +365,86 @@
 				</div>
 			</header>
 
-			<div class="viewer-body">
+			<div class="min-h-0 flex-1 overflow-auto bg-[var(--paper-shelf)]">
 				{#if loading}
-					<div class="viewer-state font-mono">Loading document…</div>
+					<div
+						class="flex min-h-full items-center justify-center p-8 text-center text-[var(--ink-soft)]"
+					>
+						Loading document…
+					</div>
 				{:else if error}
-					<div class="viewer-state viewer-state-error">
-						<p>{error}</p>
+					<div
+						class="flex min-h-full flex-col items-center justify-center gap-4 p-8 text-center text-[var(--accent)]"
+					>
+						<p class="m-0">{error}</p>
 						<Button variant="secondary" size="sm" onclick={loadDocument}>Try again</Button>
 					</div>
 				{:else if fileType === 'pdf'}
 					<div
-						class="pdf-stage"
+						class="flex min-h-full items-start justify-center overflow-auto p-4"
 						role="img"
 						aria-label={`Page ${pageNum} of ${totalPages} of ${fileName}`}
 					>
-						<canvas bind:this={canvasRef} class="pdf-canvas" aria-hidden="true"></canvas>
+						<canvas
+							bind:this={canvasRef}
+							class="h-auto max-w-full bg-white shadow-[0_2px_12px_var(--shadow-ink)]"
+							aria-hidden="true"
+						></canvas>
 					</div>
 				{:else if fileType === 'docx' && docxSrcdoc}
-					<iframe title={`${fileName} preview`} srcdoc={docxSrcdoc} sandbox="" class="docx-frame"
+					<iframe
+						title={`${fileName} preview`}
+						srcdoc={docxSrcdoc}
+						sandbox=""
+						class="block size-full border-0 bg-white"
 					></iframe>
 				{:else if fileType === 'pptx'}
-					<div class="slide-list">
+					<div class="grid gap-4 p-4">
 						{#each slides as slide (slide.number)}
-							<article class="slide-card">
-								<div class="slide-number font-mono">slide {slide.number}</div>
-								<h3>{slide.title}</h3>
+							<article
+								class="min-h-[280px] border border-[var(--rule)] bg-[var(--surface-paper)] p-6 shadow-[3px_3px_0_var(--shadow-ink)]"
+							>
+								<div class="mb-4 text-[var(--ink-faint)] text-[var(--text-caption)]">
+									slide {slide.number}
+								</div>
+								<h3
+									class="mt-0 mb-4 [font-family:var(--font-body)] text-[clamp(1.4rem,3vw,2rem)] leading-[1.1] font-bold text-[var(--ink)]"
+								>
+									{slide.title}
+								</h3>
 								{#if slide.body.length > 0}
-									<ul>
+									<ul class="m-0 pl-[1.2rem] text-base leading-[1.55] text-[var(--ink-soft)]">
 										{#each slide.body as line, index (`${slide.number}-${index}`)}
 											<li>{line}</li>
 										{/each}
 									</ul>
 								{:else}
-									<p class="slide-empty font-mono">No readable text on this slide.</p>
+									<p class="m-0 text-xs tracking-[0.1em] text-[var(--ink-faint)]">
+										No readable text on this slide.
+									</p>
 								{/if}
 							</article>
 						{/each}
 					</div>
 				{:else}
-					<div class="viewer-state font-mono">No preview available.</div>
+					<div
+						class="flex min-h-full items-center justify-center p-8 text-center text-[var(--ink-soft)]"
+					>
+						No preview available.
+					</div>
 				{/if}
 			</div>
 
 			{#if fileType === 'pdf' && totalPages > 1}
-				<footer class="viewer-footer">
+				<footer
+					class="flex items-center justify-center gap-4 border-t border-[var(--rule)] bg-[var(--paper-shelf)] px-4 py-[0.8rem]"
+				>
 					<Button variant="secondary" size="sm" disabled={pageNum <= 1} onclick={goToPrevPage}
 						>Previous</Button
 					>
-					<span class="page-count font-mono">{pageNum} / {totalPages}</span>
+					<span class="min-w-16 text-center text-[var(--ink-soft)] text-[var(--text-caption)]"
+						>{pageNum} / {totalPages}</span
+					>
 					<Button
 						variant="secondary"
 						size="sm"
@@ -405,29 +458,8 @@
 {/if}
 
 <style>
-	.viewer-shell {
-		position: fixed;
-		inset: 0;
-		z-index: var(--z-viewer);
-	}
-
-	.viewer-backdrop {
-		position: absolute;
-		inset: 0;
-		background: var(--backdrop-overlay);
-	}
-
 	.viewer-panel {
-		position: absolute;
-		inset: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		max-width: 980px;
-		margin-inline: auto;
 		animation: viewer-in 0.18s var(--ease-out-quart);
-		border: 1px solid var(--ink);
-		background: var(--paper);
-		box-shadow: 0 2px 6px var(--shadow-ink);
 	}
 
 	@keyframes viewer-in {
@@ -441,202 +473,10 @@
 		}
 	}
 
-	.viewer-header,
-	.viewer-footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		padding: 0.8rem 1rem;
-		border-bottom: 1px solid var(--rule);
-		background: var(--paper-shelf);
-	}
-
-	.viewer-footer {
-		justify-content: center;
-		border-top: 1px solid var(--rule);
-		border-bottom: 0;
-	}
-
-	.viewer-title-wrap {
-		min-width: 0;
-	}
-
-	.viewer-kicker {
-		margin: 0 0 0.18rem;
-		font-size: 0.65rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-	}
-
-	.viewer-title {
-		margin: 0;
-		overflow: hidden;
-		color: var(--ink);
-		font-family: var(--font-hand);
-		font-weight: 700;
-		font-size: 1rem;
-		line-height: 1.2;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.viewer-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-		flex-shrink: 0;
-	}
-
-	.viewer-download {
-		transition: text-decoration-color 0.15s var(--ease-out-quart);
-		font-size: 0.68rem;
-		color: var(--ink);
-		text-decoration: underline;
-		text-decoration-color: var(--border-faint);
-		text-underline-offset: 3px;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.viewer-download:hover {
-		text-decoration-color: var(--ink);
-	}
-
-	.viewer-close {
-		width: 2rem;
-		height: 2rem;
-		transition: border-color 0.15s var(--ease-out-quart);
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		color: var(--ink);
-		font-size: 1.4rem;
-		line-height: 1;
-		cursor: pointer;
-	}
-
-	.viewer-close:hover {
-		border-color: var(--ink);
-	}
-
-	.viewer-body {
-		min-height: 0;
-		flex: 1;
-		overflow: auto;
-		background: var(--paper-shelf);
-	}
-
-	.viewer-state {
-		display: flex;
-		min-height: 100%;
-		align-items: center;
-		justify-content: center;
-		padding: 2rem;
-		color: var(--ink-soft);
-		text-align: center;
-	}
-
-	.viewer-state-error {
-		flex-direction: column;
-		gap: 1rem;
-		color: var(--accent);
-	}
-
-	.viewer-state-error p {
-		margin: 0;
-	}
-
-	.pdf-stage {
-		display: flex;
-		min-height: 100%;
-		justify-content: center;
-		align-items: flex-start;
-		padding: 1rem;
-		overflow: auto;
-	}
-
-	.pdf-canvas {
-		max-width: 100%;
-		height: auto;
-		background: white;
-		box-shadow: 0 2px 12px var(--shadow-ink);
-	}
-
-	.docx-frame {
-		display: block;
-		width: 100%;
-		height: 100%;
-		border: 0;
-		background: white;
-	}
-
-	.slide-list {
-		display: grid;
-		gap: 1rem;
-		padding: 1rem;
-	}
-
-	.slide-card {
-		min-height: 280px;
-		padding: 1.5rem;
-		border: 1px solid var(--rule);
-		background: var(--surface-paper);
-		box-shadow: 3px 3px 0 var(--shadow-ink);
-	}
-
-	.slide-number {
-		margin-bottom: 1rem;
-		font-size: 0.68rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-	}
-
-	.slide-card h3 {
-		margin: 0 0 1rem;
-		color: var(--ink);
-		font-family: var(--font-hand);
-		font-weight: 700;
-		font-size: clamp(1.4rem, 3vw, 2rem);
-		line-height: 1.1;
-	}
-
-	.slide-card ul {
-		margin: 0;
-		padding-left: 1.2rem;
-		color: var(--ink-soft);
-		font-size: 1rem;
-		line-height: 1.55;
-	}
-
-	.slide-empty {
-		margin: 0;
-		color: var(--ink-faint);
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.page-count {
-		min-width: 4rem;
-		font-size: 0.72rem;
-		color: var(--ink-soft);
-		text-align: center;
-	}
-
 	@media (max-width: 640px) {
 		.viewer-panel {
 			inset: 0;
 			box-shadow: none;
-		}
-
-		.viewer-header {
-			align-items: flex-start;
-		}
-
-		.viewer-actions {
-			gap: 0.4rem;
 		}
 	}
 </style>

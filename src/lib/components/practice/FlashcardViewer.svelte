@@ -49,7 +49,7 @@
 	}
 </script>
 
-<div class="fc-progress font-mono">
+<div class="mb-3 text-xs text-[var(--ink-soft)]">
 	{cardIdx + 1} of {totalCards}
 </div>
 
@@ -64,34 +64,39 @@
 		: 'Answer side — flip to show the question'}
 >
 	<div class="fc-flipper" class:fc-flipped={cardSide === 'back'}>
-		<div class="fc-face fc-face-front" aria-hidden={cardSide === 'back'}>
-			<div class="fc-meta">
-				<span class="fc-course font-mono">{currentCard.course}</span>
-				<span class="fc-topic font-mono">{currentCard.topic}</span>
+		<div class="fc-face" aria-hidden={cardSide === 'back'}>
+			<div class="flex gap-[0.85rem]">
+				<span class=" text-xs text-[var(--ink-soft)]">{currentCard.course}</span>
+				<span class=" text-xs text-[var(--ink-soft)]">{currentCard.topic}</span>
 			</div>
-			<div class="fc-body">
-				<span class="fc-front">{currentCard.front}</span>
+			<div class="flex flex-1 items-center justify-center">
+				<span
+					class="[font-family:var(--font-body)] text-[2rem] leading-[1.1] font-semibold tracking-[-0.01em] text-[var(--ink)]"
+					>{currentCard.front}</span
+				>
 			</div>
-			<span class="fc-hint font-mono">tap to flip</span>
+			<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">tap to flip</span>
 		</div>
 		<div class="fc-face fc-face-back" aria-hidden={cardSide === 'front'}>
-			<div class="fc-meta">
-				<span class="fc-course font-mono">{currentCard.course}</span>
-				<span class="fc-topic font-mono">{currentCard.topic}</span>
+			<div class="flex gap-[0.85rem]">
+				<span class=" text-xs text-[var(--ink-soft)]">{currentCard.course}</span>
+				<span class=" text-xs text-[var(--ink-soft)]">{currentCard.topic}</span>
 			</div>
-			<div class="fc-body">
-				<span class="fc-back">{currentCard.back}</span>
+			<div class="flex flex-1 items-center justify-center">
+				<span class="max-w-[500px] text-base leading-6 text-[var(--ink)]">{currentCard.back}</span>
 			</div>
-			<span class="fc-source font-mono">Source: {citationLabel(currentCard.source)}</span>
+			<span class=" tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]"
+				>Source: {citationLabel(currentCard.source)}</span
+			>
 		</div>
 	</div>
 </div>
 
-<span class="fc-flip-status" role="status">
+<span class="sr-only" role="status">
 	{cardSide === 'back' ? 'Answer revealed' : ''}
 </span>
 
-<div class="fc-nav">
+<div class="mt-4 flex justify-between gap-3">
 	<button class="btn btn-secondary btn-sm" disabled={cardIdx === 0} onclick={onprev}
 		>← previous</button
 	>
@@ -101,14 +106,6 @@
 </div>
 
 <style>
-	.fc-progress {
-		font-size: 0.75rem;
-		color: var(--ink-soft);
-		margin-bottom: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
 	.fc-stage {
 		width: 100%;
 		perspective: 1200px;
@@ -127,18 +124,17 @@
 		transform: rotateY(180deg);
 	}
 
-	/* Grid stack (both faces in 1/1) instead of absolute inset:0 — the stage
-	   grows with the tallest face, so long answers can no longer spill out. */
+	/* The grid stack lets the stage grow with its tallest face. */
 	.fc-face {
 		grid-area: 1 / 1;
 		display: flex;
+		min-height: 280px;
 		flex-direction: column;
 		align-items: center;
 		gap: 1.5rem;
-		min-height: 280px;
 		padding: 2rem 1.5rem 1.5rem;
-		background: var(--paper);
 		border: 1px solid var(--rule);
+		background: var(--paper);
 		text-align: center;
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
@@ -150,74 +146,5 @@
 
 	.fc-stage:hover .fc-face {
 		border-color: var(--ink);
-	}
-
-	.fc-meta {
-		display: flex;
-		gap: 0.85rem;
-	}
-
-	.fc-course,
-	.fc-topic {
-		font-size: 0.75rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.fc-body {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.fc-front {
-		font-family: var(--font-body);
-		font-size: 2rem;
-		font-weight: 600;
-		color: var(--ink);
-		line-height: 1.1;
-		letter-spacing: -0.01em;
-	}
-
-	.fc-back {
-		font-size: 1rem;
-		color: var(--ink);
-		line-height: 1.5;
-		max-width: 500px;
-	}
-
-	.fc-source {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.fc-hint {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.fc-nav {
-		display: flex;
-		justify-content: space-between;
-		margin-top: 1rem;
-		gap: 0.75rem;
-	}
-
-	.fc-flip-status {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		white-space: nowrap;
-		border: 0;
 	}
 </style>

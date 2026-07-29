@@ -93,7 +93,7 @@
 		description="It will appear on your dashboard right away."
 	>
 		<form
-			class="deadline-form"
+			class="mt-4 grid gap-[0.9rem] [&_input]:border [&_input]:border-[var(--border-input)] [&_input]:bg-[var(--surface-paper)] [&_input]:p-[0.6rem] [&_input]:text-[var(--ink)] [&_input]:[font:400_0.95rem/1.3_var(--font-body)] [&_input]:focus-visible:outline-2 [&_input]:focus-visible:outline-offset-1 [&_input]:focus-visible:outline-[var(--ink)] [&_label]:grid [&_label]:gap-[0.35rem] [&_label]:font-medium [&_label]:text-[var(--ink-soft)] [&_label]:text-[var(--text-caption)] [&_select]:border [&_select]:border-[var(--border-input)] [&_select]:bg-[var(--surface-paper)] [&_select]:p-[0.6rem] [&_select]:text-[var(--ink)] [&_select]:[font:400_0.95rem/1.3_var(--font-body)] [&_select]:focus-visible:outline-2 [&_select]:focus-visible:outline-offset-1 [&_select]:focus-visible:outline-[var(--ink)]"
 			onsubmit={(event) => {
 				event.preventDefault();
 				void submit();
@@ -120,7 +120,7 @@
 				/>
 			</label>
 
-			<div class="form-row">
+			<div class="grid grid-cols-2 gap-[0.9rem] max-[480px]:grid-cols-1">
 				<label>
 					Type
 					<select bind:value={type}>
@@ -135,13 +135,13 @@
 				</label>
 			</div>
 
-			<div class="form-row">
+			<div class="grid grid-cols-2 gap-[0.9rem] max-[480px]:grid-cols-1">
 				<label>
-					Time <span class="optional">(optional)</span>
+					Time <span class="font-normal text-[var(--ink-faint)]">(optional)</span>
 					<input type="time" bind:value={timeStr} />
 				</label>
 				<label>
-					Grade weight % <span class="optional">(optional)</span>
+					Grade weight % <span class="font-normal text-[var(--ink-faint)]">(optional)</span>
 					<input
 						type="number"
 						bind:value={gradeWeight}
@@ -154,7 +154,7 @@
 			</div>
 
 			{#if error}
-				<p class="form-error" role="alert">{error}</p>
+				<p class="m-0 text-[var(--pen-red)] text-[var(--text-caption)]" role="alert">{error}</p>
 			{/if}
 
 			<button class="btn btn-primary" type="submit" disabled={saving}>
@@ -163,50 +163,3 @@
 		</form>
 	</Dialog>
 {/if}
-
-<style>
-	.deadline-form {
-		display: grid;
-		gap: 0.9rem;
-		margin-top: 1rem;
-	}
-	.deadline-form label {
-		display: grid;
-		gap: 0.35rem;
-		font-size: 0.85rem;
-		font-weight: 500;
-		color: var(--ink-soft);
-	}
-	.deadline-form input,
-	.deadline-form select {
-		padding: 0.6rem;
-		border: 1px solid var(--border-input);
-		background: var(--surface-paper);
-		font: 400 0.95rem/1.3 var(--font-body);
-		color: var(--ink);
-	}
-	.deadline-form input:focus-visible,
-	.deadline-form select:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: 1px;
-	}
-	.form-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.9rem;
-	}
-	.optional {
-		font-weight: 400;
-		color: var(--ink-faint);
-	}
-	.form-error {
-		margin: 0;
-		color: var(--pen-red);
-		font-size: 0.85rem;
-	}
-	@media (max-width: 480px) {
-		.form-row {
-			grid-template-columns: 1fr;
-		}
-	}
-</style>

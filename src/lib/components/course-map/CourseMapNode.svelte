@@ -26,7 +26,16 @@
 </script>
 
 <article
-	class={['node', state, { selected }]}
+	class={[
+		'absolute z-2 box-border border border-[var(--ink)] bg-[var(--surface-paper)] shadow-[4px_4px_0_var(--shadow-ink)] transition-[opacity,border-color,box-shadow] duration-150 ease-[var(--ease-out-quart)]',
+		state === 'upstream' && 'border-[var(--pen-blue)]',
+		state === 'downstream' && 'border-[var(--pen-red)]',
+		state === 'conflict' && 'border-2 border-[var(--accent)] bg-[var(--paper-edge)]',
+		state === 'resolved' && 'border-2 border-double border-[var(--ok)]',
+		state === 'muted' && 'opacity-28',
+		selected &&
+			'border-2 border-[var(--ink)] bg-[var(--paper-shelf)] shadow-[5px_5px_0_var(--shadow-ink)]'
+	]}
 	data-course-node={course.id}
 	style:left={`${position.x}px`}
 	style:top={`${position.y}px`}
@@ -34,27 +43,42 @@
 	style:height={`${position.height}px`}
 >
 	{#if state === 'conflict'}
-		<span class="state-label conflict-label font-mono">Conflict</span>
+		<span
+			class="absolute -top-[0.65rem] left-[0.6rem] z-2 border border-current bg-[var(--surface-paper)] px-[0.35rem] py-[0.12rem] text-[var(--accent)] text-[var(--text-caption)]"
+			>Conflict</span
+		>
 	{:else if state === 'resolved'}
-		<span class="state-label resolved-label font-mono">Resolved</span>
+		<span
+			class="absolute -top-[0.65rem] left-[0.6rem] z-2 border border-current bg-[var(--surface-paper)] px-[0.35rem] py-[0.12rem] text-[var(--ok)] text-[var(--text-caption)]"
+			>Resolved</span
+		>
 	{:else if preview}
-		<span class="state-label preview-label font-mono">Moved</span>
+		<span
+			class="absolute -top-[0.65rem] left-[0.6rem] z-2 border border-current bg-[var(--surface-paper)] px-[0.35rem] py-[0.12rem] text-[var(--ok)] text-[var(--text-caption)]"
+			>Moved</span
+		>
 	{/if}
-	<div class="node-copy">
+	<div class="relative h-full">
 		{#if relationshipState}<span class="sr-only">{relationshipState}.</span>{/if}
 		<a
 			href={resolve('/app/semesters/[semesterId]/courses/[courseId]', {
 				semesterId: course.semesterId,
 				courseId: course.id
 			})}
-			class="course-link"
+			class="group flex min-w-0 flex-col justify-center py-3 pr-15 pl-3 text-[var(--ink)] no-underline"
 		>
-			<span class="course-code font-mono">{course.code}</span>
-			<span class="course-name">{course.name}</span>
+			<span class=" font-bold text-[var(--text-caption)]">{course.code}</span>
+			<span
+				class="mt-[0.3rem] line-clamp-2 overflow-hidden leading-[1.15] font-[var(--font-body)] font-semibold text-[var(--text-small)] group-hover:underline group-hover:underline-offset-[3px]"
+				>{course.name}</span
+			>
 		</a>
 		<button
 			type="button"
-			class="inspect-button font-mono"
+			class={[
+				'absolute right-[0.35rem] bottom-[0.35rem] min-h-11 min-w-12 cursor-pointer border border-[var(--rule)] bg-[var(--paper-shelf)] px-[0.45rem] py-[0.3rem]  text-[var(--ink-soft)] text-[var(--text-caption)] hover:border-[var(--ink)] hover:text-[var(--ink)]',
+				selected && 'border-[var(--ink)] bg-[var(--surface-paper)] text-[var(--ink)]'
+			]}
 			data-course-inspect={course.id}
 			onclick={() => oninspect(course.id)}
 			aria-pressed={selected}
@@ -64,149 +88,3 @@
 		</button>
 	</div>
 </article>
-
-<style>
-	.sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
-	}
-
-	.node {
-		position: absolute;
-		z-index: 2;
-		box-sizing: border-box;
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		box-shadow: 4px 4px 0 var(--shadow-ink);
-		transition:
-			opacity 0.15s var(--ease-out-quart),
-			border-color 0.15s var(--ease-out-quart),
-			box-shadow 0.15s var(--ease-out-quart);
-	}
-
-	.node-copy {
-		position: relative;
-		height: 100%;
-	}
-
-	.state-label {
-		position: absolute;
-		top: -0.65rem;
-		left: 0.6rem;
-		z-index: 2;
-		padding: 0.12rem 0.35rem;
-		border: 1px solid currentColor;
-		background: var(--surface-paper);
-		font-size: 0.62rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-
-	.preview-label,
-	.resolved-label {
-		color: var(--ok);
-	}
-
-	.conflict-label {
-		color: var(--accent);
-	}
-
-	.course-link {
-		display: flex;
-		min-width: 0;
-		flex-direction: column;
-		justify-content: center;
-		padding: 0.75rem 3.75rem 0.75rem 0.75rem;
-		color: var(--ink);
-		text-decoration: none;
-	}
-
-	.course-link:hover .course-name {
-		text-decoration: underline;
-		text-underline-offset: 3px;
-	}
-
-	.course-code {
-		font-size: 0.68rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-	}
-
-	.course-name {
-		display: -webkit-box;
-		overflow: hidden;
-		margin-top: 0.3rem;
-		font-family: var(--font-body);
-		font-size: 0.95rem;
-		font-weight: 600;
-		line-height: 1.15;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-	}
-
-	.inspect-button {
-		position: absolute;
-		right: 0.35rem;
-		bottom: 0.35rem;
-		min-width: 48px;
-		min-height: 44px;
-		padding: 0.3rem 0.45rem;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		color: var(--ink-soft);
-		font-size: 0.65rem;
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-		cursor: pointer;
-	}
-
-	.inspect-button:hover {
-		border-color: var(--ink);
-		color: var(--ink);
-	}
-
-	.selected {
-		border-width: 2px;
-		border-color: var(--ink);
-		background: var(--paper-shelf);
-		box-shadow: 5px 5px 0 var(--shadow-ink);
-	}
-
-	.selected .inspect-button {
-		border-color: var(--ink);
-		background: var(--surface-paper);
-		color: var(--ink);
-	}
-
-	.upstream {
-		border-color: var(--pen-blue);
-	}
-
-	.downstream {
-		border-color: var(--pen-red);
-	}
-
-	.conflict {
-		border-width: 2px;
-		border-color: var(--accent);
-		background: var(--paper-edge);
-	}
-
-	.resolved {
-		border-width: 2px;
-		border-color: var(--ok);
-		border-style: double;
-	}
-
-	.muted {
-		opacity: 0.28;
-	}
-</style>

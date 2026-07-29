@@ -46,45 +46,60 @@
 	}
 </script>
 
-<div class="quiz-progress font-mono">
+<div class="mb-3 text-xs text-[var(--ink-soft)]">
 	question {index + 1} of {totalQuestions}
 </div>
 
-<article class="question-card surface-polaroid">
-	<div class="q-meta">
-		<span class="q-course font-mono">{question.course}</span>
-		<span class="q-topic font-mono">{question.topic}</span>
+<article class="surface-polaroid px-6 pt-6 pb-7">
+	<div class="mb-4 flex gap-[0.85rem] border-b border-[var(--rule)] pb-[0.65rem]">
+		<span class=" text-xs text-[var(--ink-soft)]">{question.course}</span>
+		<span class=" text-xs text-[var(--ink-soft)]">{question.topic}</span>
 	</div>
-	<p class="q-text">{question.question}</p>
+	<p
+		class="mt-0 mb-6 [font-family:var(--font-body)] text-[1.15rem] leading-[1.4] font-semibold text-[var(--ink)]"
+	>
+		{question.question}
+	</p>
 
-	<div class="q-options">
+	<div class="mb-6 flex flex-col gap-2">
 		{#each question.options as opt, i (i)}
 			<button
-				class="q-option"
-				class:selected={selectedAnswer === i}
-				class:correct={showResult && i === question.correctIndex}
-				class:wrong={showResult && selectedAnswer === i && i !== question.correctIndex}
+				class="flex cursor-pointer items-center gap-[0.85rem] border border-[var(--rule)] bg-[var(--paper)] px-[0.95rem] py-[0.7rem] text-left [font-family:var(--font-body)] transition-[border-color,background] duration-[120ms] hover:not-disabled:border-[var(--ink)] disabled:cursor-default {selectedAnswer ===
+				i
+					? 'border-[var(--ink)] bg-[var(--paper-shelf)]'
+					: ''} {showResult && i === question.correctIndex
+					? 'border-[var(--ok)] bg-[rgba(90,122,74,0.12)]'
+					: ''} {showResult && selectedAnswer === i && i !== question.correctIndex
+					? 'border-[var(--pen-red)] bg-[rgba(194,54,42,0.1)]'
+					: ''}"
 				aria-pressed={selectedAnswer === i}
 				disabled={showResult}
 				onclick={() => {
 					if (!showResult) onselectanswer(i);
 				}}
 			>
-				<span class="q-opt-label font-mono">{String.fromCharCode(65 + i)}</span>
-				<span class="q-opt-text">{opt}</span>
+				<span class="w-[1.2rem] shrink-0 text-xs tracking-[0.1em] text-[var(--ink-faint)]"
+					>{String.fromCharCode(65 + i)}</span
+				>
+				<span class="text-[var(--ink)] text-[var(--text-small)]">{opt}</span>
 			</button>
 		{/each}
 	</div>
 
-	<div class="q-actions">
+	<div class="flex flex-col items-start gap-3">
 		{#if !showResult}
 			<button class="btn btn-primary" disabled={selectedAnswer === null} onclick={onsubmit}
 				>check answer</button
 			>
 		{:else}
-			<div class="q-feedback" role="status">
-				<span class="q-fb-icon">{selectedAnswer === question.correctIndex ? '✓' : '✕'}</span>
-				<span class="q-fb-text">
+			<div
+				class="flex items-center gap-2 border border-[var(--rule)] bg-[var(--paper-shelf)] px-[0.85rem] py-[0.6rem]"
+				role="status"
+			>
+				<span class="q-feedback text-[1.1rem] font-semibold text-[var(--ink)]"
+					>{selectedAnswer === question.correctIndex ? '✓' : '✕'}</span
+				>
+				<span class="text-[var(--ink)] text-[var(--text-small)]">
 					{#if selectedAnswer === question.correctIndex}
 						Correct!
 					{:else}
@@ -92,9 +107,13 @@
 					{/if}
 				</span>
 			</div>
-			<div class="q-detail">
-				<p class="q-explanation">{question.explanation}</p>
-				<p class="q-source font-mono">Source: {citationLabel(question.source)}</p>
+			<div class="flex flex-col gap-[0.35rem]">
+				<p class="m-0 leading-[1.45] text-[var(--ink)] text-[var(--text-small)]">
+					{question.explanation}
+				</p>
+				<p class="m-0 tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]">
+					Source: {citationLabel(question.source)}
+				</p>
 			</div>
 			<button class="btn btn-primary" onclick={onnext}>
 				{index < totalQuestions - 1 ? 'next question' : 'see results'}
@@ -104,152 +123,11 @@
 </article>
 
 <style>
-	.quiz-progress {
-		font-size: 0.75rem;
-		color: var(--ink-soft);
-		margin-bottom: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.question-card {
-		padding: 1.5rem 1.5rem 1.75rem;
-	}
-
-	.q-meta {
-		display: flex;
-		gap: 0.85rem;
-		margin-bottom: 1rem;
-		padding-bottom: 0.65rem;
-		border-bottom: 1px solid var(--rule);
-	}
-
-	.q-course,
-	.q-topic {
-		font-size: 0.75rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.q-text {
-		font-family: var(--font-body);
-		font-size: 1.15rem;
-		color: var(--ink);
-		line-height: 1.4;
-		margin: 0 0 1.5rem;
-		font-weight: 600;
-	}
-
-	.q-options {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.q-option {
-		display: flex;
-		align-items: center;
-		gap: 0.85rem;
-		padding: 0.7rem 0.95rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		cursor: pointer;
-		text-align: left;
-		font-family: var(--font-body);
-		transition:
-			border-color 0.12s var(--ease-out-quart),
-			background 0.12s var(--ease-out-quart);
-	}
-
-	.q-option:hover:not(:disabled) {
-		border-color: var(--ink);
-	}
-
-	.q-option.selected {
-		border-color: var(--ink);
-		background: var(--paper-shelf);
-	}
-
-	.q-option.correct {
-		border-color: var(--ok);
-		background: rgba(90, 122, 74, 0.12);
-	}
-
-	.q-option.wrong {
-		border-color: var(--pen-red);
-		background: rgba(194, 54, 42, 0.1);
-	}
-
-	.q-option:disabled {
-		cursor: default;
-	}
-
-	.q-opt-label {
-		font-size: 0.75rem;
-		color: var(--ink-faint);
-		width: 1.2rem;
-		flex-shrink: 0;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.q-opt-text {
-		font-size: 0.9rem;
-		color: var(--ink);
-	}
-
-	.q-actions {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		align-items: flex-start;
-	}
-
 	.q-feedback {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.6rem 0.85rem;
-		background: var(--paper-shelf);
-		border: 1px solid var(--rule);
+		animation: q-feedback 0.4s var(--ease-out-quart) both;
 	}
 
-	.q-fb-icon {
-		font-size: 1.1rem;
-		font-weight: 600;
-		color: var(--ink);
-		animation: qFeedback 0.4s var(--ease-out-quart) both;
-	}
-
-	.q-fb-text {
-		font-size: 0.88rem;
-		color: var(--ink);
-	}
-
-	.q-detail {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.q-explanation {
-		font-size: 0.88rem;
-		color: var(--ink);
-		margin: 0;
-		line-height: 1.45;
-	}
-
-	.q-source {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		margin: 0;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	@keyframes qFeedback {
+	@keyframes q-feedback {
 		from {
 			transform: scale(0.7);
 			opacity: 0;
