@@ -24,7 +24,7 @@ import worker from './_app_worker.js';
 export default {
 	fetch: worker.fetch,
 	async scheduled(controller, env, ctx) {
-		if (controller.cron === '0 15 * * 0') {
+		if (controller.cron === '0 15 * * 7') {
 			const secret = env.WEEKLY_PUSH_SECRET;
 			if (!secret) return;
 			const request = new Request('https://synapse.local/api/weekly-push/run', {

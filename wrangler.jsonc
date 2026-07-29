@@ -21,7 +21,7 @@
 	// gone too. Set the remaining secret with `wrangler secret put` (or
 	// .dev.vars locally).
 	"triggers": {
-		"crons": ["0 15 * * 0"]
+		"crons": ["0 15 * * 7"]
 	},
 	"workers_dev": true,
 	"preview_urls": true,
