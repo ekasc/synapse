@@ -1,7 +1,8 @@
 // Post-build step: adapter-cloudflare writes the app bundle to wrangler's
 // `main` path and offers no hook for extra exports, so this wraps that bundle
-// to add the `scheduled` handler for the weekly digest push cron. Runs after
-// `vite build` (see the build script in package.json).
+// to add the `scheduled` handler for the weekly digest push and background
+// material indexing crons. Runs after `vite build` (see the build script in
+// package.json).
 import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
 
 const dir = '.svelte-kit/cloudflare';
@@ -21,14 +22,26 @@ import worker from './_app_worker.js';
 
 export default {
 	fetch: worker.fetch,
-	async scheduled(_controller, env, ctx) {
-		const secret = env.WEEKLY_PUSH_SECRET;
-		if (!secret) return;
-		const request = new Request('https://synapse.local/api/weekly-push/run', {
-			method: 'POST',
-			headers: { 'x-push-secret': secret }
-		});
-		await worker.fetch(request, env, ctx);
+	async scheduled(controller, env, ctx) {
+		if (controller.cron === '0 15 * * 0') {
+			const secret = env.WEEKLY_PUSH_SECRET;
+			if (!secret) return;
+			const request = new Request('https://synapse.local/api/weekly-push/run', {
+				method: 'POST',
+				headers: { 'x-push-secret': secret }
+			});
+			await worker.fetch(request, env, ctx);
+			return;
+		}
+		if (controller.cron === '17 */6 * * *') {
+			const secret = env.BACKGROUND_INDEX_SECRET;
+			if (!secret) return;
+			const request = new Request('https://synapse.local/api/material-index/run', {
+				method: 'POST',
+				headers: { 'x-index-secret': secret }
+			});
+			await worker.fetch(request, env, ctx);
+		}
 	}
 };
 `

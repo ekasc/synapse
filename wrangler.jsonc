@@ -16,8 +16,11 @@
 	],
 	// Weekly plan generation and push: Sundays 15:00 UTC (08:00 PT during PDT).
 	// The scheduled handler calls /api/weekly-push/run with WEEKLY_PUSH_SECRET.
+	// Background material indexing: every 6 hours at :17. The scheduled handler
+	// calls /api/material-index/run with BACKGROUND_INDEX_SECRET. Set both
+	// secrets with `wrangler secret put` (or .dev.vars locally).
 	"triggers": {
-		"crons": ["0 15 * * 0"]
+		"crons": ["0 15 * * 0", "17 */6 * * *"]
 	},
 	"workers_dev": true,
 	"preview_urls": true,
@@ -32,11 +35,17 @@
 		"COURSE_RESEARCH_MAX_JOBS_PER_IP_PER_DAY": "20",
 		"COURSE_RESEARCH_MAX_ACTIVE_JOBS": "3",
 		"COURSE_RESEARCH_MIN_REFRESH_AGE_HOURS": "6",
+		// Vision model used to transcribe scanned PDF pages (needs_ocr materials).
+		// Leave empty to disable OCR; the OpenRouter key is reused for the calls.
+		"OCR_MODEL": "",
 		// Web Push (weekly digest). VAPID_PUBLIC_KEY is public; set
 		// VAPID_PRIVATE_KEY and WEEKLY_PUSH_SECRET with `wrangler secret put`
 		// (or .dev.vars locally). Generate keys: node scripts/generate-vapid-keys.mjs
 		"VAPID_PUBLIC_KEY": "",
-		"VAPID_SUBJECT": "mailto:team@synapse.study"
+		"VAPID_SUBJECT": "mailto:team@synapse.study",
+		"WORKOS_CLIENT_ID": "",
+		"ENCRYPTION_KEY": "",
+		"WORKOS_REDIRECT_URI": ""
 	},
 	"d1_databases": [
 		{
@@ -44,6 +53,20 @@
 			"database_name": "synapse-briefs",
 			"database_id": "08029d46-ff0a-41d9-bed3-5e837620170e",
 			"migrations_dir": "migrations"
+		}
+	],
+	// Workers AI embeds material chunks; Vectorize stores them for semantic
+	// practice retrieval. Create the index once with:
+	//   pnpm exec wrangler vectorize create synapse-material-chunks --dimensions 384 --metric cosine
+	// Without these bindings (or before the index exists) retrieval degrades to
+	// the deterministic lexical scorer and indexing skips embeddings.
+	"ai": {
+		"binding": "AI"
+	},
+	"vectorize": [
+		{
+			"binding": "VECTORIZE",
+			"index_name": "synapse-material-chunks"
 		}
 	]
 }
