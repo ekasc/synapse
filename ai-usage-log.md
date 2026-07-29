@@ -1150,3 +1150,35 @@ The two groups coordinated via a single contract: the deep-link URL `/app/course
 - Local cron rehearsal via `wrangler dev --test-scheduled`.
 
 **Key principle:** Delegate only what a cheaper model can verifiably do — hand it exact interfaces and public test vectors so the check is mechanical. Keep delivery a thin, secret-guarded wrapper around the deterministic digest; never let the transport layer invent content.
+
+---
+
+## 36. Leftover punch list: WIP stabilization, Exam Prep deferred infra (OCR, background indexing, semantic retrieval), Settings restoration (July 27)
+
+### Prompts (to Claude Code)
+
+> "what else is left to do in this project?"
+> "do 2. 3. 4. first then do 1"
+
+**Context:** A survey of the repo found a large uncommitted change set (161 files) on `wip/weekly-push` that turned out to be three half-finished efforts — a visual redesign, a WorkOS multi-user auth refactor, and calendar intelligence — plus the three Exam Prep items the indexing design spec explicitly deferred (OCR, autonomous background indexing, Vectorize semantic retrieval), a deleted Settings page (the only push opt-in surface), and the pre-existing lint baseline. The user ordered: deferred features, small holes, tech debt, then finishing/committing the WIP.
+
+**How AI was used:**
+
+- Claude Code audited the tree first and found the per-user repository refactor half-done: `material-index`/`sessions` interfaces had gained userId parameters but ~10 call sites still used the old signatures, `weekly-push/run` pruned with the old arity, the chunks INSERT omitted the `user_id` column d1-schema declares NOT NULL, and the auth callback deleted the redirect cookie before reading it.
+- It threaded userId through the stale callers, extracted the index route's batch logic into a shared `runMaterialIndexBatch` so the browser loop and the new cron path run identical code, built a per-run-bounded background runner, and added a second cron dispatched through the existing `scripts/wrap-worker.mjs` wrapper (no Queues/Workflows, no plan change).
+- OCR is client-assisted by necessity: Workers have no canvas, so the Materials page renders each scanned page to JPEG and a server endpoint transcribes it with an OpenRouter vision model gated on `OCR_MODEL`; unconfigured, the endpoint returns 503 and the material stays `Needs OCR`.
+- Semantic retrieval was added behind optional bindings (Workers AI embeddings → Vectorize) following the repo's degrade-gracefully rule: missing bindings or a failed query fall back to the deterministic lexical scorer, and embedding failures never block the durable D1 index write.
+- It restored the Settings push UI in the post-redesign visual language, re-added it to the sidebar, made session cookies `secure: !dev`, closed the landing redesign doc as superseded (the WIP kept the field-notebook identity instead of adopting the catalog aesthetic), and updated the design spec's Deferred Work list.
+- Verification was blocked all session: the Bash permission classifier was unavailable, so `pnpm`/vitest/eslint/svelte-check could not be executed. Tests were written but not run.
+
+**What changed:**
+
+- `src/lib/server/practice/`: `indexing.ts` (shared batch core), `background-index.ts` + spec, `embeddings.ts` + spec, `ocr.ts` + spec; `listIndexable` and a `user_id`-binding chunks INSERT in `material-index.ts`; `selectSemanticChunks` in `retrieval.ts` + tests.
+- New routes: `/api/material-index/run` (secret-guarded cron target) and `/api/courses/[id]/materials/[materialId]/ocr`; Materials page OCR loop and button; hybrid retrieval in `/api/practice/generate`.
+- `scripts/wrap-worker.mjs` branches on `controller.cron`; `wrangler.jsonc` gains the `17 */6 * * *` cron, AI + VECTORIZE bindings, and `OCR_MODEL`. One-time setup: `pnpm exec wrangler vectorize create synapse-material-chunks --dimensions 384 --metric cosine`; secret: `wrangler secret put BACKGROUND_INDEX_SECRET`.
+- `src/routes/app/settings/+page.svelte` restored + sidebar entry; auth callback/login cookie fixes; userId threading across ~10 files; `push/subscriptions.ts` list now carries userId for cron pruning.
+- Docs: landing redesign marked superseded; the three Deferred items struck through with implementation notes.
+
+**Final verification:** Not run. The Bash safety classifier was intermittently unavailable the entire session, so `pnpm check`, `pnpm test`, and `pnpm lint` could not execute; the four new/extended spec files are written but unrun. Also still required before deploy: `pnpm db:d1:push` to add the `user_id` columns d1-schema already declares for the practice tables, removal of the TEMP audit bypass in `hooks.server.ts`, and a real run of the lint baseline cleanup (item 4) that this session could not perform.
+
+**Key principle:** Optional infrastructure must degrade, never crash — every new binding is presence-checked and falls back to the deterministic path. And one batch function serves both the browser loop and the cron, so the two indexing paths cannot drift apart.

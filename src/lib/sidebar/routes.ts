@@ -1,7 +1,6 @@
 type SidebarHref =
 	| '/app'
 	| '/app/courses'
-	| '/app/courses/manage'
 	| '/app/calendar'
 	| '/app/weekly'
 	| '/app/timer'
@@ -32,20 +31,13 @@ export const routes: SidebarRoute[] = [
 	{
 		href: '/app/courses',
 		label: 'Course map',
-		match: (pathname) =>
-			pathname === '/app/courses' ||
-			(pathname.startsWith('/app/courses/') && !pathname.startsWith('/app/courses/manage'))
-	},
-	{
-		href: '/app/courses/manage',
-		label: 'Manage courses',
-		match: (pathname) => pathname.startsWith('/app/courses/manage')
+		match: (pathname) => pathname === '/app/courses' || pathname.startsWith('/app/courses/')
 	},
 	{ href: '/app/calendar', label: 'Calendar' },
 	{ href: '/app/weekly', label: 'Weekly plan' },
 	{ href: '/app/timer', label: 'Study timer' },
 	{ href: '/app/chat', label: 'Assistant' },
-	{ href: '/app/digest', label: 'Weekly digest' },
+	{ href: '/app/digest', label: 'Grades & GPA' },
 	{ href: '/app/brief', label: 'Briefs' },
 	{ href: '/app/activity', label: 'Activity' },
 	{ href: '/app/settings', label: 'Settings' }

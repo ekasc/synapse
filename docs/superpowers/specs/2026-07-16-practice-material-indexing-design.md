@@ -167,9 +167,9 @@ Tests cover:
 
 ## Deferred Work
 
-- Cloudflare Workflow or Queue consumer for autonomous indexing
+- ~~Autonomous background indexing~~ — done 2026-07-27: a second cron (`17 */6 * * *`) dispatches through `scripts/wrap-worker.mjs` to `/api/material-index/run`, which resumes pending/indexing materials server-side via `runBackgroundIndexing` (bounded per run). Guarded by `BACKGROUND_INDEX_SECRET`.
+- ~~OCR~~ — done 2026-07-27: client-assisted. The Materials page renders each page of a `needs_ocr` PDF to JPEG and posts it to `/api/courses/[id]/materials/[materialId]/ocr`, which transcribes it with an OpenRouter vision model (`OCR_MODEL`) and persists text through the normal chunk pipeline. Browser rendering is required because Workers have no canvas, so scanned PDFs still need a visit to the Materials page.
+- ~~Vectorize embeddings and semantic retrieval~~ — done 2026-07-27: chunks are embedded with Workers AI (`@cf/baai/bge-small-en-v1.5`, 384 dims) at index time and upserted to the `VECTORIZE` binding; topic queries use semantic selection with adjacency when the bindings exist, falling back to the lexical scorer otherwise. Index creation: `pnpm exec wrangler vectorize create synapse-material-chunks --dimensions 384 --metric cosine`.
 - Direct/resumable R2 uploads above the current request limit
-- OCR
-- Vectorize embeddings and semantic retrieval
 - Chapter/TOC and explicit page-range controls
 - Multi-source citations per generated item

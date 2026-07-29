@@ -108,11 +108,13 @@
 
 <svelte:head><title>Settings · Synapse</title></svelte:head>
 
-<div class="page page-enter">
-	<div class="page-cover">
-		<h1 class="page-title font-display">Settings</h1>
-		<p class="page-tagline">Account and preferences</p>
-	</div>
+<div class="page">
+	<header class="page-head">
+		<div>
+			<span class="kicker">Account and preferences</span>
+			<h1>Settings</h1>
+		</div>
+	</header>
 
 	<section class="panel" aria-label="Weekly plan push">
 		<div class="panel-head">
@@ -173,25 +175,35 @@
 		padding-block: 2.5rem 4rem;
 	}
 
-	.page-cover {
-		margin-bottom: 2.5rem;
-		padding-bottom: 1.5rem;
+	.page-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: end;
+		gap: 1rem;
+		padding-bottom: 1rem;
+		margin-bottom: 2rem;
+		border-bottom: 1px solid var(--rule);
 	}
 
-	.page-title {
-		font-size: clamp(2rem, 4vw, 3.25rem);
+	.page-head > div {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.kicker {
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		color: var(--ink-faint);
+	}
+
+	h1 {
+		font-family: var(--font-body);
+		font-size: clamp(1.75rem, 3vw, 2.5rem);
 		font-weight: 600;
 		color: var(--ink);
-		margin: 0.25rem 0 0.5rem;
-		line-height: 1.05;
-		letter-spacing: -0.025em;
-	}
-
-	.page-tagline {
-		color: var(--ink-soft);
-		font-size: 0.92rem;
-		margin: 0.35rem 0 0;
-		line-height: 1.5;
+		margin: 0;
+		line-height: 1.1;
+		letter-spacing: -0.02em;
 	}
 
 	.panel {
@@ -204,9 +216,10 @@
 	}
 
 	.panel-title {
-		font-family: var(--font-hand);
-		font-weight: 700;
-		font-size: 1.35rem;
+		font-family: var(--font-body);
+		font-weight: 600;
+		font-size: 1.05rem;
+		letter-spacing: -0.01em;
 		color: var(--ink);
 		margin: 0 0 0.35rem;
 	}
@@ -224,7 +237,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.75rem 1.5rem;
-		border-top: 1px dashed var(--rule-soft);
+		border-top: 1px solid var(--rule-soft);
 		padding-top: 0.9rem;
 	}
 
@@ -234,7 +247,7 @@
 	}
 
 	.state-kicker {
-		font-family: var(--font-mono);
+		font-family: var(--font-numeric);
 		font-size: 0.65rem;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
@@ -242,7 +255,7 @@
 	}
 
 	.state-value {
-		font-family: var(--font-mono);
+		font-family: var(--font-numeric);
 		font-size: 0.8rem;
 		color: var(--ink);
 	}
@@ -259,7 +272,7 @@
 
 	.panel-message {
 		margin: 0;
-		border: 1px dashed var(--rule-soft);
+		border: 1px solid var(--rule-soft);
 		background: var(--paper-shelf);
 		color: var(--ink-soft);
 		font-size: 0.85rem;

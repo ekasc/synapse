@@ -1,10 +1,12 @@
 # Landing page → /app design alignment
 
+> **Status (2026-07-27): superseded.** The landing was rebuilt as composable section components (`src/lib/components/landing/*`, `src/routes/+page.svelte` is now a thin composition) while deliberately keeping the field-notebook editorial identity — the switch to the quieter `/app` catalog register proposed below was not adopted. The open design decisions (variation choice, CatalogHeader, Query autoplay, closing CTA) are therefore moot; this document remains as the record of the rejected direction.
+
 > Plan written 2026-06-27. Owner: **Ekas** (per `FEATURES.md` — landing page lives under "Frontend UI"). Demi's features are not touched.
 
 ## 0. Assumptions to confirm before implementation
 
-- **"the newer design in /app"** = the visual language of `src/routes/app/` (CatalogHeader, BookShelf, BookCard, TermList, SectionHead, subject color tokens, paper/ink/highlight tokens, font-hand/Inter, `--page-width: 1100px`). No separate design file exists under `/app`; the only place in the repo that fits the description is the in-app shell.
+- **"the newer design in /app"** = the visual language of `src/routes/app/` (CatalogHeader, BookShelf, BookCard, TermList, SectionHead, subject color tokens, paper/ink/highlight tokens, font-hand/Inter, `--page-width: 61.25rem`). No separate design file exists under `/app`; the only place in the repo that fits the description is the in-app shell.
 - **Scope**: rebuild the landing page in the quieter `/app` register while keeping its job — communicate the product idea. Do **not** import `/app`'s shell, sidebar, FAB, or auth-guarded layout. The landing stays a public, single scroll.
 - **Demo data**: keep the existing in-page `weeks` and `queries` constants inside `+page.svelte`. No calls to Demi's API surfaces (syllabus, briefing, query, grade). No new Drizzle/code under `src/lib/server/`.
 - **Out of scope** (flag, do not implement): Demi's features (syllabus parser, grade analytics, NL query, study timer, CSV, testing, AI-usage docs), D1 schema, API handlers, auth/middleware, `/app` layout, `DESIGN.md` text.
@@ -29,7 +31,7 @@ Job: communicate the product concept. Heavy on paper artifacts: stamps, polaroid
 - `BookCard` / `BookShelf` — courses as "books" with subject-colored spine, `StatusChip`, data labels.
 - `SectionHead` — eyebrow + title + meta, Inter caps.
 - `TermList` — semester list with Current/Past/Future roles.
-- Tokens in `src/routes/layout.css`: `var(--paper)`, `var(--ink)`, `var(--ink-soft)`, `var(--rule)`, `var(--rule-soft)`, `var(--paper-shelf)`, `var(--highlight)`, `var(--subject-{comp,math,csis,stat,econ,isys,humn})`, `var(--font-hand)`, `var(--font-body)`, `var(--ease-out-quart)`, `var(--page-width: 1100px)`.
+- Tokens in `src/routes/layout.css`: `var(--paper)`, `var(--ink)`, `var(--ink-soft)`, `var(--rule)`, `var(--rule-soft)`, `var(--paper-shelf)`, `var(--highlight)`, `var(--subject-{comp,math,csis,stat,econ,isys,humn})`, `var(--font-hand)`, `var(--font-body)`, `var(--ease-out-quart)`, `var(--page-width: 61.25rem)`.
 - App rhythm: `max-width: var(--page-width)`, `margin-inline: auto`, `padding-block: 2rem 4rem`, no entrance animations, no `01/02/03` scaffold, no glassmorphism, no big-number metric templates.
 
 ## 3. File-level scope
@@ -120,7 +122,7 @@ Three different ways to rebuild `/` in the `/app` design language. They share th
 
 - File rewritten: `src/routes/+page.svelte` only.
 - No new Drizzle, no new API routes, no new files under `src/lib/server/`. (Ekas-only.)
-- `var(--page-width)` 1100 px, `margin-inline: auto`, `padding-block: 2rem 4rem` (matches `/app`).
+- `var(--page-width)` (currently 61.25rem), `margin-inline: auto`, `padding-block: 2rem 4rem` (matches `/app`).
 - One highlighter accent per section max. Red pen used at most once across the whole page.
 - No em dashes, no `01/02/03` numbered scaffold, no glassmorphism, no entrance scroll animations, no parallax.
 - `font-hand` only on the brand line. Everything else Inter.
