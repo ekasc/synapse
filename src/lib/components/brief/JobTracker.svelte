@@ -41,7 +41,7 @@
 		ranking_evidence: 'Ranking and deduplicating evidence…',
 		synthesizing: 'Synthesizing the validated evidence…',
 		validating: 'Validating every claim and citation…',
-		publishing: 'Publishing the validated briefing…',
+		publishing: 'Publishing the validated brief…',
 		resolving_course: 'Resolving course and institution…',
 		searching_official: 'Searching official course records…',
 		verifying_instructor: 'Verifying instructor evidence…',
@@ -93,15 +93,15 @@
 	);
 
 	const errorText = $derived.by(() => {
-		if (timedOut) return 'Briefing is taking longer than expected.';
+		if (timedOut) return 'The brief is taking longer than expected.';
 		if (job.errorMessage) return job.errorMessage;
 		switch (job.status) {
 			case 'failed':
-				return 'Briefing failed.';
+				return 'The brief failed.';
 			case 'conflict':
 				return 'Official course evidence conflicts. Try a different code or professor.';
 			case 'expired':
-				return 'Briefing expired. Try again.';
+				return 'The brief expired. Try again.';
 			case 'canceled':
 				return 'Research canceled. You can retry when ready.';
 			default:
@@ -122,34 +122,54 @@
 	}
 </script>
 
-<div class="tracker" role="status" aria-live="polite" aria-label="Briefing job status">
-	<div class="dots" aria-hidden="true">
+<div class="grid gap-2 pt-1" role="status" aria-live="polite" aria-label="Briefing job status">
+	<div class="flex items-center gap-0 pt-1 pb-2" aria-hidden="true">
 		{#each STAGES as _, i (i)}
-			<span class="dot" class:filled={i <= stageIndex} class:active={i === stageIndex}></span>
-			{#if i < STAGES.length - 1}<span class="connector" class:connector-done={i < stageIndex}></span>{/if}
+			<span
+				class={[
+					'dot size-2 flex-[0_0_8px] rounded-full bg-[var(--rule)] transition-[background] duration-200 ease-[var(--ease-out-quart)]',
+					i <= stageIndex && 'bg-[var(--ink)]',
+					i === stageIndex && 'active'
+				]}
+			></span>
+			{#if i < STAGES.length - 1}<span
+					class={[
+						'mx-[0.35rem] h-px min-w-3 flex-auto bg-[var(--rule)]',
+						i < stageIndex && 'bg-[var(--ink)]'
+					]}
+				></span>{/if}
 		{/each}
 	</div>
-	<div class="line">
-		<span class="stage-text">{displayStage}</span>
+	<div class="flex flex-wrap items-baseline justify-between gap-3">
+		<span
+			class="font-[family-name:var(--font-body)] leading-[1.4] text-[var(--ink-soft)] text-[var(--text-small)]"
+			>{displayStage}</span
+		>
 		{#if isActive && job.stageUpdatedAt}
-			<span class="updated font-mono">updated {formatDate(job.stageUpdatedAt)}</span>
+			<span class=" tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]"
+				>updated {formatDate(job.stageUpdatedAt)}</span
+			>
 		{/if}
 	</div>
 	{#if job.cacheHit}
-		<p class="cache-note">Loaded from the saved research cache.</p>
+		<p class="m-0 text-[var(--ink-soft)] text-[var(--text-caption)]">
+			Loaded from the saved research cache.
+		</p>
 	{/if}
 	{#if isActive}
-		<div class="actions">
-			<button class="btn btn-sm btn-ghost font-mono" type="button" onclick={onCancel}>stop</button>
+		<div class="mt-1 flex gap-2">
+			<button class="btn btn-sm btn-ghost" type="button" onclick={onCancel}>stop</button>
 		</div>
 	{:else if isTerminal}
-		<p class="error font-mono">{errorText}</p>
-		<div class="actions">
-			<button class="btn btn-sm font-mono" type="button" onclick={onRetry}>retry</button>
+		<p class="mt-1 mb-0 leading-[1.4] text-[var(--pen-red)] text-[var(--text-small)]">
+			{errorText}
+		</p>
+		<div class="mt-1 flex gap-2">
+			<button class="btn btn-sm" type="button" onclick={onRetry}>retry</button>
 		</div>
 	{/if}
 	{#if job.telemetry && (job.telemetry.searches != null || job.telemetry.cost != null)}
-		<p class="telemetry font-mono">
+		<p class="mt-1 mb-0 text-[var(--ink-faint)] text-[var(--text-caption)]">
 			{job.telemetry.searches ?? 0} searches{#if job.telemetry.cost != null}
 				· cost {job.telemetry.cost}{/if}{#if job.telemetry.modelPolicy}
 				· {job.telemetry.modelPolicy}{/if}
@@ -158,95 +178,8 @@
 </div>
 
 <style>
-	.tracker {
-		display: grid;
-		gap: 0.5rem;
-		padding: 0.25rem 0 0;
-	}
-
-	.dots {
-		display: flex;
-		align-items: center;
-		gap: 0;
-		padding: 0.25rem 0 0.5rem;
-	}
-
-	.dot {
-		flex: 0 0 8px;
-		width: 8px;
-		height: 8px;
-		background: var(--rule);
-		border-radius: 50%;
-		transition: background 0.2s var(--ease-out-quart);
-	}
-
-	.dot.filled {
-		background: var(--ink);
-	}
-
 	.dot.active {
 		animation: pulse 1.2s var(--ease-out-quart) infinite;
-	}
-
-	.connector {
-		flex: 1 1 auto;
-		height: 1px;
-		background: var(--rule);
-		margin: 0 0.35rem;
-		min-width: 0.75rem;
-	}
-
-	.connector.connector-done {
-		background: var(--ink);
-	}
-
-	.line {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 0.75rem;
-	}
-
-	.stage-text {
-		font-family: var(--font-body);
-		font-size: 0.95rem;
-		color: var(--ink-soft);
-		line-height: 1.4;
-	}
-
-	.updated {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.cache-note {
-		margin: 0;
-		font-size: 0.85rem;
-		color: var(--ink-soft);
-	}
-
-	.error {
-		font-size: 0.95rem;
-		color: var(--pen-red);
-		margin: 0.25rem 0 0;
-		line-height: 1.4;
-	}
-
-	.actions {
-		display: flex;
-		gap: 0.5rem;
-		margin-top: 0.25rem;
-	}
-
-	.telemetry {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		margin: 0.25rem 0 0;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
 	}
 
 	@keyframes pulse {

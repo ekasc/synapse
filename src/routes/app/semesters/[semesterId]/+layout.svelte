@@ -8,28 +8,28 @@
 		{
 			label: 'Overview',
 			href: resolveRoute('/app/semesters/[semesterId]', { semesterId: data.semester.id })
-		},
-		{
-			label: 'Calendar',
-			href: resolveRoute('/app/semesters/[semesterId]/calendar', {
-				semesterId: data.semester.id
-			})
 		}
 	]);
 </script>
 
 {#if !inCourseWorkspace}
 	<nav
-		class="semester-workspace-nav"
+		class="semester-workspace-nav mx-auto mt-5 flex max-w-[var(--page-width)] items-end justify-between gap-6 border-b border-[var(--ink)] max-[700px]:flex-col max-[700px]:items-stretch max-[700px]:gap-0"
 		aria-label={`${data.semester.term} ${data.semester.year} workspace`}
 	>
-		<div class="semester-context">
+		<div
+			class="semester-context flex gap-[0.6rem] pb-[0.65rem] text-[length:var(--text-micro)] leading-[1.4] text-[var(--ink-soft)] max-[700px]:pb-2"
+		>
 			<span>Semester</span>
-			<strong>{data.semester.term} {data.semester.year}</strong>
+			<strong class="text-[var(--ink)]">{data.semester.term} {data.semester.year}</strong>
 		</div>
-		<div class="semester-tabs">
+		<div class="semester-tabs flex">
 			{#each tabs as tab (tab.href)}
-				<a href={tab.href} aria-current={$page.url.pathname === tab.href ? 'page' : undefined}>
+				<a
+					class="inline-flex min-h-10 items-center border-l border-[var(--rule)] px-[0.85rem] py-[0.55rem] text-[length:var(--text-small)] leading-[1.4] font-[var(--font-body)] font-medium text-[var(--ink-soft)] no-underline last:border-r hover:bg-[var(--paper-shelf)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--ink)] aria-[current=page]:bg-[var(--highlight)] aria-[current=page]:text-[var(--ink)] max-[700px]:flex-1 max-[700px]:justify-center"
+					href={tab.href}
+					aria-current={$page.url.pathname === tab.href ? 'page' : undefined}
+				>
 					{tab.label}
 				</a>
 			{/each}
@@ -38,69 +38,3 @@
 {/if}
 
 {@render children()}
-
-<style>
-	.semester-workspace-nav {
-		display: flex;
-		max-width: var(--page-width);
-		margin: 1.25rem auto 0;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 1.5rem;
-		border-bottom: 1px solid var(--ink);
-	}
-	.semester-context {
-		display: flex;
-		gap: 0.6rem;
-		padding-bottom: 0.65rem;
-		color: var(--ink-soft);
-		font: 0.68rem var(--font-mono);
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-	.semester-context strong {
-		color: var(--ink);
-	}
-	.semester-tabs {
-		display: flex;
-	}
-	.semester-tabs a {
-		min-height: 2.5rem;
-		display: inline-flex;
-		align-items: center;
-		padding: 0.55rem 0.85rem;
-		border-left: 1px solid var(--rule);
-		color: var(--ink-soft);
-		font: 500 0.82rem var(--font-body);
-		text-decoration: none;
-	}
-	.semester-tabs a:last-child {
-		border-right: 1px solid var(--rule);
-	}
-	.semester-tabs a:hover {
-		background: var(--paper-shelf);
-		color: var(--ink);
-	}
-	.semester-tabs a[aria-current='page'] {
-		background: var(--highlight);
-		color: var(--ink);
-	}
-	.semester-tabs a:focus-visible {
-		outline: 2px solid var(--ink);
-		outline-offset: -2px;
-	}
-	@media (max-width: 700px) {
-		.semester-workspace-nav {
-			align-items: stretch;
-			flex-direction: column;
-			gap: 0;
-		}
-		.semester-context {
-			padding-bottom: 0.5rem;
-		}
-		.semester-tabs a {
-			flex: 1;
-			justify-content: center;
-		}
-	}
-</style>

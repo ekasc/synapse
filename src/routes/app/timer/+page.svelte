@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
 
 	type SessionState = 'ready' | 'running' | 'paused' | 'complete';
 	type SiteKind = 'allowed' | 'blocked';
@@ -36,6 +35,7 @@
 	let extensionConnected = $state(false);
 	let extensionBridgeLoaded = $state(false);
 	let extensionError = $state('');
+	let completionAnnouncement = $state('');
 
 	const totalSeconds = $derived(durationMinutes * 60);
 	const elapsedSeconds = $derived(Math.max(0, totalSeconds - remainingSeconds));
@@ -58,6 +58,13 @@
 	function formatTime(seconds: number) {
 		const minutes = Math.floor(seconds / 60);
 		return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+	}
+
+	function formatCompactMinutes(minutes: number) {
+		const hours = Math.floor(minutes / 60);
+		const rest = minutes % 60;
+		if (hours > 0) return `${hours}h${String(rest).padStart(2, '0')}m`;
+		return `${rest}m`;
 	}
 
 	function setDuration(minutes: number) {
@@ -97,6 +104,7 @@
 		startedAt = null;
 		sessionSaved = false;
 		saveMessage = '';
+		completionAnnouncement = '';
 		void sendExtensionCommand('END_FOCUS');
 	}
 
@@ -256,6 +264,7 @@
 			if (remainingSeconds === 0) {
 				endsAt = null;
 				sessionState = 'complete';
+				completionAnnouncement = `Focus session complete. ${distractionCount === 0 ? 'No distractions logged.' : `${distractionCount} distraction${distractionCount === 1 ? '' : 's'} logged.`}`;
 				void sendExtensionCommand('END_FOCUS');
 				void saveCompletedSession();
 			}
@@ -269,18 +278,16 @@
 	});
 </script>
 
-<svelte:head><title>Synapse · Study Timer</title></svelte:head>
-
-<CatalogHeader term="Focus" />
+<svelte:head><title>Study timer · Synapse</title></svelte:head>
 
 <div class="page page-enter">
 	<div class="page-cover">
-		<h1 class="page-title font-hand">Study Timer</h1>
+		<h1 class="page-title">Study Timer</h1>
 		<p class="page-tagline">Choose the work. Protect the time. Notice the distractions.</p>
 	</div>
 
 	<div class="control-bar">
-		<span class="control-label font-mono">
+		<span class="control-label">
 			{selectedCourse?.code ?? 'general study'} · {durationMinutes} minute session
 		</span>
 		<div class="session-status" data-state={sessionState}>
@@ -313,7 +320,7 @@
 			<div class="duration-tabs" aria-label="Timer duration">
 				{#each [25, 45, 60] as minutes}
 					<button
-						class="font-mono"
+						class="font-numeric"
 						class:active={durationMinutes === minutes}
 						onclick={() => setDuration(minutes)}
 						disabled={sessionState !== 'ready'}>{minutes} min</button
@@ -365,6 +372,10 @@
 					disabled={sessionState !== 'running'}>+ log distraction</button
 				>
 			</div>
+			{#if extensionError}
+				<p class="extension-error" role="alert">{extensionError}</p>
+			{/if}
+			<p class="sr-only" role="status">{completionAnnouncement}</p>
 		</section>
 
 		<aside class="productivity-sheet surface-polaroid" aria-label="Live productivity">
@@ -373,14 +384,12 @@
 					<p class="eyebrow">Live notes</p>
 					<h2>Productivity</h2>
 				</div>
-				<strong class="score">{focusScore}<small>/100</small></strong>
 			</div>
-			<div class="score-rule"><span style={`width: ${focusScore}%`}></span></div>
-			<div class="metric-row">
-				<div><strong>{formatTime(elapsedSeconds)}</strong><span>focused</span></div>
-				<div><strong>{distractionCount}</strong><span>distractions</span></div>
-				<div><strong>{todayMinutes}m</strong><span>today</span></div>
-			</div>
+			<div class="score-rule"><span style={`transform: scaleX(${focusScore / 100})`}></span></div>
+			<p class="status-line">
+				focused {formatCompactMinutes(Math.floor(elapsedSeconds / 60))} · distractions
+				{distractionCount} · today {formatCompactMinutes(todayMinutes)} · score {focusScore}/100
+			</p>
 
 			<div class="timeline-block">
 				<div class="timeline-label">
@@ -441,9 +450,12 @@
 			<ul>
 				{#each allowedSites as site (site)}<li>
 						<a href={`https://${site}`} target="_blank" rel="noreferrer">{site}</a><button
+							class="icon-btn"
 							onclick={() => removeSite('allowed', site)}
-							aria-label={`Remove ${site}`}>×</button
+							aria-label={`Remove ${site}`}
 						>
+							<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+						</button>
 					</li>{/each}
 			</ul>
 		</div>
@@ -466,9 +478,12 @@
 			<ul>
 				{#each blockedSites as site (site)}<li>
 						<span>{site}</span><button
+							class="icon-btn"
 							onclick={() => removeSite('blocked', site)}
-							aria-label={`Remove ${site}`}>×</button
+							aria-label={`Remove ${site}`}
 						>
+							<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+						</button>
 					</li>{/each}
 			</ul>
 		</div>
@@ -498,7 +513,7 @@
 	}
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0.35rem 0 0;
 	}
 	.control-bar {
@@ -511,7 +526,7 @@
 		border-bottom: 1px solid var(--ink);
 	}
 	.control-label {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
@@ -525,18 +540,15 @@
 	}
 	h2 {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-body);
 		font-size: 1.35rem;
-		font-weight: 600;
-		letter-spacing: -0.01em;
+		font-weight: 700;
+		line-height: 1.1;
 	}
 	.eyebrow {
 		margin: 0 0 0.35rem;
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
+		font-size: var(--text-small);
+		color: var(--ink-soft);
 	}
 	.session-status {
 		display: flex;
@@ -544,8 +556,8 @@
 		gap: 0.45rem;
 		border: 1px solid var(--rule);
 		padding: 0.45rem 0.65rem;
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 	}
 	.status-dot {
@@ -555,7 +567,7 @@
 	}
 	.session-status[data-state='running'] .status-dot {
 		background: var(--ok);
-		animation: pulse 1.4s ease-in-out infinite;
+		animation: pulse 1.4s var(--ease-out-quart) infinite;
 	}
 	.session-status[data-state='complete'] {
 		background: var(--highlight);
@@ -580,8 +592,8 @@
 	label span {
 		display: block;
 		margin-bottom: 0.35rem;
-		font-family: var(--font-mono);
-		font-size: 0.68rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 		color: var(--ink-soft);
@@ -596,7 +608,7 @@
 		background: var(--paper);
 		color: var(--ink);
 		padding: 0.55rem 0.65rem;
-		font: 0.8rem var(--font-body);
+		font: var(--text-small)/1.4 var(--font-body);
 	}
 	input:disabled,
 	select:disabled {
@@ -628,7 +640,7 @@
 		background: transparent;
 		padding: 0.45rem 0.75rem;
 		color: var(--ink-soft);
-		font: 0.7rem var(--font-mono);
+		font: var(--text-caption)/1.4 var(--font-body);
 		text-transform: uppercase;
 	}
 	.duration-tabs button.active {
@@ -664,7 +676,7 @@
 		stroke: var(--ink);
 		stroke-linecap: square;
 		stroke-dasharray: 314.16;
-		transition: stroke-dashoffset 0.25s linear;
+		transition: stroke-dashoffset 0.25s var(--ease-out-quart);
 	}
 	.clock-copy {
 		width: 70%;
@@ -674,18 +686,18 @@
 		gap: 0.45rem;
 	}
 	.clock-copy strong {
-		font: 500 clamp(2.8rem, 7vw, 4.5rem) var(--font-mono);
+		font: 500 clamp(2.8rem, 7vw, 4.5rem)/1 var(--font-numeric);
 		letter-spacing: -0.08em;
 	}
 	.clock-copy > span:last-child {
 		color: var(--ink-soft);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 	.clock-label {
-		font: 0.68rem var(--font-mono);
+		font: var(--text-micro)/1.4 var(--font-body);
 		letter-spacing: 0.14em;
 		color: var(--ink-faint);
 	}
@@ -698,49 +710,28 @@
 	.distraction {
 		margin-left: auto;
 	}
-	.score {
-		font: 500 2rem var(--font-mono);
-	}
-	.score small {
-		font-size: 0.7rem;
-		color: var(--ink-faint);
-	}
 	.score-rule {
 		height: 0.4rem;
-		margin: 1rem 0 1.25rem;
+		margin: 1rem 0 0.65rem;
 		background: var(--rule-soft);
 	}
 	.score-rule span {
 		display: block;
+		width: 100%;
 		height: 100%;
-		background: var(--highlight);
-		border-right: 2px solid var(--ink);
-		transition: width 0.2s var(--ease-out-quart);
+		background: var(--ink);
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform 0.2s var(--ease-out-quart);
 	}
-	.metric-row {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		border-block: 1px solid var(--rule);
-	}
-	.metric-row div {
-		padding: 0.9rem 0.45rem;
-		border-right: 1px solid var(--rule);
-	}
-	.metric-row div:last-child {
-		border: 0;
-	}
-	.metric-row strong,
-	.metric-row span {
-		display: block;
-	}
-	.metric-row strong {
-		font: 500 1rem var(--font-mono);
-	}
-	.metric-row span {
-		margin-top: 0.25rem;
-		color: var(--ink-faint);
-		font-size: 0.65rem;
-		text-transform: uppercase;
+	.status-line {
+		margin: 0 0 1.25rem;
+		padding-bottom: 0.9rem;
+		border-bottom: 1px solid var(--rule);
+		color: var(--ink-soft);
+		font-size: var(--text-caption);
+		letter-spacing: 0.02em;
+		line-height: 1.7;
 	}
 	.timeline-block {
 		margin-top: 1.3rem;
@@ -749,7 +740,7 @@
 		display: flex;
 		justify-content: space-between;
 		margin-bottom: 0.5rem;
-		font: 0.67rem var(--font-mono);
+		font: var(--text-micro)/1.4 var(--font-body);
 		text-transform: uppercase;
 		color: var(--ink-soft);
 	}
@@ -776,11 +767,11 @@
 	.focus-note p,
 	.extension-note {
 		color: var(--ink-faint);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		line-height: 1.5;
 	}
 	.focus-note {
-		border-left: 2px solid var(--highlight);
+		border-left: 2px solid var(--rule);
 		margin-top: 1.3rem;
 		padding: 0.25rem 0 0.25rem 0.75rem;
 	}
@@ -797,7 +788,7 @@
 		margin-top: 1rem;
 	}
 	.site-title > span {
-		font: 0.7rem var(--font-mono);
+		font: var(--text-caption)/1.4 var(--font-body);
 		border: 1px solid var(--rule);
 		padding: 0.25rem 0.45rem;
 	}
@@ -821,12 +812,16 @@
 		gap: 1rem;
 		padding: 0.55rem 0.25rem;
 		border-bottom: 1px dashed var(--rule);
-		font: 0.75rem var(--font-mono);
+		font: var(--text-caption)/1.4 var(--font-body);
 	}
 	li a {
 		color: var(--ink);
-		text-decoration-color: var(--highlight);
+		text-decoration-color: var(--rule);
 		text-decoration-thickness: 3px;
+		transition: text-decoration-color 0.12s var(--ease-out-quart);
+	}
+	li a:hover {
+		text-decoration-color: var(--ink);
 	}
 	li button {
 		border: 0;
@@ -834,16 +829,45 @@
 		color: var(--ink-faint);
 		font-size: 1rem;
 	}
+	li .icon-btn {
+		display: grid;
+		width: var(--control-sm);
+		height: var(--control-sm);
+		place-items: center;
+		padding: 0;
+		color: var(--ink-faint);
+	}
+	li .icon-btn:hover {
+		color: var(--ink);
+	}
 	.blocked {
-		border-top: 2px solid var(--pen-red);
+		border-top: 2px solid var(--ink);
 	}
 	.allowed {
 		border-top: 2px solid var(--ink);
 	}
 	.form-error {
 		color: var(--pen-red);
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		margin: 0.5rem 0 0;
+	}
+	.extension-error {
+		margin: 0.75rem 0 0;
+		color: var(--pen-red);
+		font-size: var(--text-caption);
+		line-height: 1.45;
+		text-align: center;
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
 	}
 	.extension-note {
 		margin: 0.75rem 0 0;

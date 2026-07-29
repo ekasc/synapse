@@ -31,7 +31,7 @@ The interface should not feel like a generic SaaS dashboard. The product's data 
 - Kalam for handwritten display text
 - Inter for body text, navigation, controls, labels, and data
 - Source Serif 4 for the brand wordmark (synapse.)
-- JetBrains Mono for code, data, labels, and monospace detail
+- JetBrains Mono only for numeric displays and tabular numeric values
 - Flat paper-on-paper surfaces with light borders
 - Polaroid frames, tape strips, dashed stamps, and hand notes as supporting furniture
 - No glassmorphism, gradient text, corporate metric cards, dark network graphics, or decorative blobs
@@ -39,7 +39,7 @@ The interface should not feel like a generic SaaS dashboard. The product's data 
 
 ## 3. Colors
 
-All tokens defined in `src/routes/layout.css`. The `--color-*` prefixed variables are the canonical values; the unprefixed aliases (`--paper`, `--ink`, etc.) are the ones used in components.
+All tokens are defined in `src/routes/layout.css` as CSS custom properties (`--paper`, `--ink`, `--highlight`, etc.). The values documented below must stay in sync with that file — the file is the source of truth.
 
 ### Pale fills (subject / category tags)
 
@@ -60,22 +60,24 @@ All tokens defined in `src/routes/layout.css`. The `--color-*` prefixed variable
 
 - **Accent / Red** (`--accent`, `#b03a2e`): Left border on active sidebar link. Used sparingly for structural hierarchy.
 - **Pen Red** (`--pen-red`, `#c2362a`): Reviewer's red pen. Used for corrections, uncertainty, circled items, or one margin note.
-- **Warn** (`--warn`, `#c08a2e`): Warning and caution signals.
-- **Ok** (`--ok`, `#5a7a4a`): Success and good-state signals.
+- **Pen Blue** (`--pen-blue`, `#315c91`): A third pen voice for course-map annotations and in-document links. Rarer than red.
+- **Warn** (`--warn`, `#8a6114`): Warning and caution signals. Darkened from the original amber to clear WCAG 4.5:1 on paper at label sizes.
+- **Ok** (`--ok`, `#4d6a3f`): Success and good-state signals. Darkened under the same contrast constraint.
 
 ### Neutrals
 
-- **Paper** (`--paper`, `#f4ede0`): App and page background.
-- **Paper Edge** (`--paper-edge`, `#e8dcc1`): Sidebar background, tape strips, page edges, minor surfaces.
-- **Paper Shelf** (`--paper-shelf`, `#ebe0c8`): Search blocks, book spines, secondary card surfaces.
-- **Ink** (`--ink`, `#1f1c14`): Primary text and strokes.
+- **Paper** (`--paper`, `#f6f1e2`): App and page background.
+- **Paper Edge** (`--paper-edge`, `#eae2ca`): Tape strips, page edges, minor surfaces.
+- **Paper Shelf** (`--paper-shelf`, `#ede5cf`): Search blocks, book spines, secondary card surfaces.
+- **Ink** (`--ink`, `#1a1814`): Primary text and strokes.
 - **Ink Soft** (`--ink-soft`, `#4a4538`): Secondary text, subdued labels, helper copy.
-- **Ink Faint** (`--ink-faint`, `#5e5849`): Dashed borders, guide marks, nonessential metadata.
-- **Rule** (`--rule`, `#c4b494`): Borders, dividers, and separators.
-- **Rule Soft** (`--rule-soft`, `#d8c8a4`): Subtle dividers and soft borders.
-- **Rule Strong** (`--rule-strong`, `#1f1c14`): Emphasized borders (same as ink).
-- **Tape** (`--tape`, `rgba(232, 220, 193, 0.85)`): Masking-tape strips.
+- **Ink Faint** (`--ink-faint`, `#6b5d48`): Dashed borders, guide marks, nonessential metadata.
+- **Rule** (`--rule`, `#d8c8a4`): Borders, dividers, and separators.
+- **Rule Soft** (`--rule-soft`, `#e8d8b4`): Subtle dividers and soft borders.
+- **Rule Strong** (`--rule-strong`, `#1a1814`): Emphasized borders (same as ink).
+- **Tape** (`--tape`, `rgba(234, 226, 202, 0.85)`): Masking-tape strips.
 - **Shadow Ink** (`--shadow-ink`, `rgba(26, 26, 23, 0.12)`): Light paper shadows.
+- **Sidebar** (`--sidebar-bg`, `#1a1814` + soft/fg/rule companions): Dark chrome for the desktop sidebar only — see §9.
 
 ### Rules
 
@@ -89,14 +91,14 @@ All tokens defined in `src/routes/layout.css`. The `--color-*` prefixed variable
 
 - **Hand Font:** Kalam (`--font-hand`), weight 700. For brand marks, page titles, editorial section titles, stamps, and handwritten notes.
 - **Body Font:** Inter (`--font-body`), weights 400, 500, 600. For nav, buttons, form controls, data rows, course nodes, helper text, and all dense app surfaces.
-- **Mono Font:** JetBrains Mono (`--font-mono`), weights 400, 500, 600. For code, data labels, metadata, field names, uppercase detail, and small print.
+- **Numeric Font:** JetBrains Mono (`--font-numeric`), weights 400 and 500. Use only for values whose primary content is numeric, such as times, counts, percentages, grades, and measurements.
 - **Display Font:** Source Serif 4 (`--font-display`), weight 600. For the brand wordmark in the sidebar header (synapse.). Not used elsewhere.
 
 ### Usage
 
 - Use Kalam for page titles, editorial labels, notebook markings, and stamp-like UI.
 - Use Inter for all interactive controls, data, navigation, and body text.
-- Use JetBrains Mono for small metadata, uppercase labels, field names, counts, and anything requiring a data-like appearance.
+- Use JetBrains Mono only for numeric values. Labels, field names, statuses, course codes, filenames, dates written as prose, and metadata use Inter.
 - Use Source Serif 4 only for the sidebar brand mark.
 - Do not use Kalam for body paragraphs, sidebar nav, input text, or table-like data.
 - Data distinction should come from weight, uppercase, letter spacing, color, and layout — not from switching to a different font family unnecessarily.
@@ -108,9 +110,9 @@ All tokens defined in `src/routes/layout.css`. The `--color-*` prefixed variable
 - **App page titles:** Kalam 700, roughly `1.5rem` to `2rem`.
 - **Sidebar brand:** Source Serif 4 600, `1.25rem`.
 - **Sidebar nav:** Inter 500, `0.9rem`.
-- **Body:** Inter 400, `0.9rem` to `1rem`.
-- **Labels / data:** Inter or JetBrains Mono, `0.68rem` to `0.85rem`, uppercase where useful.
-- **Small metadata / monospace:** JetBrains Mono, `0.68rem` to `0.78rem`.
+- **Body:** Inter 400, `1rem` by default; `0.9375rem` for supporting text.
+- **Labels / data:** Inter, at least `0.875rem`. Use natural case unless the content itself is conventionally uppercase, such as a course code.
+- **Numeric metadata:** JetBrains Mono, `0.875rem`, only when the displayed value is primarily numeric. Functional information must not be reduced below the caption role.
 
 ## 5. Surfaces and Elevation
 
@@ -157,7 +159,7 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 ### Button
 
 - Variants: `primary`, `secondary` (default), `ghost`, `danger`.
-- All use `border-radius: 0`, Inter font, 0.8rem size.
+- All use `border-radius: 0`, Inter font, and the `0.875rem` caption role.
 - Primary: `var(--ink)` background, `var(--paper)` text.
 - Secondary: transparent, 1px ink-tinted border (`rgba(26,26,23,0.18)`).
 - Ghost: no border, `var(--ink-soft)` text, hover shows subtle bg.
@@ -165,14 +167,14 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 - Hover: lifts `translateY(-1px)`, shows `var(--highlight-soft)` background.
 - Active: presses `translateY(2px)`.
 - Disabled: `opacity: 0.4`, cursor not-allowed.
-- Size variants: `sm` (2.25rem height, 0.72rem font) and `md` (2.5rem height).
+- Size variants: `sm` (2.25rem minimum height) and `md` (2.5rem minimum height). On coarse pointers, both provide at least a 2.75rem × 2.75rem target.
 
 ### Checkbox
 
 - Square 1.25rem × 1.25rem, `border-radius: 0`, `var(--ink)` border.
 - Checked: `var(--highlight)` background, stamp-pop scale animation.
 - Active: scale(0.92).
-- Label in Inter, 0.82rem.
+- Label in Inter using the `0.875rem` caption role.
 
 ### Dialog / AlertDialog
 
@@ -187,7 +189,7 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 - Trigger: 2.5rem square, `rgba(26,26,23,0.18)` border, Inter.
 - Content: `var(--paper)` background, 1px `var(--ink)` border, no border-radius.
 - Entrance animation: 0.12s scale + translate, `transform-origin: top right`.
-- Items: Inter 0.82rem, highlight background on selection.
+- Items: Inter using the `0.875rem` caption role, with a highlight background on selection.
 - Danger items: `var(--pen-red)` color.
 
 ### Input / Textarea
@@ -203,13 +205,13 @@ Reusable UI primitives live in `src/lib/components/ui/`. They wrap bits-ui compo
 
 - Trigger: same appearance as Input.
 - Dropdown content: `var(--paper)`, 1px `var(--ink)` border, no border-radius.
-- Items: Inter 0.78rem, `var(--highlight)` on hover/selected.
+- Items: Inter using the `0.875rem` caption role, with `var(--highlight)` on hover/selected.
 - Transition: 0.15s trigger border, 0.1s item background.
 
 ### ToggleGroup
 
 - Horizontal inline-flex group, 0.25rem gap.
-- Items: Inter uppercase, 0.75rem, `var(--rule)` border, `var(--paper)` bg.
+- Items: Inter using the `0.875rem` caption role and natural case, with a `var(--rule)` border and `var(--paper)` background.
 - Hover: border → `var(--ink)`, text → `var(--ink)`.
 - Selected (`[data-state='on']`): `var(--highlight)` background, `var(--ink)` text.
 - Active: press-down `translateY(1px)`.
@@ -237,13 +239,13 @@ The landing page is more expressive than the app; its job is to communicate the 
 
 ### Sidebar
 
-- Fixed left sidebar on desktop (220px width, `var(--paper-shelf)` background), hidden on mobile.
-- Brand mark `synapse.` uses Source Serif 4 (`--font-display`) in 1.25rem, with an accent red dot.
-- Nav section labeled "Catalog" in JetBrains Mono uppercase (0.7rem).
-- Nav items use Inter 0.9rem weight 500, with sidecar course count in mono.
-- Active nav item: bold weight, `var(--paper)` background, `var(--accent)` (red) left border.
-- Hover: subtle background shift to `var(--paper)`, ink left border.
-- Below catalog nav, a dynamic term list displays semesters and course counts.
+- Fixed left sidebar on desktop (240px width, `var(--sidebar-bg)` dark-ink surface), hidden on mobile. The sidebar is deliberate dark chrome — the desk the paper sits on — not dark mode: every content page stays on paper.
+- Brand mark `Synapse.` uses Source Serif 4 (`--font-display`) at 1.4rem — the only permitted use of the display font in the product.
+- Nav section labels use Inter at the `0.875rem` caption role and natural case.
+- Nav items use Inter at least `0.9375rem`, weight 500.
+- Active nav item: bold weight, tinted background, `var(--accent)` (red) left border.
+- Hover: subtle background shift with an ink-tinted left border — visually distinct from the active state, never the same red.
+- Below nav, a dynamic term list displays semesters and course counts.
 - On mobile: floating action button opens a popup nav.
 
 ### Main Area
@@ -255,7 +257,7 @@ The landing page is more expressive than the app; its job is to communicate the 
 
 ### Mobile Navigation
 
-- Fixed fab button (bottom-right, 2.75rem square, `var(--ink)` border, `var(--paper)` background).
+- Fixed fab button (bottom-right, at least 2.75rem square, `var(--ink)` border, `var(--paper)` background). All coarse-pointer controls provide at least a 2.75rem × 2.75rem target.
 - Popup nav menu: `#fbf8f0` background, 1px `var(--rule)` border, item tap areas with Inter labels.
 - Open state escapes on click-outside and Escape key.
 
@@ -271,7 +273,7 @@ Three states:
 
 Small Kalam title, Inter subtitle, dashed chips, simple ink primary button.
 
-### Courses / Knowledge Graph (`/app/courses`)
+### Course Map (`/app/courses`)
 
 Full-screen canvas with course nodes, directed edges, pan/zoom, inspector, minimap, and floating toolbar. Most visually dense app surface.
 
@@ -300,6 +302,10 @@ First-party calendar showing assignments, exams, quizzes, and deadlines across a
 
 AI-generated weekly summary of workload, deadlines, and study recommendations. Currently shows mock data.
 
+### Weekly Plan (`/app/weekly`)
+
+Deterministic seven-day planning view computed by a pure engine (`src/lib/dashboard/weekly.ts`) from live courses, calendar events, practice sessions, study sessions, materials, briefings, and the course graph. Shows the top three priorities with deterministic explanations, chronological deadlines, crunch windows, paused practice, study gaps, material-indexing and prerequisite warnings, plus an optional OpenRouter prose summary that degrades away without an API key. A Worker cron trigger (Mondays 15:00 UTC) pushes the digest to browsers subscribed via Web Push (RFC 8291/8292) from Settings; expired subscriptions are pruned automatically.
+
 ### Practice (`/app/practice`)
 
 Grounded multiple-choice questions and flashcards generated from uploaded PDF and text course materials. Features course selection, answer explanations, source references, missed-question review, and score tracking.
@@ -316,7 +322,7 @@ Full async job-queue based LLM briefing system:
 
 ### Settings (`/app/settings`)
 
-Reserved for future application preferences.
+Application preferences. Currently hosts the Weekly Plan push subscription: enable/disable Web Push for the Monday digest, with clear unsupported, blocked, and subscribed states.
 
 ### Semesters (`/app/semesters`)
 
@@ -329,7 +335,7 @@ Onboarding flow for new users to set up semesters and courses.
 ## 11. Focus and Accessibility
 
 - Buttons and links: `outline: 2px solid var(--ink)`, offset 2-3px.
-- Inputs, textareas, selects: `outline: 2px solid var(--highlight)`, offset 1px.
+- Inputs, textareas, selects: `outline: 2px solid var(--ink)`, offset 1px. (The highlighter is ~1:1 against paper and cannot serve as a focus ring.)
 - All interactive elements have `:focus-visible` support.
 - WCAG 2.2 AA contrast maintained.
 - SVG elements with semantic meaning include title/description.
@@ -344,7 +350,7 @@ Onboarding flow for new users to set up semesters and courses.
 - Keep the app interface clear, compact, and usable.
 - Use highlighter for active selections and critical extracted facts.
 - Use red pen for review or uncertainty only.
-- Use JetBrains Mono for data labels, field names, and small metadata.
+- Use Inter for data labels, field names, and metadata. Reserve JetBrains Mono for numeric values.
 - Match existing app controls before inventing new ones.
 - Keep feature pages scoped to their actual implemented state.
 - Use `var(--ease-out-quart)` for all transitions.
@@ -353,7 +359,7 @@ Onboarding flow for new users to set up semesters and courses.
 
 - Do not turn app pages into marketing sections.
 - Do not add unrelated decorative illustrations.
-- Do not introduce glass, gradients, glow effects, or dark mode.
+- Do not introduce glass, gradients, glow effects, or dark mode (the dark sidebar is chrome, not a theme).
 - Do not use large metric-card dashboards.
 - Do not use Kalam for dense data, navigation, or input text.
 - Do not nest cards inside cards.

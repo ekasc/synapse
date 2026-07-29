@@ -38,7 +38,13 @@ function materialKey(m: { courseId: string; id: string }): string {
 async function readIndex(bucket: R2Bucket): Promise<MaterialRecord[]> {
 	const obj = await bucket.get(INDEX_KEY);
 	if (!obj) return [];
-	return JSON.parse(await obj.text());
+
+	try {
+		return JSON.parse(await obj.text());
+	} catch (error) {
+		console.warn(`[r2] Failed to parse ${INDEX_KEY}; returning an empty index.`, error);
+		return [];
+	}
 }
 
 async function writeIndex(bucket: R2Bucket, records: MaterialRecord[]): Promise<void> {
@@ -140,7 +146,13 @@ const FALLBACK_INDEX = path.join(FALLBACK_DIR, 'index.json');
 function readFallbackIndex(): MaterialRecord[] {
 	ensureFallbackDir();
 	if (!fs.existsSync(FALLBACK_INDEX)) return [];
-	return JSON.parse(fs.readFileSync(FALLBACK_INDEX, 'utf-8'));
+
+	try {
+		return JSON.parse(fs.readFileSync(FALLBACK_INDEX, 'utf-8'));
+	} catch (error) {
+		console.warn('[r2] Failed to parse fallback index:', FALLBACK_INDEX, error);
+		return [];
+	}
 }
 
 function writeFallbackIndex(records: MaterialRecord[]): void {

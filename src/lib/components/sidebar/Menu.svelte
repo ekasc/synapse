@@ -10,16 +10,6 @@
 	} = $props();
 </script>
 
-<div class="sidebar-menu {className}" role="list">
+<div class="sidebar-menu flex min-h-0 flex-col gap-0 p-0 {className}" role="list">
 	{@render children()}
 </div>
-
-<style>
-	:global(.sidebar-menu) {
-		display: flex;
-		flex-direction: column;
-		gap: 0;
-		padding: 0;
-		min-height: 0;
-	}
-</style>

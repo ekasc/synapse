@@ -21,23 +21,10 @@
 
 <path
 	d={path}
-	class={{ edge: true, pending: relation.reviewStatus === 'pending', muted }}
+	class={[
+		'fill-none stroke-[var(--ink-soft)] stroke-2 transition-opacity duration-150 ease-[var(--ease-out-quart)]',
+		relation.reviewStatus === 'pending' && '[stroke-dasharray:7_6]',
+		muted && 'opacity-[0.14]'
+	]}
 	marker-end="url(#course-map-arrow)"
 />
-
-<style>
-	.edge {
-		fill: none;
-		stroke: var(--ink-soft);
-		stroke-width: 2;
-		transition: opacity 0.15s ease;
-	}
-
-	.pending {
-		stroke-dasharray: 7 6;
-	}
-
-	.muted {
-		opacity: 0.14;
-	}
-</style>

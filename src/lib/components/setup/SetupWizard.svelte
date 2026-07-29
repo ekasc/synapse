@@ -170,13 +170,14 @@
 		<h1 class="page-title font-hand">Welcome to Synapse</h1>
 		<p class="page-subtitle">Pick which semesters you've completed or are enrolled in.</p>
 		{#if wizardError || parseFeedback}
-			<p class="parse-feedback font-mono">{wizardError || parseFeedback}</p>
+			<p class="parse-feedback">{wizardError || parseFeedback}</p>
 		{/if}
 
 		<div class="term-grid">
 			{#each termOptions as opt (opt.id)}
 				<button
 					class="term-chip"
+					aria-pressed={selectedTerms.some((t) => t.id === opt.id)}
 					class:selected={selectedTerms.some((t) => t.id === opt.id)}
 					onclick={() => toggleTerm(opt)}
 				>
@@ -198,17 +199,19 @@
 		<h1 class="page-title font-hand">Add your courses</h1>
 		<p class="page-subtitle">Add them manually or paste from your transcript.</p>
 		{#if wizardError || parseFeedback}
-			<p class="parse-feedback font-mono">{wizardError || parseFeedback}</p>
+			<p class="parse-feedback">{wizardError || parseFeedback}</p>
 		{/if}
 
 		<div class="mode-tabs">
 			<button
-				class="mode-tab font-mono"
+				class="mode-tab"
+				aria-pressed={inputMode === 'manual'}
 				class:active={inputMode === 'manual'}
 				onclick={() => (inputMode = 'manual')}>add manually</button
 			>
 			<button
-				class="mode-tab font-mono"
+				class="mode-tab"
+				aria-pressed={inputMode === 'import'}
 				class:active={inputMode === 'import'}
 				onclick={() => (inputMode = 'import')}>import from transcript</button
 			>
@@ -216,7 +219,7 @@
 
 		{#if inputMode === 'import'}
 			<div class="import-block">
-				<p class="import-desc font-mono">
+				<p class="import-desc">
 					Paste course lines from your transcript. Each line should have a course code followed by
 					the course name.
 				</p>
@@ -243,7 +246,7 @@ CSIS 2100  Systems Analysis"
 					</button>
 				</div>
 				{#if importText.trim()}
-					<p class="import-hint font-mono">
+					<p class="import-hint">
 						Tip: courses are distributed across your {selectedTerms.length} semester{selectedTerms.length >
 						1
 							? 's'
@@ -256,7 +259,7 @@ CSIS 2100  Systems Analysis"
 		{#if inputMode === 'manual' || courseForms.length > 0}
 			{#each selectedTerms as term (term.id)}
 				<div class="semester-block">
-					<h2 class="semester-head font-mono">{term.label}</h2>
+					<h2 class="semester-head">{term.label}</h2>
 
 					{#each courseForms.filter((f) => f.semesterId === term.id) as form (form.id)}
 						<div class="course-row">
@@ -282,9 +285,7 @@ CSIS 2100  Systems Analysis"
 						</div>
 					{/each}
 
-					<button class="add-row-btn font-mono" onclick={() => addCourseRow(term.id)}>
-						+ add course
-					</button>
+					<button class="add-row-btn" onclick={() => addCourseRow(term.id)}> + add course </button>
 				</div>
 			{/each}
 
@@ -308,7 +309,7 @@ CSIS 2100  Systems Analysis"
 
 	.page-subtitle {
 		color: var(--ink-soft);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		margin: 0 0 1.5rem;
 	}
 
@@ -333,12 +334,12 @@ CSIS 2100  Systems Analysis"
 		padding: 0.75rem 1rem;
 		border: 1px solid var(--rule);
 		background: var(--paper);
-		font-family: var(--font-mono);
-		font-size: 0.78rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--ink);
 		cursor: pointer;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		letter-spacing: normal;
+		text-transform: none;
 		transition:
 			background 0.12s,
 			border-color 0.12s;
@@ -365,10 +366,10 @@ CSIS 2100  Systems Analysis"
 		padding: 0.5rem 1rem;
 		border: 1px solid var(--rule);
 		background: transparent;
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		cursor: pointer;
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 		transition:
 			background 0.12s,
@@ -392,7 +393,7 @@ CSIS 2100  Systems Analysis"
 	}
 
 	.import-desc {
-		font-size: 0.8rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		margin: 0 0 0.75rem;
 		line-height: 1.5;
@@ -403,11 +404,10 @@ CSIS 2100  Systems Analysis"
 		padding: 0.75rem;
 		border: 1px solid var(--rule);
 		background: var(--paper);
-		font-family: var(--font-mono);
-		font-size: 0.8rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--ink);
 		resize: vertical;
-		outline: none;
 		box-sizing: border-box;
 		transition: border-color 0.12s var(--ease-out-quart);
 	}
@@ -427,11 +427,11 @@ CSIS 2100  Systems Analysis"
 	}
 
 	.import-hint {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		margin: 0.5rem 0 0;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.semester-block {
@@ -442,10 +442,10 @@ CSIS 2100  Systems Analysis"
 	}
 
 	.semester-head {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
+		text-transform: none;
+		letter-spacing: normal;
 		margin: 0 0 0.75rem;
 		font-weight: 500;
 	}
@@ -462,9 +462,8 @@ CSIS 2100  Systems Analysis"
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		font-family: var(--font-body);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--ink);
-		outline: none;
 		transition: border-color 0.12s var(--ease-out-quart);
 	}
 
@@ -475,9 +474,9 @@ CSIS 2100  Systems Analysis"
 	.code-input {
 		width: 130px;
 		flex-shrink: 0;
-		font-family: var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		font-family: var(--font-body);
+		text-transform: none;
+		letter-spacing: normal;
 	}
 
 	.name-input {
@@ -504,8 +503,8 @@ CSIS 2100  Systems Analysis"
 		padding: 0.4rem 0.75rem;
 		color: var(--ink-soft);
 		cursor: pointer;
-		font-size: 0.7rem;
-		text-transform: uppercase;
+		font-size: var(--text-caption);
+		text-transform: none;
 		letter-spacing: 0.1em;
 		transition:
 			color 0.12s,
@@ -518,7 +517,7 @@ CSIS 2100  Systems Analysis"
 	}
 
 	.parse-feedback {
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--accent);
 		margin: -0.75rem 0 1.5rem;
 		min-height: 1.2em;

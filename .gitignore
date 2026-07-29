@@ -42,5 +42,9 @@ vite.config.ts.timestamp-*
 *.sync-conflict-*
 **/.stversions/
 
-# Project-local state (shared via Syncthing, not Git)
+# Project-local state and backups (shared locally, not Git)
 .synapse-local/**
+.tmp/**
+
+# Wrangler local secrets
+.dev.vars

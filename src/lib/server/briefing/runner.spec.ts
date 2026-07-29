@@ -88,6 +88,13 @@ describe('terminal conflict persistence', () => {
 		} as unknown as D1Database;
 	}
 
+	it('permanently deletes a job record', async () => {
+		const queries: string[] = [];
+		const runner = createBriefingRunner(recordingBinding(queries));
+		await expect(runner.deleteJob('job-1')).resolves.toBe(true);
+		expect(queries.join('\n')).toContain('DELETE FROM briefing_jobs WHERE id = ?');
+	});
+
 	it('records a conflict without publishing or touching an existing briefing', async () => {
 		const queries: string[] = [];
 		const runner = createBriefingRunner(recordingBinding(queries));

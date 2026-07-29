@@ -18,7 +18,9 @@ function getCourseId(value: unknown) {
 	return typeof courseId === 'string' && courseId.trim() ? courseId.trim() : undefined;
 }
 
-export async function POST({ request }: RequestEvent) {
+export async function POST({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	const contentType = request.headers.get('content-type') ?? '';
 	if (contentType.includes('multipart/form-data')) {
 		const contentLength = Number(request.headers.get('content-length') ?? 0);
@@ -45,15 +47,14 @@ export async function POST({ request }: RequestEvent) {
 		try {
 			const rawText = await extractTextFromPdf(file);
 			const extractedData = await extractSyllabusWithAI(rawText);
-			return json(
-				saveSyllabusImport({
-					courseId: typeof courseId === 'string' ? courseId : undefined,
-					fileName: file.name,
-					rawText,
-					extractedData,
-					status: 'ready'
-				})
-			);
+			const syllabus = await saveSyllabusImport(userId, {
+				courseId: typeof courseId === 'string' ? courseId : undefined,
+				fileName: file.name,
+				rawText,
+				extractedData,
+				status: 'ready'
+			});
+			return json(syllabus);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Could not extract syllabus';
 			return json({ ok: false, error: message }, { status: 500 });
@@ -61,5 +62,5 @@ export async function POST({ request }: RequestEvent) {
 	}
 
 	const body: unknown = await request.json().catch(() => ({}));
-	return json(mockExtractSyllabus(getFileName(body), getCourseId(body)));
+	return json(mockExtractSyllabus(userId, getFileName(body), getCourseId(body)));
 }

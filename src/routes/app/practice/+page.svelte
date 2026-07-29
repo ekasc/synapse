@@ -1,1 +1,1 @@
-<svelte:head><title>Synapse · Practice</title></svelte:head>
+<svelte:head><title>Practice · Synapse</title></svelte:head>

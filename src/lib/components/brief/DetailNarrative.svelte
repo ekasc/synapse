@@ -124,7 +124,7 @@
 									{ac.label}
 									{#if ac.note}<small>{ac.note}</small>{/if}
 								</th>
-								<td class="weight font-mono">{ac.weightDisplay}</td>
+								<td class="weight">{ac.weightDisplay}</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -134,7 +134,7 @@
 					{#each gradeBreakdown as g (g.item)}
 						<div class="grade-row">
 							<span class="grade-item">{g.item}</span>
-							<span class="grade-weight font-mono">{g.weight}</span>
+							<span class="grade-weight">{g.weight}</span>
 						</div>
 					{/each}
 				</div>
@@ -149,7 +149,7 @@
 						<div class="requirement-row">
 							<span class="req-text">{rule.ruleText}</span>
 							{#if rule.threshold != null}
-								<span class="req-thresh font-mono">≥{rule.threshold}%</span>
+								<span class="req-thresh">≥{rule.threshold}%</span>
 							{/if}
 						</div>
 						{#if rule.explanation}
@@ -172,7 +172,7 @@
 			<details class="disclosure">
 				<summary>
 					<span class="summary-text">Research notes</span>
-					<span class="summary-count font-mono">{evidenceCount}</span>
+					<span class="summary-count">{evidenceCount}</span>
 				</summary>
 				<div class="evidence-grid">
 					{#if contradictions.length}
@@ -205,7 +205,7 @@
 			<details class="disclosure">
 				<summary>
 					<span class="summary-text">Sources</span>
-					<span class="summary-count font-mono">{sources.length}</span>
+					<span class="summary-count">{sources.length}</span>
 				</summary>
 				<ol class="source-list">
 					{#each sources as source, i (source.id || i)}
@@ -216,7 +216,7 @@
 						{@const dom = sourceDomain(source.url)}
 						<li class="source-item" id={`source-${sid}`}>
 							<div class="source-head">
-								<span class="source-num font-mono">{sid}.</span>
+								<span class="source-num">{sid}.</span>
 								{#if source.url}
 									<a class="source-label" href={source.url} target="_blank" rel="noreferrer">
 										{label}
@@ -225,7 +225,7 @@
 									<span class="source-label">{label}</span>
 								{/if}
 							</div>
-							<div class="source-meta font-mono">{cls} · {cur} · {dom}</div>
+							<div class="source-meta">{cls} · {cur} · {dom}</div>
 						</li>
 					{/each}
 				</ol>
@@ -246,7 +246,7 @@
 	}
 
 	.heading {
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.5rem;
 		line-height: 1.15;
@@ -259,11 +259,11 @@
 	}
 
 	.subhead {
-		font-family: var(--font-mono);
-		font-size: 0.72rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
+		text-transform: none;
+		letter-spacing: normal;
 		margin: 0.75rem 0 0.4rem;
 	}
 
@@ -290,10 +290,10 @@
 	}
 
 	.kv-row dt {
-		font-family: var(--font-mono);
-		font-size: 0.78rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 	}
 
@@ -341,12 +341,12 @@
 	}
 
 	.assessment-table thead th {
-		font-family: var(--font-mono);
-		font-size: 0.72rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		font-weight: 500;
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		text-transform: none;
+		letter-spacing: normal;
 		padding: 0 0 0.5rem;
 	}
 
@@ -359,7 +359,7 @@
 	.assessment-table tbody th small {
 		display: block;
 		margin-top: 0.2rem;
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		font-weight: 400;
 		color: var(--ink-soft);
 	}
@@ -390,12 +390,12 @@
 
 	.grade-item {
 		font-family: var(--font-body);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 	}
 
 	.grade-weight {
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 	}
 
@@ -414,19 +414,19 @@
 
 	.req-text {
 		font-family: var(--font-body);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 	}
 
 	.req-thresh {
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		white-space: nowrap;
 	}
 
 	.hint {
 		font-family: var(--font-body);
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		line-height: 1.5;
 		color: var(--ink-soft);
 		text-transform: none;
@@ -446,7 +446,7 @@
 		min-height: 2.5rem;
 		cursor: pointer;
 		font-family: var(--font-body);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		font-weight: 500;
 		color: var(--ink-soft);
 		list-style: none;
@@ -459,7 +459,7 @@
 	.disclosure summary::after {
 		content: '+';
 		margin-left: 0.6rem;
-		font-family: var(--font-mono);
+		font-family: var(--font-body);
 		color: var(--ink-faint);
 	}
 
@@ -468,7 +468,7 @@
 	}
 
 	.summary-text {
-		font-family: var(--font-hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		font-size: 1.3rem;
 		color: var(--ink);
@@ -476,8 +476,8 @@
 	}
 
 	.summary-count {
-		font-family: var(--font-mono);
-		font-size: 0.85rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		color: var(--ink-soft);
 		margin-left: auto;
 		margin-right: 0.5rem;
@@ -494,12 +494,12 @@
 
 	.evidence-label {
 		display: block;
-		font-family: var(--font-mono);
-		font-size: 0.72rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
 		font-weight: 500;
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		text-transform: none;
+		letter-spacing: normal;
 		margin-bottom: 0.4rem;
 	}
 
@@ -513,7 +513,7 @@
 
 	.evidence-grid li {
 		font-family: var(--font-body);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		color: var(--ink-soft);
 		line-height: 1.5;
 		max-width: 72ch;
@@ -522,7 +522,7 @@
 	.glyph {
 		display: inline-block;
 		margin-right: 0.3rem;
-		font-family: var(--font-mono);
+		font-family: var(--font-body);
 	}
 
 	.glyph-warn {
@@ -557,13 +557,13 @@
 
 	.source-num {
 		color: var(--ink-faint);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 		min-width: 1.5rem;
 	}
 
 	.source-label {
 		font-family: var(--font-body);
-		font-size: 0.95rem;
+		font-size: var(--text-small);
 		color: var(--ink);
 		text-decoration-color: var(--rule);
 	}
@@ -573,9 +573,9 @@
 	}
 
 	.source-meta {
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 		padding-left: 2rem;
 	}

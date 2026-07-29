@@ -34,18 +34,29 @@
 
 <AlertDialog.Root {open} onOpenChange={handleOpenChange}>
 	<AlertDialog.Portal>
-		<AlertDialog.Overlay class="ui-dialog-overlay" />
-		<AlertDialog.Content class="ui-dialog-content">
-			<AlertDialog.Title class="ui-dialog-title font-hand">{title}</AlertDialog.Title>
-			<AlertDialog.Description class="ui-dialog-description">
+		<AlertDialog.Overlay
+			class="fixed inset-0 z-[var(--z-dialog-overlay)] bg-[rgba(26,26,23,0.38)]"
+		/>
+		<AlertDialog.Content
+			class="fixed top-1/2 left-1/2 z-[var(--z-dialog-content)] max-h-[calc(100vh_-_2rem)] w-[min(30rem,calc(100vw_-_2rem))] -translate-x-1/2 -translate-y-1/2 [animation:ui-dialog-in_0.18s_var(--ease-out-quart)] overflow-auto rounded-none border border-[var(--ink)] bg-[var(--paper)] p-6 [box-shadow:0_2px_6px_rgba(26,26,23,0.1)]"
+		>
+			<AlertDialog.Title class="font-hand m-0 text-[1.55rem] text-[var(--ink)]"
+				>{title}</AlertDialog.Title
+			>
+			<AlertDialog.Description
+				class="overflow-wrap-anywhere mt-[0.65rem] leading-normal text-[var(--ink-soft)] text-[var(--text-small)]"
+			>
 				{description}
 			</AlertDialog.Description>
-			<div class="ui-dialog-actions">
-				<AlertDialog.Cancel class="ui-dialog-button" disabled={busy}>
+			<div class="mt-5 flex justify-end gap-2">
+				<AlertDialog.Cancel
+					class="min-h-10 cursor-pointer rounded-none border border-[rgba(26,26,23,0.25)] bg-transparent px-[0.9rem] py-2 font-[inherit] text-[var(--ink)] transition-transform duration-100 ease-[var(--ease-out-quart)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--highlight)] active:translate-y-px [@media(pointer:coarse)]:min-h-11"
+					disabled={busy}
+				>
 					{cancelLabel}
 				</AlertDialog.Cancel>
 				<AlertDialog.Action
-					class="ui-dialog-button ui-dialog-button-danger"
+					class="min-h-10 cursor-pointer rounded-none border border-[rgba(194,54,42,0.35)] bg-transparent px-[0.9rem] py-2 font-[inherit] text-[var(--pen-red)] transition-transform duration-100 ease-[var(--ease-out-quart)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--highlight)] active:translate-y-px enabled:hover:border-[var(--pen-red)] enabled:hover:bg-[var(--pen-red)] enabled:hover:text-[var(--paper)] [@media(pointer:coarse)]:min-h-11"
 					disabled={busy}
 					onclick={confirm}
 				>
@@ -55,77 +66,3 @@
 		</AlertDialog.Content>
 	</AlertDialog.Portal>
 </AlertDialog.Root>
-
-<style>
-	:global(.ui-dialog-overlay) {
-		position: fixed;
-		z-index: var(--z-dialog-overlay);
-		inset: 0;
-		background: rgba(26, 26, 23, 0.38);
-	}
-
-	:global(.ui-dialog-content) {
-		position: fixed;
-		z-index: var(--z-dialog-content);
-		top: 50%;
-		left: 50%;
-		width: min(30rem, calc(100vw - 2rem));
-		animation: ui-dialog-in 0.18s var(--ease-out-quart);
-		max-height: calc(100vh - 2rem);
-		overflow: auto;
-		padding: 1.5rem;
-		border: 1px solid var(--ink);
-		border-radius: 0;
-		background: var(--paper);
-		box-shadow: 0 2px 6px rgba(26, 26, 23, 0.1);
-		transform: translate(-50%, -50%);
-	}
-
-	:global(.ui-dialog-title) {
-		margin: 0;
-		color: var(--ink);
-		font-size: 1.55rem;
-	}
-
-	:global(.ui-dialog-description) {
-		margin: 0.65rem 0 0;
-		color: var(--ink-soft);
-		font-size: 0.9rem;
-		line-height: 1.5;
-		overflow-wrap: anywhere;
-	}
-
-	:global(.ui-dialog-actions) {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
-		margin-top: 1.25rem;
-	}
-
-	:global(.ui-dialog-button) {
-		min-height: 2.5rem;
-		padding: 0.5rem 0.9rem;
-		transition: transform 0.1s var(--ease-out-quart);
-		border: 1px solid rgba(26, 26, 23, 0.25);
-		border-radius: 0;
-		background: transparent;
-		color: var(--ink);
-		font: inherit;
-		cursor: pointer;
-	}
-
-	:global(.ui-dialog-button:focus-visible) {
-		outline: 2px solid var(--highlight);
-		outline-offset: 2px;
-	}
-
-	:global(.ui-dialog-button-danger) {
-		border-color: var(--pen-red);
-		background: var(--pen-red);
-		color: var(--paper);
-	}
-
-	:global(.ui-dialog-button:active) {
-		transform: translateY(1px);
-	}
-</style>

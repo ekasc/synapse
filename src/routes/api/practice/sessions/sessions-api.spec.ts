@@ -16,6 +16,7 @@ import { GET as list, POST } from './+server';
 import { DELETE, GET, PATCH } from './[id]/+server';
 
 const platform = { env: { BRIEF_DB: {} } };
+const locals = { user: { id: 'test-user' } };
 
 const baseUrl = 'http://localhost/api/practice/sessions';
 
@@ -38,9 +39,10 @@ describe('practice sessions API', () => {
 		repository.list.mockResolvedValue({ outcome: 'ok', value: [{ id: 's1' }] });
 		repository.create.mockResolvedValue({ outcome: 'ok', value: { id: 's2' } });
 
-		const listed = await list({ platform, url: url() } as never);
+		const listed = await list({ platform, locals, url: url() } as never);
 		const created = await POST({
 			platform,
+			locals,
 			request: request('POST', JSON.stringify({ courseId: 'c1', courseCode: 'CS1' }))
 		} as never);
 
@@ -59,6 +61,7 @@ describe('practice sessions API', () => {
 		);
 		const response = await PATCH({
 			platform,
+			locals,
 			params: { id: 'session-1' },
 			request: request('PATCH', '{}')
 		} as never);
@@ -70,9 +73,9 @@ describe('practice sessions API', () => {
 			outcome: 'validation',
 			message: 'request must be a plain object'
 		});
-		const response = await POST({ platform, request: request('POST', '{') } as never);
+		const response = await POST({ platform, locals, request: request('POST', '{') } as never);
 		expect(response.status).toBe(400);
-		expect(repository.create).toHaveBeenCalledWith(undefined);
+		expect(repository.create).toHaveBeenCalledWith('test-user', undefined);
 	});
 
 	it('supports get, patch (updateProgress), and delete', async () => {
@@ -83,11 +86,12 @@ describe('practice sessions API', () => {
 		});
 		repository.delete.mockResolvedValue({ outcome: 'ok', value: null });
 
-		expect((await GET({ platform, params: { id: 'session-1' } } as never)).status).toBe(200);
+		expect((await GET({ platform, locals, params: { id: 'session-1' } } as never)).status).toBe(200);
 		expect(
 			(
 				await PATCH({
 					platform,
+					locals,
 					params: { id: 'session-1' },
 					request: request('PATCH', JSON.stringify({ score: 5 }))
 				} as never)
@@ -95,21 +99,22 @@ describe('practice sessions API', () => {
 		).toBe(200);
 		const deleted = await DELETE({
 			platform,
+			locals,
 			params: { id: 'session-1' }
 		} as never);
 		expect(deleted.status).toBe(200);
-		expect(repository.delete).toHaveBeenCalledWith('session-1');
+		expect(repository.delete).toHaveBeenCalledWith('test-user', 'session-1');
 	});
 
 	it('returns safe 500 responses without exposing repository errors', async () => {
 		repository.get.mockRejectedValue(new Error('SQLITE_ERROR: no such table'));
-		const response = await GET({ platform, params: { id: 'session-1' } } as never);
+		const response = await GET({ platform, locals, params: { id: 'session-1' } } as never);
 		expect(response.status).toBe(500);
 		expect(await response.json()).toEqual({ error: 'Unable to load session' });
 	});
 
 	it('returns safe 500 when the platform binding is unavailable', async () => {
-		const response = await list({ platform: undefined, url: url() } as never);
+		const response = await list({ platform: undefined, locals, url: url() } as never);
 		expect(response.status).toBe(500);
 		expect(await response.json()).toEqual({ error: 'Service unavailable' });
 	});

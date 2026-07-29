@@ -66,16 +66,20 @@ function isGraphState(value: unknown): value is GraphState {
 	return validPositions && validEdges && validViewport;
 }
 
-export async function GET() {
-	return json(await getGraphState());
+export async function GET({ locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
+	return json(await getGraphState(userId));
 }
 
-export async function PUT({ request }: RequestEvent) {
+export async function PUT({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	const body: unknown = await request.json();
 	if (!isGraphState(body)) {
 		return json({ ok: false, error: 'Invalid graph state' }, { status: 400 });
 	}
 
-	await saveGraphState(body);
+	await saveGraphState(userId, body);
 	return json({ ok: true });
 }

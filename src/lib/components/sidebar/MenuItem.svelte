@@ -10,12 +10,6 @@
 	} = $props();
 </script>
 
-<div class="sidebar-menu-item {className}" role="listitem">
+<div class="sidebar-menu-item relative {className}" role="listitem">
 	{@render children()}
 </div>
-
-<style>
-	:global(.sidebar-menu-item) {
-		position: relative;
-	}
-</style>

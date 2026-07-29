@@ -424,6 +424,12 @@ export function createBriefingRunner(binding: D1Database) {
 			.run();
 	}
 
+	/** Permanently remove a job. A running worker cannot publish after its row is gone. */
+	async function deleteJob(id: string): Promise<boolean> {
+		const result = await binding.prepare(`DELETE FROM briefing_jobs WHERE id = ?`).bind(id).run();
+		return Boolean(result.meta.changes);
+	}
+
 	/** Read from prompt cache */
 	async function getCachedOutput(cacheKey: string): Promise<string | null> {
 		const now = new Date().toISOString();
@@ -668,6 +674,7 @@ export function createBriefingRunner(binding: D1Database) {
 		getJobs,
 		getJob,
 		getAllJobs,
+		deleteJob,
 		countRecentJobs,
 		countActiveJobs,
 		cancelJob,

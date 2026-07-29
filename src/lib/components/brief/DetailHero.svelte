@@ -5,9 +5,7 @@
 
 	const title = $derived.by(() => {
 		const escaped = brief.courseCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		return (
-			brief.title.replace(new RegExp(`^${escaped}\\s*[-–—:]?\\s*`, 'i'), '') || brief.title
-		);
+		return brief.title.replace(new RegExp(`^${escaped}\\s*[-–—:]?\\s*`, 'i'), '') || brief.title;
 	});
 
 	const dateLabel = $derived.by(() => {
@@ -44,101 +42,31 @@
 	});
 </script>
 
-<header class="hero">
-	<div class="hero-row">
-		<span class="code font-mono">{brief.courseCode}</span>
-		<span class="date font-mono">{dateLabel}</span>
+<header class="grid gap-[0.4rem] pb-6">
+	<div class="flex items-baseline justify-between gap-4 max-[700px]:flex-col max-[700px]:gap-1">
+		<span class=" font-medium tracking-[0.1em] text-[var(--ink)] text-[var(--text-caption)]"
+			>{brief.courseCode}</span
+		>
+		<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">{dateLabel}</span>
 	</div>
-	<h1 class="title">{title}</h1>
-	<p class="institution">{brief.institution}</p>
+	<h1
+		class="mt-[0.2rem] font-[family-name:var(--font-body)] text-[clamp(2rem,4vw,3rem)] leading-[1.05] font-bold tracking-[-0.01em] text-balance text-[var(--ink)]"
+	>
+		{title}
+	</h1>
+	<p
+		class="mt-[0.1rem] font-[family-name:var(--font-body)] text-base leading-[1.4] text-[var(--ink-soft)]"
+	>
+		{brief.institution}
+	</p>
 	{#if highlightText}
-		<div class="highlight" role="note" aria-label={highlightText.label}>
-			<span class="highlight-label font-mono">{highlightText.label}:</span>
-			<span class="highlight-value">{highlightText.value}</span>
+		<div
+			class="mt-[0.85rem] bg-[var(--highlight)] px-[0.9rem] py-[0.6rem] font-[family-name:var(--font-body)] text-[1.4rem] leading-tight font-bold tracking-[-0.005em] text-[var(--ink)] max-[700px]:text-[1.15rem]"
+			role="note"
+			aria-label={highlightText.label}
+		>
+			<span class="mr-[0.4rem] font-medium text-[var(--text-caption)]">{highlightText.label}:</span>
+			<span>{highlightText.value}</span>
 		</div>
 	{/if}
 </header>
-
-<style>
-	.hero {
-		display: grid;
-		gap: 0.4rem;
-		padding-bottom: 1.5rem;
-	}
-
-	.hero-row {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-	}
-
-	.code {
-		font-size: 0.85rem;
-		color: var(--ink);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		font-weight: 500;
-	}
-
-	.date {
-		font-size: 0.78rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-	}
-
-	.title {
-		font-family: var(--font-hand);
-		font-weight: 700;
-		font-size: clamp(2rem, 4vw, 3rem);
-		line-height: 1.05;
-		color: var(--ink);
-		margin: 0.2rem 0 0;
-		letter-spacing: -0.01em;
-		text-wrap: balance;
-	}
-
-	.institution {
-		font-family: var(--font-body);
-		font-size: 1rem;
-		color: var(--ink-soft);
-		margin: 0.1rem 0 0;
-		line-height: 1.4;
-	}
-
-	.highlight {
-		margin-top: 0.85rem;
-		padding: 0.6rem 0.9rem;
-		background: var(--highlight);
-		color: var(--ink);
-		font-family: var(--font-hand);
-		font-weight: 700;
-		font-size: 1.4rem;
-		line-height: 1.25;
-		letter-spacing: -0.005em;
-	}
-
-	.highlight-label {
-		font-family: var(--font-mono);
-		font-size: 0.85rem;
-		font-weight: 500;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		margin-right: 0.4rem;
-	}
-
-	.highlight-value {
-		font-family: var(--font-hand);
-	}
-
-	@media (max-width: 700px) {
-		.hero-row {
-			flex-direction: column;
-			gap: 0.25rem;
-		}
-		.highlight {
-			font-size: 1.15rem;
-		}
-	}
-</style>

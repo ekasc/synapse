@@ -48,9 +48,9 @@ function courseContext(course: Course): string {
 
 export async function answerChat(
 	request: ChatRequest,
-	options: { db?: D1Database; materials?: R2Bucket; apiKey?: string; model?: string }
+	options: { userId: string; db?: D1Database; materials?: R2Bucket; apiKey?: string; model?: string }
 ) {
-	const courses = await getCourses();
+	const courses = await getCourses(options.userId);
 	const scoped =
 		request.courseId === 'all'
 			? courses
@@ -60,12 +60,12 @@ export async function answerChat(
 		await Promise.all(
 			scoped.map(async (course) => {
 				try {
-					const indexed = await repository.listReadyChunks(course.id);
+					const indexed = await repository.listReadyChunks(options.userId, course.id);
 					return indexed.length > 0
 						? indexed
-						: await createMaterialIndexRepository().listReadyChunks(course.id);
+						: await createMaterialIndexRepository().listReadyChunks(options.userId, course.id);
 				} catch {
-					return createMaterialIndexRepository().listReadyChunks(course.id);
+					return createMaterialIndexRepository().listReadyChunks(options.userId, course.id);
 				}
 			})
 		)

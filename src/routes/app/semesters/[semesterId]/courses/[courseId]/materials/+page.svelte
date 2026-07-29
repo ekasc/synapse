@@ -106,6 +106,64 @@
 		void processIndexQueue();
 	}
 
+	let ocrRun = $state<{ materialId: string; page: number; total: number } | null>(null);
+
+	// Workers have no canvas, so the browser renders each scanned page and the
+	// server transcribes it. Pages are sent one at a time; done:true finalizes.
+	async function runOcr(material: Material) {
+		const total = materialIndex(material).pageCount ?? 0;
+		if (total === 0 || ocrRun) return;
+		ocrRun = { materialId: material.id, page: 0, total };
+		try {
+			const pdfjs = (await import('pdfjs-dist')) as typeof import('pdfjs-dist');
+			pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+				'pdfjs-dist/build/pdf.worker.min.mjs',
+				import.meta.url
+			).toString();
+			const download = await fetch(`/api/courses/${course.id}/materials/${material.id}/download`);
+			if (!download.ok) throw new Error('the file could not be downloaded');
+			const doc = await pdfjs.getDocument({ data: await download.arrayBuffer() }).promise;
+			const canvas = document.createElement('canvas');
+			const context = canvas.getContext('2d');
+			if (!context) throw new Error('this browser cannot render pages');
+			for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
+				ocrRun = { materialId: material.id, page: pageNumber, total };
+				const page = await doc.getPage(pageNumber);
+				const viewport = page.getViewport({ scale: 1.5 });
+				canvas.width = Math.floor(viewport.width);
+				canvas.height = Math.floor(viewport.height);
+				await page.render({ canvas, canvasContext: context, viewport }).promise;
+				const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+				const response = await fetch(
+					`/api/courses/${course.id}/materials/${material.id}/ocr`,
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							pageNumber,
+							image: dataUrl.slice(dataUrl.indexOf(',') + 1),
+							done: pageNumber === total
+						})
+					}
+				);
+				const body = (await response.json().catch(() => null)) as {
+					index?: MaterialIndex;
+					error?: string;
+				} | null;
+				if (body?.index) indexOverrides = { ...indexOverrides, [material.id]: body.index };
+				if (!response.ok) throw new Error(body?.error ?? 'a page could not be transcribed');
+			}
+			await invalidateAll();
+		} catch (cause) {
+			uploadError =
+				cause instanceof Error && cause.message
+					? `OCR stopped: ${cause.message}`
+					: `OCR stopped for ${material.fileName}. Try again.`;
+		} finally {
+			ocrRun = null;
+		}
+	}
+
 	$effect(() => {
 		if (
 			materials.some((material) => ['pending', 'indexing'].includes(materialIndex(material).status))
@@ -251,25 +309,29 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · {course.code} materials</title></svelte:head>
+<svelte:head><title>{course.code} · Materials · Synapse</title></svelte:head>
 
-<div class="page page-enter">
-	<header class="page-cover">
+<div class="page-enter mx-auto max-w-[var(--page-width)] pt-8 pb-16">
+	<header
+		class="mb-6 flex items-end justify-between gap-4 border-b border-[var(--ink)] pb-5 max-[640px]:flex-col max-[640px]:items-start"
+	>
 		<div>
-			<div class="eyebrow font-mono">Course materials</div>
-			<h1 class="page-title font-hand">Materials</h1>
-			<p class="page-tagline">Files used by Syllabus and Practice for {course.code}.</p>
+			<div class="text-[length:var(--text-small)] text-[var(--ink-soft)]">Course materials</div>
+			<h1 class="mt-[0.2rem] mb-[0.35rem] text-[clamp(2rem,4vw,2.75rem)]">Materials</h1>
+			<p class="m-0 text-[var(--ink-soft)]">
+				Files used by Syllabus intelligence and Practice for {course.code}.
+			</p>
 		</div>
-		<div class="material-total font-mono">
+		<div class=" text-[length:var(--text-small)] text-[var(--ink-faint)]">
 			{materials.length} file{materials.length === 1 ? '' : 's'}
 			{materials.length > 0 ? ` · ${formatSize(totalSize)}` : ''}
 		</div>
 	</header>
 
 	<label
-		class="drop-zone"
-		class:drop-zone-active={dragOver}
-		class:drop-zone-busy={uploading}
+		class="mb-4 flex min-h-36 cursor-pointer flex-col justify-center gap-[0.35rem] border border-dashed border-[var(--rule)] bg-[var(--paper)] p-6 text-center hover:border-[var(--ink)] hover:bg-[var(--paper-shelf)] {dragOver
+			? 'border-[var(--ink)] bg-[var(--paper-shelf)]'
+			: ''} {uploading ? 'cursor-progress opacity-60' : ''}"
 		ondrop={onDrop}
 		ondragover={onDragOver}
 		ondragleave={() => (dragOver = false)}
@@ -277,34 +339,45 @@
 		<input
 			type="file"
 			multiple
-			class="drop-zone-input"
+			class="sr-only"
 			onchange={onFileInput}
 			disabled={uploading}
 			aria-label="Upload course materials"
 		/>
-		<span class="drop-title font-hand">{uploading ? 'Uploading…' : 'Drop files here'}</span>
-		<span class="drop-subtitle font-mono">
+		<span class="font-hand text-[1.2rem] text-[var(--ink)]"
+			>{uploading ? 'Uploading…' : 'Drop files here'}</span
+		>
+		<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">
 			or choose files · pdf, slides, docs, images, anything course-related
 		</span>
 	</label>
 
-	{#if uploadError}<p class="upload-error" role="alert">{uploadError}</p>{/if}
+	{#if uploadError}<p class="text-[var(--pen-red)]" role="alert">{uploadError}</p>{/if}
 
 	{#if materials.length === 0}
-		<section class="empty-state">
-			<h2 class="font-hand">No materials yet</h2>
-			<p>Upload course files here before generating Practice sessions.</p>
+		<section class="border border-[var(--rule)] p-8 text-center">
+			<h2 class="font-hand m-0">No materials yet</h2>
+			<p class="mt-[0.4rem] mb-0 text-[var(--ink-soft)]">
+				Upload course files here before generating Practice sessions.
+			</p>
 		</section>
 	{:else}
-		<ul class="material-list">
+		<ul class="m-0 flex list-none flex-col gap-2 p-0">
 			{#each materials as material (material.id)}
-				<li class="material-row" class:material-deleting={deletingId === material.id}>
-					<div class="material-kind font-mono">{fileKind(material.mimeType)}</div>
-					<div class="material-info">
+				<li
+					class="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 border border-[var(--rule)] bg-[var(--paper)] px-[0.85rem] py-3 max-[640px]:grid-cols-[minmax(0,1fr)] {deletingId ===
+					material.id
+						? 'opacity-40'
+						: ''}"
+				>
+					<div class=" text-[var(--ink-faint)] text-[var(--text-caption)]">
+						{fileKind(material.mimeType)}
+					</div>
+					<div class="min-w-0">
 						{#if renamingId === material.id}
 							<input
 								type="text"
-								class="rename-input"
+								class="w-full border border-[var(--ink)] bg-[var(--paper)] p-[0.4rem] [font-family:var(--font-body)] text-[length:var(--text-small)] leading-[1.4]"
 								bind:value={renameValue}
 								onkeydown={(event) => {
 									if (event.key === 'Enter') void commitRename();
@@ -316,21 +389,22 @@
 							/>
 						{:else}
 							<a
-								class="material-name"
+								class="block truncate text-[var(--ink)] text-[var(--text-small)] no-underline hover:underline hover:decoration-[var(--ink)]"
 								href={`/api/courses/${course.id}/materials/${material.id}/download`}
 								download={material.fileName}>{material.fileName}</a
 							>
 						{/if}
-						<div class="material-meta font-mono">
+						<div class="mt-[0.2rem] text-[var(--ink-faint)] text-[var(--text-caption)]">
 							{formatSize(material.size)} · uploaded {formatDate(material.uploadedAt)}
 						</div>
 						<div
-							class="index-status"
+							class="mt-[0.3rem] text-[var(--text-caption)] {materialIndex(material).status ===
+							'ready'
+								? 'text-[var(--ok)]'
+								: ['failed', 'needs_ocr', 'too_large'].includes(materialIndex(material).status)
+									? 'text-[var(--pen-red)]'
+									: 'text-[var(--ink-soft)]'}"
 							aria-live="polite"
-							class:index-ready={materialIndex(material).status === 'ready'}
-							class:index-problem={['failed', 'needs_ocr', 'too_large'].includes(
-								materialIndex(material).status
-							)}
 						>
 							{indexLabel(materialIndex(material))}
 							{#if materialIndex(material).errorMessage}
@@ -338,11 +412,22 @@
 							{/if}
 						</div>
 					</div>
-					<div class="material-actions">
+					<div class="flex gap-[0.4rem] max-[640px]:flex-wrap">
 						{#if materialIndex(material).status === 'failed'}
 							<button class="btn btn-secondary btn-sm" onclick={() => retryIndex(material)}
 								>retry index</button
 							>
+						{/if}
+						{#if materialIndex(material).status === 'needs_ocr'}
+							<button
+								class="btn btn-secondary btn-sm"
+								disabled={ocrRun !== null}
+								onclick={() => void runOcr(material)}
+							>
+								{ocrRun?.materialId === material.id
+									? `OCR · page ${ocrRun.page} of ${ocrRun.total}`
+									: 'run OCR'}
+							</button>
 						{/if}
 						{#if canPreview(material)}
 							<button class="btn btn-secondary btn-sm" onclick={() => (selectedMaterial = material)}
@@ -353,7 +438,7 @@
 							>rename</button
 						>
 						<button
-							class="btn btn-ghost btn-sm material-delete"
+							class="btn btn-ghost btn-sm text-[var(--pen-red)]"
 							disabled={deletingId !== null}
 							onclick={() => deleteMaterial(material.id)}
 							>{deletingId === material.id ? '…' : 'delete'}</button
@@ -370,173 +455,3 @@
 	open={selectedMaterial !== null}
 	onClose={() => (selectedMaterial = null)}
 />
-
-<style>
-	.page {
-		max-width: var(--page-width);
-		margin-inline: auto;
-		padding-block: 2rem 4rem;
-	}
-	.page-cover {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 1rem;
-		padding-bottom: 1.25rem;
-		margin-bottom: 1.5rem;
-		border-bottom: 1px solid var(--ink);
-	}
-	.eyebrow,
-	.material-total {
-		color: var(--ink-faint);
-		font-size: 0.68rem;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-	}
-	.page-title {
-		margin: 0.2rem 0 0.35rem;
-		font-size: clamp(2rem, 4vw, 2.75rem);
-	}
-	.page-tagline {
-		margin: 0;
-		color: var(--ink-soft);
-	}
-	.drop-zone {
-		display: flex;
-		min-height: 9rem;
-		flex-direction: column;
-		justify-content: center;
-		gap: 0.35rem;
-		padding: 1.5rem;
-		margin-bottom: 1rem;
-		border: 1px dashed var(--rule);
-		background: var(--paper);
-		cursor: pointer;
-		text-align: center;
-	}
-	.drop-zone:hover,
-	.drop-zone-active {
-		border-color: var(--ink);
-		background: var(--paper-shelf);
-	}
-	.drop-zone-busy {
-		opacity: 0.6;
-		cursor: progress;
-	}
-	.drop-zone-input {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-	}
-	.drop-title {
-		color: var(--ink);
-		font-size: 1.2rem;
-	}
-	.drop-subtitle {
-		color: var(--ink-faint);
-		font-size: 0.7rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-	.upload-error {
-		color: var(--accent);
-	}
-	.empty-state {
-		padding: 2rem;
-		border: 1px solid var(--rule);
-		text-align: center;
-	}
-	.empty-state h2,
-	.empty-state p {
-		margin: 0;
-	}
-	.empty-state p {
-		margin-top: 0.4rem;
-		color: var(--ink-soft);
-	}
-	.material-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		padding: 0;
-		margin: 0;
-		list-style: none;
-	}
-	.material-row {
-		display: grid;
-		grid-template-columns: 4.5rem minmax(0, 1fr) auto;
-		gap: 0.75rem;
-		align-items: center;
-		padding: 0.75rem 0.85rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-	}
-	.material-deleting {
-		opacity: 0.4;
-	}
-	.material-kind,
-	.material-meta {
-		color: var(--ink-faint);
-		font-size: 0.7rem;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-	.material-info {
-		min-width: 0;
-	}
-	.index-status {
-		margin-top: 0.3rem;
-		color: var(--ink-soft);
-		font-size: 0.78rem;
-	}
-	.index-ready {
-		color: var(--success, #3f684b);
-	}
-	.index-problem {
-		color: var(--accent);
-	}
-	.material-name {
-		display: block;
-		overflow: hidden;
-		color: var(--ink);
-		font-size: 0.9rem;
-		text-decoration: none;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.material-name:hover {
-		text-decoration: underline;
-		text-decoration-color: var(--accent);
-	}
-	.material-meta {
-		margin-top: 0.2rem;
-	}
-	.material-actions {
-		display: flex;
-		gap: 0.4rem;
-	}
-	.rename-input {
-		width: 100%;
-		padding: 0.4rem;
-		border: 1px solid var(--ink);
-		background: var(--paper);
-		font: 0.85rem var(--font-body);
-	}
-	.material-delete {
-		color: var(--accent);
-	}
-	@media (max-width: 640px) {
-		.page-cover {
-			align-items: flex-start;
-			flex-direction: column;
-		}
-		.material-row {
-			grid-template-columns: minmax(0, 1fr);
-		}
-		.material-actions {
-			flex-wrap: wrap;
-		}
-	}
-</style>

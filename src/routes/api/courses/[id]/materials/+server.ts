@@ -17,6 +17,7 @@ import {
 	attachMaterialIndexes,
 	createMaterialIndexRepository
 } from '$lib/server/practice/material-index';
+import { createSemanticPipeline } from '$lib/server/practice/embeddings';
 
 function getBackend(event: { platform?: Readonly<App.Platform> | undefined }) {
 	const bucket = event.platform?.env?.MATERIALS;
@@ -42,18 +43,23 @@ function getBackend(event: { platform?: Readonly<App.Platform> | undefined }) {
 
 const MAX_MATERIAL_BYTES = 50 * 1024 * 1024; // 50 MB
 
-export async function GET({ params, platform }: RequestEvent) {
-	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
+export async function GET({ params, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) error(401, 'Unauthorized');
+	if (!(await getCourses(userId)).some((c) => c.id === params.id)) error(404, 'Course not found');
 	const items = await getBackend({ platform }).list(params.id);
 	const indexedItems = await attachMaterialIndexes(
 		items,
-		createMaterialIndexRepository(platform?.env?.BRIEF_DB)
+		createMaterialIndexRepository(platform?.env?.BRIEF_DB),
+		userId
 	);
 	return json(indexedItems);
 }
 
-export async function POST({ params, request, platform }: RequestEvent) {
-	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
+export async function POST({ params, request, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+	if (!(await getCourses(userId)).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const contentLength = Number(request.headers.get('content-length') ?? 0);
 	if (Number.isFinite(contentLength) && contentLength > MAX_MATERIAL_BYTES) {
@@ -80,12 +86,14 @@ export async function POST({ params, request, platform }: RequestEvent) {
 	}
 
 	const material = await getBackend({ platform }).upload(params.id, file);
-	const index = await createMaterialIndexRepository(platform?.env?.BRIEF_DB).ensure(material);
+	const index = await createMaterialIndexRepository(platform?.env?.BRIEF_DB).ensure(userId, material);
 	return json({ ok: true, material: { ...material, index } });
 }
 
-export async function PATCH({ params, request, platform }: RequestEvent) {
-	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
+export async function PATCH({ params, request, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+	if (!(await getCourses(userId)).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const body: unknown = await request.json().catch(() => null);
 	if (!body || typeof body !== 'object') {
@@ -111,8 +119,10 @@ export async function PATCH({ params, request, platform }: RequestEvent) {
 	return json({ ok: true, material: updated });
 }
 
-export async function DELETE({ params, request, platform }: RequestEvent) {
-	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
+export async function DELETE({ params, request, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+	if (!(await getCourses(userId)).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const body: unknown = await request.json().catch(() => null);
 	const id =
@@ -132,7 +142,20 @@ export async function DELETE({ params, request, platform }: RequestEvent) {
 		return json({ ok: false, error: 'Material does not belong to this course' }, { status: 400 });
 	}
 
-	await createMaterialIndexRepository(platform?.env?.BRIEF_DB).delete(id);
+	const repository = createMaterialIndexRepository(platform?.env?.BRIEF_DB);
+	const pipeline = createSemanticPipeline(platform?.env ?? {});
+	if (pipeline) {
+		// Stale vectors never affect results (retrieval is gated on the D1 chunk
+		// list), so this cleanup is best-effort.
+		try {
+			const readyChunks = await repository.listReadyChunks(userId, params.id);
+			const staleIds = readyChunks.filter((chunk) => chunk.materialId === id).map((chunk) => chunk.id);
+			await pipeline.store.deleteByIds(staleIds);
+		} catch {
+			// leave vectors in place; they are excluded by retrieval allow-lists
+		}
+	}
+	await repository.delete(userId, id);
 	await backend.delete(id);
 	return json({ ok: true });
 }

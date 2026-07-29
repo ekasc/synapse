@@ -30,7 +30,7 @@
 			confirming = false;
 			onDeleted?.();
 		} catch {
-			deleteError = 'Could not delete this briefing.';
+			deleteError = 'Could not delete this brief.';
 		} finally {
 			deleting = false;
 		}
@@ -45,21 +45,16 @@
 	}
 </script>
 
-<div class="action-row">
+<div class="mt-8 flex items-center justify-end gap-2 border-t border-[var(--rule-soft)] pt-6">
 	{#if deleteError}
-		<span class="error font-mono">{deleteError}</span>
+		<span class="mr-auto text-[var(--pen-red)] text-[var(--text-caption)]">{deleteError}</span>
 	{/if}
 	{#if confirming}
-		<span class="confirm-label font-mono">Delete this briefing?</span>
+		<span class="mr-auto text-[var(--pen-red)] text-[var(--text-caption)]">Delete this brief?</span>
 		<button class="btn btn-sm btn-ghost" type="button" onclick={() => (confirming = false)}>
 			cancel
 		</button>
-		<button
-			class="btn btn-sm btn-danger"
-			type="button"
-			onclick={confirmDelete}
-			disabled={deleting}
-		>
+		<button class="btn btn-sm btn-danger" type="button" onclick={confirmDelete} disabled={deleting}>
 			{deleting ? 'deleting…' : 'delete'}
 		</button>
 	{:else}
@@ -67,31 +62,7 @@
 			Refresh research
 		</button>
 		<button class="btn btn-sm btn-danger" type="button" onclick={() => (confirming = true)}>
-			Delete briefing
+			Delete brief
 		</button>
 	{/if}
 </div>
-
-<style>
-	.action-row {
-		display: flex;
-		justify-content: flex-end;
-		align-items: center;
-		gap: 0.5rem;
-		padding-top: 1.5rem;
-		margin-top: 2rem;
-		border-top: 1px solid var(--rule-soft);
-	}
-
-	.confirm-label {
-		font-size: 0.85rem;
-		color: var(--pen-red);
-		margin-right: auto;
-	}
-
-	.error {
-		font-size: 0.85rem;
-		color: var(--pen-red);
-		margin-right: auto;
-	}
-</style>

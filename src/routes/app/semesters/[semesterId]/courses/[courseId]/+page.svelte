@@ -3,6 +3,9 @@
 	import { page } from '$app/stores';
 	import { resolveRoute } from '$app/paths';
 	import { cn } from '$lib/utils';
+	import CourseHeader from '$lib/components/course/CourseHeader.svelte';
+	import SyllabusDetails from '$lib/components/course/SyllabusDetails.svelte';
+	import CourseActivity from '$lib/components/course/CourseActivity.svelte';
 	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
 	import { AlertDialog } from '$lib/components/ui';
 	import { Combobox } from 'bits-ui';
@@ -36,6 +39,13 @@
 
 	type Semester = { id: string; term: string; year: number; order: number };
 
+	type SyllabusImport = {
+		extractedData: {
+			professor: { name: string; email: string; office: string; officeHours: string };
+			dates: { label: string; date: string; type: string; needsReview?: boolean }[];
+		};
+	};
+
 	type Edge = {
 		id?: string;
 		source: string;
@@ -50,6 +60,7 @@
 	}: {
 		data: {
 			course: Course;
+			syllabus: SyllabusImport | null;
 			semester: Semester | null;
 			semesters: Semester[];
 			incoming: Edge[];
@@ -59,6 +70,9 @@
 	} = $props();
 
 	const course = $derived(data.course);
+	const syllabus = $derived(data.syllabus);
+	const professor = $derived(syllabus?.extractedData.professor ?? null);
+	const importantDates = $derived(syllabus?.extractedData.dates ?? []);
 	const semester = $derived(data.semester);
 	const semesters = $derived(data.semesters);
 	const incoming = $derived(data.incoming);
@@ -69,33 +83,6 @@
 		[...incoming, ...outgoing].filter((edge) => edge.type !== 'prereq')
 	);
 	const coursesById = $derived(new Map(data.courses.map((c) => [c.id, c])));
-
-	const headerTerm = $derived(semester ? `${semester.term} ${semester.year}` : 'No term');
-
-	const status = $derived(course.signals?.status ?? 'planned');
-	const statusLabel = $derived(status.replaceAll('-', ' '));
-
-	const statusVariant: 'crit' | 'ok' | 'warn' | 'idle' = $derived(
-		status === 'completed'
-			? 'ok'
-			: status === 'at-risk'
-				? 'crit'
-				: status === 'active'
-					? 'warn'
-					: 'idle'
-	);
-
-	const riskLabel = $derived(course.signals?.riskLevel ?? 'none');
-
-	const riskVariant: 'crit' | 'ok' | 'warn' | 'idle' = $derived(
-		riskLabel === 'high'
-			? 'crit'
-			: riskLabel === 'medium'
-				? 'warn'
-				: riskLabel === 'low'
-					? 'ok'
-					: 'idle'
-	);
 
 	const topics = $derived(course.signals?.topics ?? []);
 	const availableConnectionCourses = $derived(
@@ -149,9 +136,9 @@
 	$effect(() => {
 		const id = edgeFormTarget;
 		if (!id) return;
-		const course = availableConnectionCourses.find((c) => c.id === id);
-		if (course) {
-			edgeTargetQuery = `${course.code} · ${course.name}`;
+		const c = availableConnectionCourses.find((candidate) => candidate.id === id);
+		if (c) {
+			edgeTargetQuery = `${c.code} · ${c.name}`;
 		}
 	});
 
@@ -262,82 +249,29 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · {course.code}</title></svelte:head>
+<svelte:head><title>{course.code} · Synapse</title></svelte:head>
 
 <div class="page page-enter">
-	<button class="back-link font-mono" onclick={goBack}>← back</button>
+	<CourseHeader
+		{course}
+		{semester}
+		{backHref}
+		onEdit={() => (showEditModal = true)}
+		onDelete={() => (showDeleteModal = true)}
+		onBack={goBack}
+	/>
 
-	<div class="page-cover">
-		<div class="cover-head">
-			<div class="cover-meta">
-				<h1 class="page-title font-display">{course.code}</h1>
-				<p class="course-name">{course.name}</p>
-				<p class="course-line font-mono">
-					{#if semester}{semester.term} {semester.year} ·
-					{/if}
-					{#if course.instructor}{course.instructor} ·
-					{/if}
-					{#if course.credits !== undefined}{course.credits} credit{course.credits === 1
-							? ''
-							: 's'}{/if}
-				</p>
-				{#if course.tag || course.signals?.requirementGroup}
-					<div class="course-tags">
-						{#if course.tag}
-							<span class="tag-chip font-mono">{course.tag}</span>
-						{/if}
-						{#if course.signals?.requirementGroup}
-							<span class="tag-chip tag-chip-req font-mono">{course.signals.requirementGroup}</span>
-						{/if}
-					</div>
-				{/if}
-			</div>
-			<div class="cover-actions">
-				<button class="btn btn-secondary btn-sm" onclick={() => (showEditModal = true)}>edit</button
-				>
-				<button class="btn btn-ghost btn-sm danger" onclick={() => (showDeleteModal = true)}
-					>delete</button
-				>
-			</div>
-		</div>
-
-		<div class="state-strip" aria-label="Course state">
-			<div class="state-cell">
-				<span class="state-label font-mono">Status</span>
-				<span class="state-value state-{statusVariant} font-display">{statusLabel}</span>
-			</div>
-			<div class="state-cell">
-				<span class="state-label font-mono">Grade</span>
-				<span class="state-value font-display">
-					{#if course.signals?.currentGrade !== undefined}
-						{course.signals.currentGrade}
-					{:else}
-						<span class="state-empty">—</span>
-					{/if}
-				</span>
-			</div>
-			<div class="state-cell">
-				<span class="state-label font-mono">Risk</span>
-				<span class="state-value state-{riskVariant} font-display">{riskLabel}</span>
-			</div>
-			{#if course.signals?.nextDeadline}
-				<div class="state-cell">
-					<span class="state-label font-mono">Next</span>
-					<span class="state-value state-next font-display">{course.signals.nextDeadline}</span>
-				</div>
-			{/if}
-		</div>
-	</div>
+	<SyllabusDetails {professor} dates={importantDates} />
 
 	{#if topics.length > 0}
 		<section class="block">
 			<header class="block-head">
-				<h2 class="block-title font-mono">Topics</h2>
-				<span class="block-meta font-mono">{topics.length}</span>
+				<h2 class="block-title">Topics</h2>
+				<span class="block-meta">{topics.length}</span>
 			</header>
 			<div class="topic-list">
 				{#each topics as topic (topic)}
-					<span class="topic-chip font-mono">{topic}</span>
+					<span class="topic-chip">{topic}</span>
 				{/each}
 			</div>
 		</section>
@@ -345,25 +279,25 @@
 
 	<section class="block">
 		<header class="block-head">
-			<h2 class="block-title font-mono">Connections</h2>
-			<span class="block-meta font-mono">{incoming.length + outgoing.length}</span>
+			<h2 class="block-title">Connections</h2>
+			<span class="block-meta">{incoming.length + outgoing.length}</span>
 		</header>
 
 		<button
-			class={cn(
-				'mb-3.5 inline-flex items-center gap-1.5 border border-[var(--rule)] bg-transparent px-2.5 py-1.5 text-[0.72rem] font-[var(--font-mono)] tracking-[0.12em] text-[var(--ink-soft)] uppercase transition-colors hover:border-[var(--ink)] hover:bg-[var(--paper-2)] hover:text-[var(--ink)]'
-			)}
+			class="btn btn-secondary btn-sm conn-toggle"
 			onclick={() => {
 				showConnForm = !showConnForm;
 			}}
 			aria-expanded={showConnForm}
+			aria-controls="add-prereq-panel"
 		>
-			<span class="text-[0.85rem] leading-none">{showConnForm ? '▾' : '+'}</span>
+			<span class="conn-toggle-glyph" aria-hidden="true">{showConnForm ? '▾' : '+'}</span>
 			add prerequisite
 		</button>
 
 		{#if showConnForm}
 			<div
+				id="add-prereq-panel"
 				class="mb-3.5 flex flex-col gap-2.5 border border-[var(--rule)] bg-[var(--paper-shelf)] p-3.5"
 			>
 				<Combobox.Root
@@ -380,7 +314,7 @@
 						<Combobox.Input
 							id="conn-search"
 							class={cn(
-								'w-full min-w-0 border-0 bg-transparent py-2 pr-[3.8rem] pl-2.5 text-[0.82rem] font-[var(--font-body)] text-[var(--ink)] outline-none placeholder:text-[var(--ink-faint)] focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--highlight)]'
+								'w-full min-w-0 border-0 bg-transparent py-2 pr-[3.8rem] pl-2.5 font-[var(--font-body)] text-[var(--ink)] text-[var(--text-caption)] outline-none placeholder:text-[var(--ink-faint)] focus:outline-2 focus:outline-offset-[-2px] focus:outline-[var(--highlight)]'
 							)}
 							placeholder="Find a course…"
 							oninput={(event) => {
@@ -399,7 +333,7 @@
 						/>
 						{#if edgeFormTarget}
 							<button
-								class="absolute top-0 right-8 bottom-0 flex w-6 items-center justify-center border-0 bg-transparent text-[0.65rem] font-[var(--font-mono)] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+								class="absolute top-0 right-8 bottom-0 flex w-6 items-center justify-center border-0 bg-transparent text-[var(--ink-soft)] text-[var(--text-caption)] hover:text-[var(--ink)]"
 								onclick={clearEdgeSelection}
 								aria-label="Clear selected course"
 								type="button">✕</button
@@ -407,21 +341,19 @@
 						{/if}
 						<Combobox.Trigger
 							class={cn(
-								'absolute top-0 right-0 bottom-0 flex w-8 items-center justify-center border-0 bg-transparent text-[0.75rem] font-[var(--font-mono)] text-[var(--ink-faint)] transition-[color,transform] hover:text-[var(--ink)] data-[state=open]:rotate-180 data-[state=open]:text-[var(--ink)]'
+								'absolute top-0 right-0 bottom-0 flex w-8 items-center justify-center border-0 bg-transparent  text-[var(--ink-faint)] text-[var(--text-caption)] transition-[color,transform] hover:text-[var(--ink)] data-[state=open]:rotate-180 data-[state=open]:text-[var(--ink)]'
 							)}
 							aria-label="Show course choices">▾</Combobox.Trigger
 						>
 					</div>
 					<Combobox.Content
 						class={cn(
-							'z-[var(--z-popover)] max-h-72 overflow-y-auto border border-[var(--ink)] bg-[var(--paper)] shadow-[4px_4px_0_rgba(31,28,20,0.12)]'
+							'z-[var(--z-popover)] max-h-72 overflow-y-auto border border-[var(--ink)] bg-[var(--paper)] shadow-[4px_4px_0_var(--shadow-ink)]'
 						)}
 					>
 						<Combobox.Viewport>
 							{#if filteredConnectionCourses.length === 0}
-								<p
-									class="m-0 p-3 text-[0.72rem] font-[var(--font-mono)] tracking-[0.08em] text-[var(--ink-faint)] uppercase"
-								>
+								<p class="m-0 p-3 text-[var(--ink-faint)] text-[var(--text-caption)]">
 									Nothing matches — try a different code or name
 								</p>
 							{:else}
@@ -432,13 +364,11 @@
 											'grid min-h-11 w-full grid-cols-[minmax(5.5rem,auto)_1fr] items-baseline gap-2.5 border-0 border-b border-dashed border-[var(--rule)] bg-transparent px-3 py-2 text-left text-[var(--ink)] last:border-b-0 hover:bg-[var(--highlight-soft)] hover:shadow-[inset_2px_0_0_var(--ink)] data-[highlighted]:bg-[var(--highlight-soft)] data-[highlighted]:shadow-[inset_2px_0_0_var(--ink)] data-[state=checked]:bg-[var(--highlight)] data-[state=checked]:shadow-[inset_2px_0_0_var(--ink)]'
 										)}
 									>
-										<span
-											class="text-[0.68rem] font-[var(--font-mono)] font-bold tracking-[0.08em]"
-										>
+										<span class=" font-bold text-[var(--text-caption)]">
 											{candidate.code}
 										</span>
 										<span
-											class="overflow-hidden text-[0.82rem] leading-[1.35] text-ellipsis whitespace-nowrap text-[var(--ink-soft)]"
+											class="overflow-hidden leading-[1.35] text-ellipsis whitespace-nowrap text-[var(--ink-soft)] text-[var(--text-caption)]"
 										>
 											{candidate.name}
 										</span>
@@ -451,13 +381,13 @@
 
 				<div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
 					<label
-						class="flex flex-col gap-1 text-[0.65rem] font-[var(--font-mono)] tracking-[0.1em] text-[var(--ink-faint)] uppercase"
+						class="flex flex-col gap-1 tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]"
 						for="edge-direction"
 					>
 						Relationship
 						<select
 							id="edge-direction"
-							class="min-h-11 border border-[var(--rule)] bg-[var(--paper)] px-2.5 text-[0.78rem] font-[var(--font-mono)] text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-45"
+							class="min-h-11 border border-[var(--rule)] bg-[var(--paper)] px-2.5 text-[var(--ink)] text-[var(--text-caption)] disabled:cursor-not-allowed disabled:opacity-45"
 							bind:value={edgeFormDirection}
 							disabled={edgeFormSubmitting}
 						>
@@ -477,7 +407,7 @@
 
 				{#if selectedConnectionCourse}
 					<p
-						class="m-0 border-l-2 border-[var(--highlight)] pl-2.5 text-[0.82rem] text-[var(--ink-soft)]"
+						class="m-0 border-l-2 border-[var(--highlight)] pl-2.5 text-[var(--ink-soft)] text-[var(--text-caption)]"
 					>
 						Preview:
 						<strong class="text-[var(--ink)]">
@@ -489,7 +419,7 @@
 				{/if}
 
 				{#if edgeFormError}
-					<p class="m-0 text-[0.78rem] font-[var(--font-mono)] text-[var(--accent)]">
+					<p class="m-0 text-[var(--pen-red)] text-[var(--text-caption)]">
 						{edgeFormError}
 					</p>
 				{/if}
@@ -497,20 +427,20 @@
 		{/if}
 
 		{#if prerequisites.length === 0 && requiredFor.length === 0 && otherRelationships.length === 0}
-			<p class="empty font-mono">No prerequisite relationships have been added.</p>
+			<p class="empty">No prerequisite relationships have been added.</p>
 		{:else}
 			{#if prerequisites.length > 0}
 				<div class="conn-group">
-					<div class="conn-label font-mono">Prerequisites · this course requires</div>
+					<div class="conn-label">Prerequisites · this course requires</div>
 					<ul class="conn-list">
 						{#each prerequisites as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const source = coursesById.get(edge.source)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
-								<span class="conn-source font-mono">
+								<span class="conn-source">
 									{#if source}{source.code} · {source.name}{:else}—{/if}
 								</span>
-								<span class="conn-arrow font-mono" aria-hidden="true">→</span>
-								<span class="conn-this font-mono">required before this course</span>
+								<span class="conn-arrow" aria-hidden="true">→</span>
+								<span class="conn-this">required before this course</span>
 								{#if edge.id}
 									<select
 										class="conn-select"
@@ -532,7 +462,7 @@
 										{deletingEdgeId === edge.id ? '…' : 'remove'}
 									</button>
 								{:else}
-									<span class="conn-type font-mono">{edgeLabel(edge)}</span>
+									<span class="conn-type">{edgeLabel(edge)}</span>
 								{/if}
 							</li>
 						{/each}
@@ -542,14 +472,14 @@
 
 			{#if requiredFor.length > 0}
 				<div class="conn-group">
-					<div class="conn-label font-mono">Required for · these courses require this course</div>
+					<div class="conn-label">Required for · these courses require this course</div>
 					<ul class="conn-list">
 						{#each requiredFor as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const target = coursesById.get(edge.target)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
-								<span class="conn-this font-mono">this course</span>
-								<span class="conn-arrow font-mono" aria-hidden="true">→</span>
-								<span class="conn-source font-mono">
+								<span class="conn-this">this course</span>
+								<span class="conn-arrow" aria-hidden="true">→</span>
+								<span class="conn-source">
 									{#if target}{target.code} · {target.name}{:else}—{/if}
 								</span>
 								{#if edge.id}
@@ -573,7 +503,7 @@
 										{deletingEdgeId === edge.id ? '…' : 'remove'}
 									</button>
 								{:else}
-									<span class="conn-type font-mono">{edgeLabel(edge)}</span>
+									<span class="conn-type">{edgeLabel(edge)}</span>
 								{/if}
 							</li>
 						{/each}
@@ -583,17 +513,17 @@
 
 			{#if otherRelationships.length > 0}
 				<details class="conn-group">
-					<summary class="conn-label font-mono">Other relationships · legacy or imported</summary>
+					<summary class="conn-label">Other relationships · legacy or imported</summary>
 					<ul class="conn-list">
 						{#each otherRelationships as edge (edge.id ?? `${edge.source}-${edge.target}-${edge.type}`)}
 							{@const related = coursesById.get(
 								edge.source === course.id ? edge.target : edge.source
 							)}
 							<li class="conn-row" class:conn-row-editable={!!edge.id}>
-								<span class="conn-source font-mono">
+								<span class="conn-source">
 									{#if related}{related.code} · {related.name}{:else}—{/if}
 								</span>
-								<span class="conn-type font-mono">{edgeLabel(edge)}</span>
+								<span class="conn-type">{edgeLabel(edge)}</span>
 								{#if edge.id}
 									<select
 										class="conn-select"
@@ -623,43 +553,11 @@
 		{/if}
 
 		{#if edgeMutationError}
-			<p class="conn-error font-mono">{edgeMutationError}</p>
+			<p class="conn-error">{edgeMutationError}</p>
 		{/if}
 	</section>
 
-	{#if course.signals && (course.signals.deadlinesThisWeek || course.signals.studyHours || course.signals.materialCount || course.signals.noteCount)}
-		<section class="block">
-			<header class="block-head">
-				<h2 class="block-title font-mono">Activity</h2>
-			</header>
-			<dl class="activity">
-				{#if course.signals.deadlinesThisWeek !== undefined}
-					<div class="activity-row">
-						<dt>Deadlines this week</dt>
-						<dd>{course.signals.deadlinesThisWeek}</dd>
-					</div>
-				{/if}
-				{#if course.signals.studyHours !== undefined}
-					<div class="activity-row">
-						<dt>Study hours</dt>
-						<dd>{course.signals.studyHours}</dd>
-					</div>
-				{/if}
-				{#if course.signals.materialCount !== undefined}
-					<div class="activity-row">
-						<dt>Materials</dt>
-						<dd>{course.signals.materialCount}</dd>
-					</div>
-				{/if}
-				{#if course.signals.noteCount !== undefined}
-					<div class="activity-row">
-						<dt>Notes</dt>
-						<dd>{course.signals.noteCount}</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
-	{/if}
+	<CourseActivity signals={course.signals} />
 </div>
 
 {#if deleteCourseError}<p class="delete-error" role="alert">{deleteCourseError}</p>{/if}
@@ -674,7 +572,7 @@
 <AlertDialog
 	open={showDeleteModal}
 	title="Delete course?"
-	description={`Delete ${course.code}? This also removes its course-map connections. This cannot be undone.`}
+	description={`Delete ${course.code}? This also removes its course map connections. This cannot be undone.`}
 	confirmLabel="Delete course"
 	busy={deletingCourse}
 	onConfirm={removeCourse}
@@ -688,138 +586,10 @@
 		padding-block: 2rem 4rem;
 	}
 
-	.back-link {
-		display: inline-block;
-		margin-bottom: 1rem;
-		padding: 0;
-		border: none;
-		background: none;
-		font-size: 0.72rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		cursor: pointer;
-		transition: color 0.12s var(--ease-out-quart);
-	}
-
-	.back-link:hover {
-		color: var(--ink);
-	}
-
-	.page-cover {
-		margin-bottom: 2rem;
-		padding-bottom: 1.5rem;
-		border-bottom: 1px solid var(--ink);
-	}
-
-	.cover-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 1rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.cover-actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-
 	.delete-error {
 		margin: 0.75rem 0 0;
 		color: var(--pen-red);
-		font-size: 0.8rem;
-	}
-
-	.cover-meta {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.page-title {
-		font-size: clamp(2.6rem, 5vw, 3.4rem);
-		color: var(--ink);
-		margin: 0 0 0.4rem;
-		line-height: 1;
-		letter-spacing: -0.02em;
-	}
-
-	.course-name {
-		font-family: var(--font-display);
-		font-size: 1.4rem;
-		color: var(--ink);
-		margin: 0 0 0.5rem;
-		line-height: 1.2;
-	}
-
-	.course-line {
-		font-size: 0.78rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		margin: 0;
-	}
-
-	.course-tags {
-		display: flex;
-		gap: 0.4rem;
-		margin-top: 0.75rem;
-		flex-wrap: wrap;
-	}
-
-	.tag-chip {
-		padding: 0.2rem 0.55rem;
-		background: var(--paper-shelf);
-		border: 1px solid var(--rule);
-		font-size: 0.7rem;
-		color: var(--ink);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.tag-chip-req {
-		background: var(--paper);
-	}
-
-	.state-strip {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-		gap: 0;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-	}
-
-	.state-cell {
-		padding: 0.85rem 1rem;
-		border-right: 1px solid var(--rule);
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.state-cell:last-child {
-		border-right: 0;
-	}
-
-	.state-label {
-		font-size: 0.65rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-	}
-
-	.state-value {
-		font-size: 1.4rem;
-		color: var(--ink);
-		line-height: 1;
-	}
-
-	.state-empty {
-		color: var(--ink-faint);
-	}
-
-	.state-next {
-		font-size: 0.95rem;
+		font-size: var(--text-caption);
 	}
 
 	.block {
@@ -839,16 +609,16 @@
 	}
 
 	.block-title {
-		font-size: 0.75rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
+		text-transform: none;
+		letter-spacing: normal;
 		font-weight: 500;
 		margin: 0;
 	}
 
 	.block-meta {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 	}
 
@@ -862,23 +632,12 @@
 		padding: 0.25rem 0.6rem;
 		background: var(--paper);
 		border: 1px solid var(--rule);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		color: var(--ink);
-	}
-
-	.rename-input {
-		box-sizing: border-box;
-		width: 100%;
-		padding: 0.15rem 0.3rem;
-		border: 1px solid var(--ink);
-		background: var(--paper);
-		color: var(--ink);
-		font-size: 0.9rem;
-		outline: none;
 	}
 
 	.empty {
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 		margin: 0;
 	}
@@ -888,9 +647,9 @@
 	}
 
 	.conn-label {
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
-		text-transform: uppercase;
+		text-transform: none;
 		letter-spacing: 0.1em;
 		margin-bottom: 0.5rem;
 	}
@@ -912,7 +671,7 @@
 		padding: 0.5rem 0.75rem;
 		background: var(--paper);
 		border: 1px solid var(--rule);
-		font-size: 0.85rem;
+		font-size: var(--text-caption);
 	}
 
 	.conn-row.conn-row-editable {
@@ -933,17 +692,28 @@
 
 	.conn-this {
 		color: var(--ink-faint);
-		text-transform: uppercase;
-		font-size: 0.7rem;
+		text-transform: none;
+		font-size: var(--text-caption);
 		letter-spacing: 0.1em;
 		white-space: nowrap;
 	}
 
 	.conn-type {
 		color: var(--ink-soft);
-		text-transform: uppercase;
-		font-size: 0.7rem;
+		text-transform: none;
+		font-size: var(--text-caption);
 		letter-spacing: 0.1em;
+	}
+
+	.conn-toggle {
+		margin-bottom: 0.875rem;
+		text-transform: none;
+		letter-spacing: normal;
+	}
+
+	.conn-toggle-glyph {
+		font-size: var(--text-caption);
+		line-height: 1;
 	}
 
 	.conn-select {
@@ -951,11 +721,11 @@
 		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink);
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		min-height: 0;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		text-transform: none;
+		letter-spacing: normal;
+		min-height: 2.5rem;
 	}
 
 	.conn-select:disabled {
@@ -964,14 +734,14 @@
 	}
 
 	.conn-remove {
-		font-family: var(--font-mono);
-		text-transform: uppercase;
+		font-family: var(--font-body);
+		text-transform: none;
 		letter-spacing: 0.1em;
 	}
 
 	.conn-error {
-		font-size: 0.78rem;
-		color: var(--accent);
+		font-size: var(--text-caption);
+		color: var(--pen-red);
 		margin: 0 0 0.85rem;
 	}
 
@@ -986,49 +756,7 @@
 		border: 0;
 	}
 
-	.activity {
-		margin: 0;
-		display: grid;
-		gap: 0.4rem;
-	}
-
-	.activity-row {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.4rem 0;
-		border-bottom: 1px dashed var(--rule);
-	}
-
-	.activity-row:last-child {
-		border-bottom: none;
-	}
-
-	.activity-row dt {
-		font-size: 0.85rem;
-		color: var(--ink-soft);
-		margin: 0;
-	}
-
-	.activity-row dd {
-		font-size: 0.85rem;
-		color: var(--ink);
-		margin: 0;
-		font-variant-numeric: tabular-nums;
-	}
-
-	@media (max-width: 640px) {
-		.state-strip {
-			grid-template-columns: repeat(2, 1fr);
-		}
-
-		.state-cell:nth-child(2) {
-			border-right: 0;
-		}
-
-		.state-cell:nth-child(-n + 2) {
-			border-bottom: 1px solid var(--rule);
-		}
-
+	@media (max-width: 900px) {
 		.conn-row,
 		.conn-row.conn-row-editable {
 			grid-template-columns: 1fr;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import CatalogHeader from '$lib/components/catalog/CatalogHeader.svelte';
+	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 
 	type Source = {
 		id: string;
@@ -151,19 +151,17 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Academic Assistant</title></svelte:head>
-
-<CatalogHeader term="Assistant" />
+<svelte:head><title>Assistant · Synapse</title></svelte:head>
 
 <div class="page page-enter">
 	<div class="page-cover">
-		<h1 class="page-title font-hand">Academic Assistant</h1>
+		<h1 class="page-title">Academic Assistant</h1>
 		<p class="page-tagline">Ask your courses. Verify every answer against its source.</p>
 	</div>
 
 	<div class="control-bar">
 		<label class="scope-control">
-			<span class="font-mono">Search scope</span>
+			<span>Search scope</span>
 			<select bind:value={selectedCourseId}>
 				<option value="all">All courses</option>
 				{#each courses as course (course.id)}
@@ -172,7 +170,7 @@
 			</select>
 		</label>
 		<div class="control-actions">
-			<span class="demo-stamp font-mono">read-only RAG</span>
+			<span class="demo-stamp">read-only RAG</span>
 			<button class="btn btn-ghost btn-sm" onclick={clearConversation}>clear chat</button>
 		</div>
 	</div>
@@ -181,16 +179,16 @@
 		<section class="chat-panel surface-polaroid" aria-label="Conversation">
 			<div class="thread-head">
 				<div>
-					<span class="font-mono">Current scope</span>
+					<span>Current scope</span>
 					<strong>{scopeLabel}</strong>
 				</div>
-				<span class="privacy-note font-mono">read-only</span>
+				<span class="privacy-note">read-only</span>
 			</div>
 
 			<div class="thread" bind:this={thread} aria-live="polite">
 				{#each messages as message (message.id)}
 					<article class="message" class:user-message={message.role === 'user'}>
-						<div class="message-label font-mono">
+						<div class="message-label">
 							{message.role === 'user' ? 'You' : 'Synapse'}
 							{#if message.confidence}
 								<span class:limited={message.confidence === 'limited'}>{message.confidence}</span>
@@ -201,7 +199,7 @@
 							<div class="inline-sources">
 								{#each message.sources as source, index (source.id)}
 									<a href={`#source-${source.id}`}
-										><span class="font-mono">[{index + 1}]</span> {source.label}</a
+										><span class="font-numeric">[{index + 1}]</span> {source.label}</a
 									>
 								{/each}
 							</div>
@@ -210,13 +208,14 @@
 				{/each}
 				{#if sending}
 					<div class="thinking">
-						<span></span><span></span><span></span><em>checking sources</em>
+						<LoadingDots label="Checking sources" />
+						<em>checking sources</em>
 					</div>
 				{/if}
 			</div>
 
 			<div class="composer">
-				{#if errorMessage}<p class="error-message">{errorMessage}</p>{/if}
+				{#if errorMessage}<p class="error-message" role="alert">{errorMessage}</p>{/if}
 				<label for="chat-question" class="sr-only">Ask an academic question</label>
 				<textarea
 					id="chat-question"
@@ -231,7 +230,7 @@
 					}}
 				></textarea>
 				<div class="composer-foot">
-					<span class="font-mono">Enter to send · Shift + Enter for a new line</span>
+					<span>Enter to send · Shift + Enter for a new line</span>
 					<button
 						class="btn btn-primary"
 						disabled={!draft.trim() || sending}
@@ -243,7 +242,7 @@
 
 		<aside class="evidence-panel">
 			<div class="suggestion-block">
-				<p class="eyebrow font-mono">Try asking</p>
+				<p class="eyebrow">Try asking</p>
 				{#each suggestions as suggestion}
 					<button onclick={() => sendMessage(suggestion)}>{suggestion}<span>→</span></button>
 				{/each}
@@ -252,18 +251,18 @@
 			<div class="source-block surface-polaroid">
 				<div class="source-head">
 					<div>
-						<p class="eyebrow font-mono">Evidence desk</p>
+						<p class="eyebrow">Evidence desk</p>
 						<h2>Sources</h2>
 					</div>
-					<span class="font-mono">{messages.at(-1)?.sources?.length ?? 0}</span>
+					<span class="font-numeric">{messages.at(-1)?.sources?.length ?? 0}</span>
 				</div>
 				{#if latestSources.length}
 					<div class="source-list">
 						{#each latestSources as source, index (source.id)}
 							<article id={`source-${source.id}`} class="source-card">
-								<div class="source-number font-mono">[{index + 1}]</div>
+								<div class="source-number">[{index + 1}]</div>
 								<div>
-									<strong>{source.label}</strong><span class="font-mono">{source.detail}</span>
+									<strong>{source.label}</strong><span>{source.detail}</span>
 									<p>{source.excerpt}</p>
 								</div>
 							</article>
@@ -296,7 +295,7 @@
 	}
 	.page-tagline {
 		color: var(--ink-soft);
-		font-size: 0.92rem;
+		font-size: var(--text-small);
 		margin: 0.35rem 0 0;
 	}
 	.control-bar {
@@ -318,7 +317,7 @@
 	.thread-head span,
 	.composer-foot span {
 		color: var(--ink-faint);
-		font-size: 0.66rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
 	}
@@ -343,7 +342,7 @@
 		padding: 0.25rem 0.45rem;
 		border: 1px dashed var(--accent);
 		color: var(--accent);
-		font-size: 0.62rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 	}
@@ -374,8 +373,9 @@
 		gap: 0.2rem;
 	}
 	.thread-head strong {
-		font-family: var(--font-display);
+		font-family: var(--font-body);
 		font-size: 1rem;
+		font-weight: 600;
 	}
 	.privacy-note {
 		border: 1px solid var(--rule);
@@ -393,12 +393,10 @@
 	}
 	.message {
 		max-width: 88%;
-		border-left: 2px solid var(--highlight);
 		padding: 0.2rem 0 0.2rem 0.8rem;
 	}
 	.message.user-message {
 		align-self: flex-end;
-		border-left: 0;
 		border-right: 2px solid var(--ink);
 		padding: 0.2rem 0.8rem 0.2rem 0;
 		text-align: right;
@@ -408,7 +406,7 @@
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 0.35rem;
-		font-size: 0.65rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
 		color: var(--ink-faint);
@@ -429,7 +427,7 @@
 	.message p {
 		margin: 0;
 		color: var(--ink);
-		font-size: 0.9rem;
+		font-size: var(--text-small);
 		line-height: 1.6;
 	}
 	.inline-sources {
@@ -439,38 +437,40 @@
 		margin-top: 0.65rem;
 	}
 	.inline-sources a {
-		border-bottom: 2px solid var(--highlight);
+		border-bottom: 1px solid var(--rule);
 		color: var(--ink-soft);
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		text-decoration: none;
+		transition:
+			color 0.12s var(--ease-out-quart),
+			border-color 0.12s var(--ease-out-quart);
+	}
+	.inline-sources a:hover {
+		color: var(--ink);
+		border-bottom-color: var(--ink);
 	}
 	.thinking {
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: 0.4rem;
 		color: var(--ink-faint);
 	}
-	.thinking span {
-		width: 5px;
-		height: 5px;
-		background: var(--ink-faint);
-		animation: thinking 1s ease-in-out infinite;
-	}
-	.thinking span:nth-child(2) {
-		animation-delay: 0.15s;
-	}
-	.thinking span:nth-child(3) {
-		animation-delay: 0.3s;
-	}
 	.thinking em {
-		margin-left: 0.4rem;
-		font: normal 0.65rem var(--font-mono);
+		font: normal var(--text-micro)/1.4 var(--font-body);
 		text-transform: uppercase;
 	}
 	.composer {
 		border-top: 1px solid var(--ink);
 		padding: 1rem;
 		background: var(--paper-shelf);
+	}
+	.error-message {
+		margin: 0 0 0.75rem;
+		border: 1px solid rgba(194, 54, 42, 0.35);
+		padding: 0.55rem 0.65rem;
+		color: var(--pen-red);
+		font-size: var(--text-caption);
+		line-height: 1.45;
 	}
 	.composer textarea {
 		display: block;
@@ -479,7 +479,7 @@
 		box-sizing: border-box;
 		padding: 0.65rem;
 		resize: vertical;
-		font-size: 0.88rem;
+		font-size: var(--text-small);
 	}
 	.composer-foot {
 		display: flex;
@@ -499,10 +499,8 @@
 	}
 	.eyebrow {
 		margin: 0 0 0.55rem;
-		font-size: 0.66rem;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		color: var(--ink-faint);
+		font-size: var(--text-small);
+		color: var(--ink-soft);
 	}
 	.suggestion-block button {
 		display: flex;
@@ -534,13 +532,15 @@
 	}
 	.source-head h2 {
 		margin: 0;
-		font-family: var(--font-display);
+		font-family: var(--font-body);
 		font-size: 1.35rem;
+		font-weight: 700;
+		line-height: 1.1;
 	}
 	.source-head > span {
 		border: 1px solid var(--rule);
 		padding: 0.2rem 0.4rem;
-		font-size: 0.65rem;
+		font-size: var(--text-caption);
 	}
 	.source-list {
 		display: flex;
@@ -554,7 +554,7 @@
 		border-bottom: 1px dashed var(--rule);
 	}
 	.source-number {
-		font-size: 0.65rem;
+		font-size: var(--text-caption);
 		color: var(--ink-faint);
 	}
 	.source-card strong,
@@ -562,26 +562,27 @@
 		display: block;
 	}
 	.source-card strong {
-		font-family: var(--font-display);
-		font-size: 0.86rem;
+		font-family: var(--font-body);
+		font-size: var(--text-caption);
+		font-weight: 600;
 	}
 	.source-card span {
 		margin-top: 0.18rem;
 		color: var(--ink-faint);
-		font-size: 0.6rem;
+		font-size: var(--text-caption);
 		text-transform: uppercase;
 	}
 	.source-card p,
 	.empty-evidence {
 		margin: 0.45rem 0 0;
 		color: var(--ink-soft);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
 		line-height: 1.45;
 	}
 	.disclaimer {
 		margin: 0.85rem 0 0;
 		color: var(--ink-faint);
-		font-size: 0.7rem;
+		font-size: var(--text-caption);
 		line-height: 1.5;
 	}
 	.sr-only {
@@ -594,12 +595,6 @@
 		clip: rect(0, 0, 0, 0);
 		white-space: nowrap;
 		border: 0;
-	}
-	@keyframes thinking {
-		50% {
-			opacity: 0.25;
-			transform: translateY(-2px);
-		}
 	}
 	@media (max-width: 850px) {
 		.assistant-layout {
@@ -636,9 +631,6 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.thinking span {
-			animation: none;
-		}
 		.thread {
 			scroll-behavior: auto;
 		}

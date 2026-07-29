@@ -138,8 +138,10 @@ function nextPosition(index: number, positions: GraphState['positions']) {
 	return { x: baseX, y: 120 + index * (NODE_H + ROW_GAP) };
 }
 
-export async function POST({ request }: RequestEvent) {
+export async function POST({ request, locals }: RequestEvent) {
 	let body: unknown;
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	try {
 		const declaredLength = Number(request.headers.get('content-length'));
 		if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES)
@@ -176,10 +178,10 @@ export async function POST({ request }: RequestEvent) {
 		validateEdge(edge, index, issues)
 	);
 
-	const semesters = await getSemesters();
+	const semesters = await getSemesters(userId);
 	const semesterIds = new Set(semesters.map((semester) => semester.id));
 	const fallbackSemester = [...semesters].sort((a, b) => b.order - a.order)[0];
-	const courses = await getCourses();
+	const courses = await getCourses(userId);
 	const coursesByCode = new Map(courses.map((course) => [normalizeCode(course.code), course]));
 	const coursesById = new Map(courses.map((course) => [course.id, course]));
 	const nodeIds = new Set<string>();
@@ -233,7 +235,7 @@ export async function POST({ request }: RequestEvent) {
 	if (issues.length)
 		return json({ ok: false, error: 'Invalid graph import payload', issues }, { status: 400 });
 
-	const graph = await getGraphState();
+	const graph = await getGraphState(userId);
 	const mutations: { course: Course; existing: boolean }[] = [];
 	const created: string[] = [];
 	const updated: string[] = [];
@@ -294,7 +296,7 @@ export async function POST({ request }: RequestEvent) {
 	if (nodes.some((node) => node.width !== undefined || node.height !== undefined))
 		warnings.push('Node dimensions were validated but are not persisted by the graph store');
 
-	await applyGraphImport(mutations, graph);
+	await applyGraphImport(userId, mutations, graph);
 	return json({
 		ok: true,
 		counts: {

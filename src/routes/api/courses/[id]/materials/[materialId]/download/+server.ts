@@ -9,8 +9,10 @@ import {
 } from '$lib/server/r2';
 import { contentDispositionFor } from '$lib/server/content-disposition';
 
-export const GET: RequestHandler = async ({ params, platform }) => {
-	if (!(await getCourses()).some((c) => c.id === params.id)) error(404, 'Course not found');
+export const GET: RequestHandler = async ({ params, platform, locals }) => {
+	const userId = locals.user?.id;
+	if (!userId) error(401, 'Unauthorized');
+	if (!(await getCourses(userId)).some((c) => c.id === params.id)) error(404, 'Course not found');
 
 	const bucket = platform?.env?.MATERIALS;
 

@@ -26,199 +26,58 @@
 	);
 </script>
 
-<svelte:head><title>Synapse · Course Map</title></svelte:head>
+<svelte:head><title>Course map · Synapse</title></svelte:head>
 
-<main class="courses-page">
+<main class="box-border max-w-full min-w-0 p-[clamp(1.25rem,3vw,2.5rem)] max-[720px]:p-4">
 	<header class="page-cover">
-		<h1 class="page-title">Course Map</h1>
-		<p class="page-tagline">
-			See which courses must come first, check your semester plan, and preview changes.
-		</p>
+		<h1 class="page-title">Course map</h1>
+		<p class="page-tagline">Prerequisites by semester.</p>
 	</header>
 
 	{#if semesters.length === 0}
-		<section class="empty-panel" aria-labelledby="empty-title">
-			<h2 id="empty-title">Add a semester before building your course map.</h2>
-			<a class="empty-action" href={resolve('/app/semesters')}>Add semester</a>
+		<section
+			class="mt-8 border border-[var(--ink)] bg-[var(--surface-paper)] p-[clamp(1rem,3vw,1.5rem)] shadow-[6px_6px_0_var(--shadow-ink)]"
+			aria-labelledby="empty-title"
+		>
+			<h2
+				id="empty-title"
+				class="m-0 text-[1.35rem] font-[var(--font-body)] font-bold text-[var(--ink)]"
+			>
+				Add a semester before building your course map.
+			</h2>
+			<a class="btn mt-4" href={resolve('/app/semesters')}>Add semester</a>
 		</section>
 	{:else if courses.length === 0}
-		<section class="empty-panel" aria-labelledby="empty-title">
-			<h2 id="empty-title">Add courses to see your degree path.</h2>
-			<a class="empty-action" href={resolve('/app/semesters')}>Add course</a>
+		<section
+			class="mt-8 border border-[var(--ink)] bg-[var(--surface-paper)] p-[clamp(1rem,3vw,1.5rem)] shadow-[6px_6px_0_var(--shadow-ink)]"
+			aria-labelledby="empty-title"
+		>
+			<h2
+				id="empty-title"
+				class="m-0 text-[1.35rem] font-[var(--font-body)] font-bold text-[var(--ink)]"
+			>
+				Add courses to see your degree path.
+			</h2>
+			<a class="btn mt-4" href={resolve('/app/semesters')}>Add course</a>
 		</section>
 	{:else}
-		<section class="map-section" aria-labelledby="map-title">
-			<div class="map-heading">
-				<div>
-					<p class="eyebrow font-mono">Degree sequence</p>
-					<h2 id="map-title">Prerequisite plan</h2>
-					<p class="map-explanation">
-						Arrows point from a prerequisite to the course that requires it.
-					</p>
-				</div>
-				<div class="legend font-mono" aria-label="Course map legend">
-					<span><i class="legend-line accepted"></i> Confirmed relationship</span>
-					<span><i class="legend-line pending"></i> Needs review</span>
-					<span><i class="legend-box upstream"></i> Required before selected course</span>
-					<span><i class="legend-box downstream"></i> Requires selected course</span>
-				</div>
-			</div>
-
+		<section class="mt-8 max-w-full min-w-0" aria-label="Prerequisite plan">
 			{#if !hasPrerequisites}
-				<p class="no-relations">No prerequisite relationships have been added yet.</p>
+				<div
+					class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-[0.45rem] border border-[var(--rule)] bg-[var(--paper-shelf)] p-[0.8rem] text-[var(--ink-soft)] text-[var(--text-caption)]"
+				>
+					<strong>No prerequisites yet.</strong>
+					<a
+						class="btn shrink-0"
+						href={resolve('/app/semesters/[semesterId]/courses/[courseId]', {
+							semesterId: courses[0].semesterId,
+							courseId: courses[0].id
+						})}>Choose a course</a
+					>
+				</div>
 			{/if}
 
 			<CourseMap {courses} {semesters} {relations} />
 		</section>
 	{/if}
 </main>
-
-<style>
-	.courses-page {
-		padding: clamp(1.25rem, 3vw, 2.5rem);
-	}
-
-	.map-section {
-		margin-top: 2rem;
-	}
-
-	.map-heading {
-		display: flex;
-		gap: 1rem 2rem;
-		align-items: end;
-		justify-content: space-between;
-		margin-bottom: 0.9rem;
-	}
-
-	.eyebrow,
-	.map-heading h2 {
-		margin: 0;
-	}
-
-	.map-explanation {
-		max-width: 36rem;
-		margin: 0.35rem 0 0;
-		color: var(--ink-soft);
-		font-size: 0.8rem;
-	}
-
-	.eyebrow {
-		font-size: 0.65rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--ink-faint);
-	}
-
-	.map-heading h2,
-	.empty-panel h2 {
-		font-family: var(--font-display);
-		color: var(--ink);
-	}
-
-	.empty-action {
-		display: inline-flex;
-		align-items: center;
-		min-height: 44px;
-		margin-top: 1rem;
-		padding: 0 1rem;
-		border: 1px solid var(--ink);
-		background: var(--ink);
-		color: var(--surface-paper);
-		font-size: 0.78rem;
-		font-weight: 600;
-		text-decoration: none;
-	}
-
-	.empty-action:hover {
-		background: var(--accent);
-	}
-
-	.empty-action:focus-visible {
-		outline: 3px solid var(--accent);
-		outline-offset: 3px;
-	}
-
-	.map-heading h2 {
-		margin-top: 0.2rem;
-		font-size: clamp(1.5rem, 3vw, 2rem);
-	}
-
-	.legend {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.55rem 1rem;
-		justify-content: flex-end;
-		font-size: 0.62rem;
-		color: var(--ink-soft);
-	}
-
-	.legend span {
-		display: inline-flex;
-		gap: 0.35rem;
-		align-items: center;
-	}
-
-	.legend-line {
-		display: inline-block;
-		width: 24px;
-		border-top: 2px solid var(--ink-soft);
-	}
-
-	.legend-line.pending {
-		border-top-style: dashed;
-	}
-
-	.legend-box {
-		display: inline-block;
-		width: 11px;
-		height: 11px;
-		border: 2px solid;
-	}
-
-	.legend-box.upstream {
-		border-color: var(--pen-blue, #315c91);
-	}
-
-	.legend-box.downstream {
-		border-color: var(--pen-red, #a43a32);
-	}
-
-	.no-relations {
-		margin: 0 0 0.75rem;
-		padding: 0.65rem 0.8rem;
-		border-left: 3px solid var(--highlight);
-		background: var(--paper-shelf);
-		font-size: 0.82rem;
-		color: var(--ink-soft);
-	}
-
-	.empty-panel {
-		margin-top: 2rem;
-		padding: clamp(1rem, 3vw, 1.5rem);
-		border: 1px solid var(--ink);
-		background: var(--surface-paper);
-		box-shadow: 6px 6px 0 rgba(31, 28, 20, 0.09);
-	}
-
-	.empty-panel h2 {
-		margin: 0;
-		font-size: 1.35rem;
-	}
-
-	@media (max-width: 1100px) {
-		.map-heading {
-			align-items: flex-start;
-			flex-direction: column;
-		}
-
-		.legend {
-			justify-content: flex-start;
-		}
-	}
-
-	@media (max-width: 720px) {
-		.courses-page {
-			padding: 1rem;
-		}
-	}
-</style>

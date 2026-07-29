@@ -331,7 +331,7 @@ describe('evaluateCourseIdentity', () => {
 					source({
 						title: 'Douglas College Course Page',
 						excerpt: 'CSIS 4495 is a 3-credit course at Douglas College.',
-						retrievalStatus: 'failed'
+						retrievalStatus: 'unavailable'
 					})
 				],
 				request()

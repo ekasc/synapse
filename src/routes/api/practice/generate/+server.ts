@@ -3,11 +3,18 @@ import type { RequestEvent } from './$types';
 import { getCourses } from '$lib/server/store';
 import { listMaterials, listMaterialsFallback } from '$lib/server/r2';
 import { validateGenerateRequest, ValidationError } from '$lib/server/practice/schema';
-import { indexedChunksToContext, selectIndexedChunks } from '$lib/server/practice/retrieval';
+import {
+	indexedChunksToContext,
+	selectIndexedChunks,
+	selectSemanticChunks
+} from '$lib/server/practice/retrieval';
 import { createMaterialIndexRepository } from '$lib/server/practice/material-index';
+import { createSemanticPipeline } from '$lib/server/practice/embeddings';
 import { generatePracticeMaterials } from '$lib/server/practice/generation';
 
-export async function POST({ request, platform }: RequestEvent) {
+export async function POST({ request, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	let body: unknown;
 	try {
 		body = await request.json();
@@ -27,7 +34,7 @@ export async function POST({ request, platform }: RequestEvent) {
 		throw err;
 	}
 
-	const course = (await getCourses()).find((candidate) => candidate.id === courseId);
+	const course = (await getCourses(userId)).find((candidate) => candidate.id === courseId);
 	if (!course) {
 		return json({ ok: false, error: 'Course not found' }, { status: 404 });
 	}
@@ -56,7 +63,7 @@ export async function POST({ request, platform }: RequestEvent) {
 		);
 	}
 	if (materialIds) {
-		const indexes = await repository.list(courseId);
+		const indexes = await repository.list(userId, courseId);
 		const readyIds = new Set(
 			indexes.filter((index) => index.status === 'ready').map((index) => index.materialId)
 		);
@@ -68,7 +75,7 @@ export async function POST({ request, platform }: RequestEvent) {
 		}
 	}
 	const selectedMaterialIds = new Set(materialIds ?? records.map((record) => record.id));
-	const chunks = (await repository.listReadyChunks(courseId)).filter(
+	const chunks = (await repository.listReadyChunks(userId, courseId)).filter(
 		(chunk) => courseMaterialIds.has(chunk.materialId) && selectedMaterialIds.has(chunk.materialId)
 	);
 	if (chunks.length === 0) {
@@ -77,7 +84,20 @@ export async function POST({ request, platform }: RequestEvent) {
 			{ status: 422 }
 		);
 	}
-	const selectedChunks = selectIndexedChunks(chunks, topic, topic ? 16_000 : undefined);
+	// Semantic retrieval replaces the lexical scorer when Vectorize + Workers AI
+	// are bound and the topic matches; any failure falls back to lexical scoring.
+	let selectedChunks = selectIndexedChunks(chunks, topic, topic ? 16_000 : undefined);
+	const pipeline = topic ? createSemanticPipeline(platform?.env ?? {}) : null;
+	if (pipeline && topic) {
+		try {
+			const [queryVector] = await pipeline.embedder.embed([topic]);
+			const matches = await pipeline.store.query(queryVector, 40);
+			const semantic = selectSemanticChunks(chunks, matches, 16_000);
+			if (semantic.length > 0) selectedChunks = semantic;
+		} catch (cause) {
+			console.error('Semantic retrieval unavailable, using lexical scoring:', cause);
+		}
+	}
 	if (selectedChunks.length === 0) {
 		return json({ ok: false, error: 'No indexed passages matched this topic' }, { status: 422 });
 	}

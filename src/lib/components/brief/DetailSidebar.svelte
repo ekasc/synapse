@@ -23,15 +23,25 @@
 	});
 	const rmpWouldTake = $derived(brief.studentReviews?.wouldTakeAgainPercent);
 	const rmpCount = $derived(brief.studentReviews?.ratingCount);
+
+	const sectionClass =
+		'grid gap-[0.6rem] [&+section]:border-t [&+section]:border-[var(--rule-soft)] [&+section]:pt-4';
+	const headingClass = 'm-0 text-[var(--text-caption)] text-[var(--ink-faint)] ';
+	const rowsClass =
+		'm-0 grid gap-[0.45rem] [&_dd]:m-0 [&_dd]:text-[var(--text-small)] [&_dd]:leading-[1.4] [&_dd]:text-[var(--ink)] [&_dd]:[overflow-wrap:anywhere] [&_dd]:font-[family-name:var(--font-body)] [&_dt]:text-[var(--text-caption)] [&_dt]:text-[var(--text-caption)] [&_dt]:text-[var(--ink-soft)]';
+	const rowClass = 'grid grid-cols-[minmax(0,5.5rem)_1fr] items-baseline gap-2';
 </script>
 
-<aside class="sidebar" aria-label="Quick facts">
-	<section class="section">
-		<h2 class="section-label font-mono">quick facts</h2>
-		<dl class="rows">
+<aside
+	class="grid gap-[1.1rem] border border-[var(--rule)] bg-[var(--paper)] p-5"
+	aria-label="Quick facts"
+>
+	<section class={sectionClass}>
+		<h2 class={headingClass}>quick facts</h2>
+		<dl class={rowsClass}>
 			{#each quickFacts as row (row.label)}
-				<div class="row">
-					<dt class="font-mono">{row.label}</dt>
+				<div class={rowClass}>
+					<dt>{row.label}</dt>
 					<dd>{row.value ?? '—'}</dd>
 				</div>
 			{/each}
@@ -39,19 +49,21 @@
 	</section>
 
 	{#if currentOffering}
-		<section class="section">
-			<h2 class="section-label font-mono">current offering</h2>
-			<dl class="rows">
-				<div class="row">
-					<dt class="font-mono">Term</dt>
+		<section class={sectionClass}>
+			<h2 class={headingClass}>current offering</h2>
+			<dl class={rowsClass}>
+				<div class={rowClass}>
+					<dt>Term</dt>
 					<dd>{currentOffering.term}</dd>
 				</div>
 				{#if currentOffering.instructor}
-					<div class="row">
-						<dt class="font-mono">Instructor</dt>
+					<div class={rowClass}>
+						<dt>Instructor</dt>
 						<dd>
 							{currentOffering.instructor.name}
-							<span class="hint font-mono">
+							<span
+								class="mt-[0.1rem] block tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]"
+							>
 								({currentOffering.instructor.sourceLabel ??
 									currentOffering.instructor.verification})
 							</span>
@@ -59,8 +71,8 @@
 					</div>
 				{/if}
 				{#if currentOffering.crn}
-					<div class="row">
-						<dt class="font-mono">CRN</dt>
+					<div class={rowClass}>
+						<dt>CRN</dt>
 						<dd>{currentOffering.crn}</dd>
 					</div>
 				{/if}
@@ -69,16 +81,16 @@
 	{/if}
 
 	{#if upcomingOffering}
-		<section class="section">
-			<h2 class="section-label font-mono">next offering</h2>
-			<dl class="rows">
-				<div class="row">
-					<dt class="font-mono">Term</dt>
+		<section class={sectionClass}>
+			<h2 class={headingClass}>next offering</h2>
+			<dl class={rowsClass}>
+				<div class={rowClass}>
+					<dt>Term</dt>
 					<dd>{upcomingOffering.term}</dd>
 				</div>
 				{#if upcomingOffering.instructor}
-					<div class="row">
-						<dt class="font-mono">Instructor</dt>
+					<div class={rowClass}>
+						<dt>Instructor</dt>
 						<dd>{upcomingOffering.instructor.name}</dd>
 					</div>
 				{/if}
@@ -87,151 +99,45 @@
 	{/if}
 
 	{#if brief.studentReviews}
-		<section class="section">
-			<h2 class="section-label font-mono">rmp rating</h2>
-			<div class="rmp">
+		<section class={sectionClass}>
+			<h2 class={headingClass}>rmp rating</h2>
+			<div class="grid gap-[0.4rem]">
 				{#if rmpRating != null}
-					<div class="rmp-rating font-hand rmp-{rmpVariant}">
-						{rmpRating.toFixed(1)}<small>/5</small>
+					<div
+						class={[
+							'font-hand text-[2.2rem] leading-none font-bold tracking-[-0.01em]',
+							rmpVariant === 'ok' && 'text-[var(--ok)]',
+							rmpVariant === 'warn' && 'text-[var(--ink)]',
+							rmpVariant === 'crit' && 'text-[var(--pen-red)]',
+							rmpVariant === 'idle' && 'text-[var(--ink-faint)]'
+						]}
+					>
+						{rmpRating.toFixed(1)}<small
+							class="ml-[0.1rem] font-normal text-[var(--ink-faint)] text-[var(--text-caption)]"
+							>/5</small
+						>
 					</div>
-					<div class="rmp-meta">
+					<div
+						class="flex flex-wrap gap-x-[0.85rem] gap-y-2 font-[family-name:var(--font-body)] tracking-[0.1em] text-[var(--ink-soft)] text-[var(--text-caption)]"
+					>
 						{#if rmpWouldTake != null}<span>{rmpWouldTake}% would take again</span>{/if}
 						{#if rmpCount != null}<span>{rmpCount} ratings</span>{/if}
 					</div>
 				{:else}
-					<p class="muted">No RMP rating available.</p>
+					<p
+						class="m-0 font-[family-name:var(--font-body)] text-[var(--ink-faint)] text-[var(--text-small)]"
+					>
+						No RMP rating available.
+					</p>
 				{/if}
 				{#if brief.studentReviews.rmpNote}
-					<p class="note">{brief.studentReviews.rmpNote}</p>
+					<p
+						class="m-0 font-[family-name:var(--font-body)] text-[0.875rem] leading-normal tracking-normal text-[var(--ink-soft)] normal-case"
+					>
+						{brief.studentReviews.rmpNote}
+					</p>
 				{/if}
 			</div>
 		</section>
 	{/if}
 </aside>
-
-<style>
-	.sidebar {
-		background: var(--paper);
-		border: 1px solid var(--rule);
-		padding: 1.25rem;
-		display: grid;
-		gap: 1.1rem;
-	}
-
-	.section {
-		display: grid;
-		gap: 0.6rem;
-	}
-
-	.section + .section {
-		border-top: 1px solid var(--rule-soft);
-		padding-top: 1rem;
-	}
-
-	.section-label {
-		font-size: 0.7rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-		margin: 0;
-	}
-
-	.rows {
-		display: grid;
-		gap: 0.45rem;
-		margin: 0;
-	}
-
-	.row {
-		display: grid;
-		grid-template-columns: minmax(0, 5.5rem) 1fr;
-		gap: 0.5rem;
-		align-items: baseline;
-	}
-
-	.row dt {
-		font-size: 0.78rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.row dd {
-		margin: 0;
-		font-family: var(--font-body);
-		font-size: 0.95rem;
-		color: var(--ink);
-		line-height: 1.4;
-		overflow-wrap: anywhere;
-	}
-
-	.hint {
-		display: block;
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		margin-top: 0.1rem;
-	}
-
-	.note {
-		font-family: var(--font-body);
-		font-size: 0.875rem;
-		line-height: 1.5;
-		color: var(--ink-soft);
-		text-transform: none;
-		letter-spacing: normal;
-		margin: 0;
-	}
-
-	.rmp {
-		display: grid;
-		gap: 0.4rem;
-	}
-
-	.rmp-rating {
-		font-weight: 700;
-		font-size: 2.2rem;
-		line-height: 1;
-		letter-spacing: -0.01em;
-	}
-
-	.rmp-rating small {
-		font-family: var(--font-mono);
-		font-size: 0.7rem;
-		font-weight: 400;
-		color: var(--ink-faint);
-		margin-left: 0.1rem;
-	}
-
-	.rmp-ok {
-		color: var(--ok);
-	}
-	.rmp-warn {
-		color: var(--ink);
-	}
-	.rmp-crit {
-		color: var(--pen-red);
-	}
-	.rmp-idle {
-		color: var(--ink-faint);
-	}
-
-	.rmp-meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem 0.85rem;
-		font-family: var(--font-body);
-		font-size: 0.85rem;
-		color: var(--ink-soft);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.muted {
-		font-family: var(--font-body);
-		font-size: 0.9rem;
-		color: var(--ink-faint);
-		margin: 0;
-	}
-</style>

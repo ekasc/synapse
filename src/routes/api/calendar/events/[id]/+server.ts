@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
-import { getCourses } from '$lib/server/store';
+import { getCourses, getSemesters } from '$lib/server/store';
 
 const EVENT_TYPES = new Set(['assignment', 'midterm', 'final', 'quiz', 'lecture', 'study_session']);
 const EVENT_STATUSES = new Set(['pending', 'completed', 'at_risk']);
@@ -13,13 +13,21 @@ function validDate(year: number, month: number, date: number) {
 	return parsed.getFullYear() === year && parsed.getMonth() === month && parsed.getDate() === date;
 }
 
-export async function PUT({ params, request, platform }: RequestEvent) {
+export async function PUT({ params, request, platform, locals }: RequestEvent) {
 	if (!platform) return json({ error: 'Platform unavailable' }, { status: 500 });
+	const userId = locals.user?.id;
+	if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 	const body: unknown = await request.json().catch(() => null);
 	if (!body || typeof body !== 'object' || Array.isArray(body)) {
 		return json({ error: 'Invalid event update' }, { status: 400 });
 	}
 	const value = body as Record<string, unknown>;
+	const existing = await platform.env.BRIEF_DB.prepare(
+		'SELECT course_id, course_code, year FROM calendar_events WHERE id = ? AND user_id = ?'
+	)
+		.bind(params.id, userId)
+		.first<{ course_id: string | null; course_code: string; year: number }>();
+	if (!existing) return json({ error: 'Event not found' }, { status: 404 });
 	const sets: string[] = [];
 	const bindings: (string | number | null)[] = [];
 
@@ -41,19 +49,14 @@ export async function PUT({ params, request, platform }: RequestEvent) {
 		sets.push('status = ?');
 		bindings.push(value.status);
 	}
-	if (value.courseId !== undefined || value.courseCode !== undefined) {
+	const changesCourse = value.courseId !== undefined || value.courseCode !== undefined;
+	if (changesCourse) {
 		if (typeof value.courseId !== 'string' || typeof value.courseCode !== 'string')
 			return json({ error: 'A course selection is required' }, { status: 400 });
-		const courseId = value.courseId;
-		const courseCode = value.courseCode.trim();
-		const course = (await getCourses()).find(
-			(candidate) => candidate.id === courseId && candidate.code === courseCode
-		);
-		if (!course) return json({ error: 'Select a course from Synapse' }, { status: 422 });
-		sets.push('course_id = ?', 'course_code = ?');
-		bindings.push(course.id, course.code);
 	}
-	if (value.date !== undefined || value.month !== undefined || value.year !== undefined) {
+	const changesDate =
+		value.date !== undefined || value.month !== undefined || value.year !== undefined;
+	if (changesDate) {
 		if (
 			typeof value.date !== 'number' ||
 			typeof value.month !== 'number' ||
@@ -61,8 +64,32 @@ export async function PUT({ params, request, platform }: RequestEvent) {
 			!validDate(value.year, value.month, value.date)
 		)
 			return json({ error: 'A complete valid date is required' }, { status: 400 });
-		sets.push('date = ?', 'month = ?', 'year = ?');
-		bindings.push(value.date, value.month, value.year);
+	}
+	if (changesCourse || changesDate) {
+		const courseId = changesCourse ? String(value.courseId) : existing.course_id;
+		const courseCode = changesCourse ? String(value.courseCode).trim() : existing.course_code;
+		const eventYear = changesDate ? Number(value.year) : existing.year;
+		const [courses, semesters] = await Promise.all([getCourses(userId), getSemesters(userId)]);
+		const course = courseId
+			? courses.find((candidate) => candidate.id === courseId && candidate.code === courseCode)
+			: courses.find((candidate) => candidate.code === courseCode);
+		if (!course) return json({ error: 'Select a course from Synapse' }, { status: 422 });
+		const semester = semesters.find((candidate) => candidate.id === course.semesterId);
+		if (!semester) return json({ error: 'Course semester could not be found' }, { status: 422 });
+		if (eventYear !== semester.year) {
+			return json(
+				{ error: `Event date must be in ${semester.term} ${semester.year}` },
+				{ status: 422 }
+			);
+		}
+		if (changesCourse) {
+			sets.push('course_id = ?', 'course_code = ?');
+			bindings.push(course.id, course.code);
+		}
+		if (changesDate) {
+			sets.push('date = ?', 'month = ?', 'year = ?');
+			bindings.push(value.date as number, value.month as number, value.year as number);
+		}
 	}
 	if (value.time !== undefined) {
 		if (
@@ -88,9 +115,9 @@ export async function PUT({ params, request, platform }: RequestEvent) {
 	if (sets.length === 0) return json({ error: 'No supported changes provided' }, { status: 400 });
 
 	sets.push('updated_at = ?');
-	bindings.push(new Date().toISOString(), params.id);
+	bindings.push(new Date().toISOString(), params.id, userId);
 	const result = await platform.env.BRIEF_DB.prepare(
-		`UPDATE calendar_events SET ${sets.join(', ')} WHERE id = ?`
+		`UPDATE calendar_events SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`
 	)
 		.bind(...bindings)
 		.run();
@@ -98,10 +125,12 @@ export async function PUT({ params, request, platform }: RequestEvent) {
 	return json({ ok: true });
 }
 
-export async function DELETE({ params, platform }: RequestEvent) {
+export async function DELETE({ params, platform, locals }: RequestEvent) {
 	if (!platform) return json({ error: 'Platform unavailable' }, { status: 500 });
-	const result = await platform.env.BRIEF_DB.prepare('DELETE FROM calendar_events WHERE id = ?')
-		.bind(params.id)
+	const userId = locals.user?.id;
+	if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
+	const result = await platform.env.BRIEF_DB.prepare('DELETE FROM calendar_events WHERE id = ? AND user_id = ?')
+		.bind(params.id, userId)
 		.run();
 	if (!result.meta.changes) return json({ error: 'Event not found' }, { status: 404 });
 	return json({ ok: true });

@@ -61,9 +61,10 @@ export type CalendarIntelligence = {
 export function analyzeCalendar(
 	events: CalendarEvent[],
 	courses: CourseInfo[],
-	currentGrades: Record<string, number> = {}
+	currentGrades: Record<string, number> = {},
+	clock: () => Date = () => new Date()
 ): CalendarIntelligence {
-	const now = new Date();
+	const now = clock();
 	const today = now.getDate();
 	const thisMonth = now.getMonth();
 	const thisYear = now.getFullYear();
@@ -169,7 +170,7 @@ export function analyzeCalendar(
 							86400000
 					)
 				: Math.round(
-						(new Date(current.year, current.month, current.date).getTime() - Date.now()) / 86400000
+						(new Date(current.year, current.month, current.date).getTime() - now.getTime()) / 86400000
 					);
 
 			if (gapDays > 7) {

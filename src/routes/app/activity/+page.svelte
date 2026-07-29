@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
+	import { AlertDialog } from '$lib/components/ui';
+	import { RefreshCw, Trash2, X } from '@lucide/svelte';
 
 	type BriefingJob = {
 		id: string;
@@ -15,6 +18,7 @@
 
 	type SyllabusExtraction = {
 		id: string;
+		courseId: string;
 		courseCode: string;
 		status: 'processing' | 'completed' | 'failed';
 		fileName: string;
@@ -30,8 +34,22 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let syllabusError = $state(false);
+	let jobsFetchInFlight = false;
+	let syllabusFetchInFlight = false;
+	let pollInterval: number | null = null;
+	let deleteTarget = $state<{ kind: 'briefing' | 'syllabus'; id: string; label: string } | null>(
+		null
+	);
+	let deleting = $state(false);
+
+	const hasActiveWork = $derived(
+		briefingJobs.some((job) => job.status === 'queued' || job.status === 'running') ||
+			syllabusExtractions.some((extraction) => extraction.status === 'processing')
+	);
 
 	async function loadJobs() {
+		if (jobsFetchInFlight) return;
+		jobsFetchInFlight = true;
 		const firstLoad = briefingJobs.length === 0 && syllabusExtractions.length === 0;
 		if (firstLoad) loading = true;
 		error = null;
@@ -44,12 +62,14 @@
 		} catch {
 			error = 'Failed to load activity';
 		} finally {
+			jobsFetchInFlight = false;
 			if (firstLoad) loading = false;
 		}
 	}
 
 	async function loadSyllabusActivity() {
-		// Gracefully handle if the endpoint doesn't exist yet (Demi's scope)
+		if (syllabusFetchInFlight) return;
+		syllabusFetchInFlight = true;
 		try {
 			const res = await fetch('/api/syllabus/activity');
 			if (!res.ok) {
@@ -66,6 +86,8 @@
 		} catch {
 			syllabusError = true;
 			syllabusExtractions = [];
+		} finally {
+			syllabusFetchInFlight = false;
 		}
 	}
 
@@ -83,16 +105,69 @@
 		}
 	}
 
+	async function deleteActivity() {
+		if (!deleteTarget) return;
+		deleting = true;
+		error = null;
+		try {
+			const response =
+				deleteTarget.kind === 'briefing'
+					? await fetch('/api/briefing/activity', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ action: 'delete', jobId: deleteTarget.id })
+						})
+					: await fetch(`/api/syllabus/activity?courseId=${encodeURIComponent(deleteTarget.id)}`, {
+							method: 'DELETE'
+						});
+			if (!response.ok) throw new Error('Delete failed');
+			deleteTarget = null;
+			await Promise.all([loadJobs(), loadSyllabusActivity(), invalidateAll()]);
+		} catch {
+			error = 'Could not delete this activity item.';
+		} finally {
+			deleting = false;
+		}
+	}
+
+	function startPolling() {
+		if (pollInterval !== null) return;
+		pollInterval = window.setInterval(() => {
+			void loadJobs();
+			void loadSyllabusActivity();
+		}, 30000);
+	}
+
+	function stopPolling() {
+		if (pollInterval === null) return;
+		window.clearInterval(pollInterval);
+		pollInterval = null;
+	}
+
+	// Poll only while at least one job is non-terminal, and only while visible.
+	$effect(() => {
+		if (hasActiveWork && !document.hidden) startPolling();
+		else stopPolling();
+	});
+
 	import { onMount } from 'svelte';
 	onMount(() => {
-		loadJobs();
-		loadSyllabusActivity();
-		const id = setInterval(() => {
-			loadJobs();
-			loadSyllabusActivity();
-		}, 5000);
+		void loadJobs();
+		void loadSyllabusActivity();
+		const onVisibilityChange = () => {
+			if (document.hidden) {
+				stopPolling();
+			} else {
+				// Catch up on whatever finished while the tab was hidden.
+				void loadJobs();
+				void loadSyllabusActivity();
+				if (hasActiveWork) startPolling();
+			}
+		};
+		document.addEventListener('visibilitychange', onVisibilityChange);
 		return () => {
-			clearInterval(id);
+			stopPolling();
+			document.removeEventListener('visibilitychange', onVisibilityChange);
 		};
 	});
 
@@ -107,14 +182,14 @@
 	}
 </script>
 
-<svelte:head><title>Synapse · Activity</title></svelte:head>
+<svelte:head><title>Activity · Synapse</title></svelte:head>
 
-<div class="page page-enter">
+<div class="page-enter mx-auto max-w-[var(--page-width-detail)] pt-8 pb-16">
 	<div class="page-cover">
-		<div class="page-cover-row">
+		<div class="flex items-start justify-between gap-4">
 			<div>
-				<h1 class="page-title font-display">Activity</h1>
-				<p class="page-tagline">
+				<h1 class="page-title !mt-1 !mb-0">Activity</h1>
+				<p class="page-tagline !mt-2 text-[var(--text-small)]">
 					{(() => {
 						const briefRunning = briefingJobs.filter((j) => j.status === 'running').length;
 						const briefQueued = briefingJobs.filter((j) => j.status === 'queued').length;
@@ -135,81 +210,137 @@
 				</p>
 			</div>
 			<button
-				class="btn btn-sm btn-ghost font-mono"
+				class="btn btn-sm btn-ghost"
 				onclick={() => {
 					loadJobs();
 					loadSyllabusActivity();
 				}}
 				disabled={loading}
+				aria-label="Refresh activity"
+				title="Refresh activity"
 			>
-				{loading ? 'refreshing...' : 'refresh'}
+				<RefreshCw
+					class={loading ? 'size-[var(--icon-sm)] animate-spin' : 'size-[var(--icon-sm)]'}
+					aria-hidden="true"
+				/>
 			</button>
 		</div>
 	</div>
 
 	{#if error}
-		<div class="error-banner font-mono" role="alert">{error}</div>
+		<div
+			class="mb-4 border border-[var(--pen-red)] bg-[rgba(194,54,42,0.05)] px-3 py-2 text-[var(--pen-red)] text-[var(--text-caption)]"
+			role="alert"
+		>
+			{error}
+		</div>
 	{/if}
 
 	{#if loading && briefingJobs.length === 0 && syllabusExtractions.length === 0}
-		<div class="loading-state font-mono" role="status" aria-live="polite">Loading activity...</div>
-	{:else if briefingJobs.length === 0 && syllabusExtractions.length === 0 && syllabusError}
-		<div class="empty-state surface-polaroid">
-			<h2 class="empty-head font-display">No activity yet</h2>
-			<p class="empty-text">AI tasks like course briefings and digests will appear here.</p>
+		<div class="p-8 text-center text-[var(--ink-faint)] text-[var(--text-caption)]">
+			<LoadingDots label="Loading activity" />
+		</div>
+	{:else if briefingJobs.length === 0 && syllabusExtractions.length === 0}
+		<div
+			class="border border-[var(--border-faint)] bg-[var(--surface-paper)] px-8 py-12 text-center"
+		>
+			<h2 class="font-hand m-0 mb-2 text-2xl leading-none text-[var(--ink)]">No activity yet</h2>
+			<p class="m-0 text-[var(--ink-soft)] text-[var(--text-small)]">
+				AI tasks like course briefs and digests will appear here.
+			</p>
+			{#if syllabusError}
+				<p class="mt-3 mb-0 text-[var(--pen-red)] text-[var(--text-caption)]" role="alert">
+					Syllabus activity could not be loaded right now.
+				</p>
+			{/if}
 		</div>
 	{:else}
-		<div class="activity-sections">
+		<div class="flex flex-col gap-6">
 			{#if briefingJobs.length > 0}
-				<div class="activity-section">
-					<div class="activity-section-head font-mono">Course Briefing Jobs</div>
-					<div class="activity-list">
+				<div>
+					<div class="mb-2 text-[var(--ink-faint)] text-[var(--text-caption)]">
+						Course brief jobs
+					</div>
+					<div class="flex flex-col gap-0 border border-[var(--rule)] bg-[var(--paper)]">
 						{#each briefingJobs as job (job.id)}
-							<div class="activity-item">
-								<div class="activity-left">
-									<span class="activity-status-dot" aria-hidden="true">
+							<div
+								class="flex items-start justify-between gap-3 border-b border-[var(--rule)] px-4 py-3 last:border-b-0"
+							>
+								<div class="flex min-w-0 flex-1 items-start gap-[0.65rem]">
+									<span
+										class="mt-0.5 grid size-5 shrink-0 place-items-center text-[var(--text-caption)]"
+										aria-hidden="true"
+									>
 										{#if job.status === 'queued'}
-											<span class="status-dot-queued">&#9678;</span>
+											<span class="text-[var(--ink-faint)]">&#9678;</span>
 										{:else if job.status === 'running'}
-											<span class="status-dot-running animate-pulse">&#9679;</span>
+											<span
+												class="[animation:act-pulse_1.2s_var(--ease-out-quart)_infinite] text-[var(--warn)]"
+												>&#9679;</span
+											>
 										{:else if job.status === 'succeeded'}
 											<span>&#10003;</span>
 										{:else if job.status === 'failed' || job.status === 'expired'}
-											<span class="status-dot-crit">&#10007;</span>
+											<span class="text-[var(--accent)]">&#10007;</span>
 										{:else}
-											<span class="status-dot-idle">&#8212;</span>
+											<span class="text-[var(--ink-faint)]">&#8212;</span>
 										{/if}
 									</span>
-									<div class="activity-body">
-										<div class="activity-head">
-											<span class="activity-course font-mono">{job.courseCode}</span>
-											<span class="activity-status font-mono">{job.status}</span>
+									<div class="min-w-0 flex-1">
+										<div class="mb-px flex items-center gap-2">
+											<span class=" font-medium text-[var(--ink)] text-[var(--text-caption)]"
+												>{job.courseCode}</span
+											>
+											<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
+												>{job.status}</span
+											>
 										</div>
-										<div class="activity-meta">
-											<span class="activity-time font-mono">{timeSince(job.createdAt)}</span>
+										<div class="flex flex-wrap gap-2">
+											<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
+												>{timeSince(job.createdAt)}</span
+											>
 											{#if job.startedAt}
-												<span class="activity-time font-mono"
+												<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
 													>started {timeSince(job.startedAt)}</span
 												>
 											{/if}
 											{#if job.completedAt}
-												<span class="activity-time font-mono"
+												<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
 													>done {timeSince(job.completedAt)}</span
 												>
 											{/if}
 										</div>
 										{#if job.errorMessage}
-											<div class="activity-error font-mono">{job.errorMessage}</div>
+											<div class="mt-1 text-[var(--pen-red)] text-[var(--text-caption)]">
+												{job.errorMessage}
+											</div>
 										{/if}
 									</div>
 								</div>
-								<div class="activity-right">
+								<div class="flex shrink-0 gap-2">
 									{#if job.status === 'queued' || job.status === 'running'}
 										<button
-											class="btn btn-sm btn-danger font-mono"
-											onclick={() => cancelJob(job.id)}>cancel</button
+											class="btn btn-sm btn-danger size-9 p-0"
+											aria-label={`Cancel ${job.courseCode} brief job`}
+											title="Cancel"
+											onclick={() => cancelJob(job.id)}
 										>
+											<X class="size-[var(--icon-sm)]" aria-hidden="true" />
+										</button>
 									{/if}
+									<button
+										class="btn btn-ghost btn-sm size-9 p-0 text-[var(--pen-red)]"
+										aria-label={`Remove ${job.courseCode} brief job`}
+										title="Remove"
+										onclick={() =>
+											(deleteTarget = {
+												kind: 'briefing',
+												id: job.id,
+												label: `${job.courseCode} brief job`
+											})}
+									>
+										<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+									</button>
 								</div>
 							</div>
 						{/each}
@@ -218,39 +349,53 @@
 			{/if}
 
 			{#if syllabusExtractions.length > 0}
-				<div class="activity-section">
-					<div class="activity-section-head font-mono">Syllabus Extractions</div>
-					<div class="activity-list">
+				<div>
+					<div class="mb-2 text-[var(--ink-faint)] text-[var(--text-caption)]">Syllabus jobs</div>
+					<div class="flex flex-col gap-0 border border-[var(--rule)] bg-[var(--paper)]">
 						{#each syllabusExtractions as ext (ext.id)}
-							<div class="activity-item">
-								<div class="activity-left">
-									<span class="activity-status-dot" aria-hidden="true">
+							<div
+								class="flex items-start justify-between gap-3 border-b border-[var(--rule)] px-4 py-3 last:border-b-0"
+							>
+								<div class="flex min-w-0 flex-1 items-start gap-[0.65rem]">
+									<span
+										class="mt-0.5 grid size-5 shrink-0 place-items-center text-[var(--text-caption)]"
+										aria-hidden="true"
+									>
 										{#if ext.status === 'processing'}
-											<span class="status-dot-running animate-pulse">&#9679;</span>
+											<span
+												class="[animation:act-pulse_1.2s_var(--ease-out-quart)_infinite] text-[var(--warn)]"
+												>&#9679;</span
+											>
 										{:else if ext.status === 'completed'}
 											<span>&#10003;</span>
 										{:else}
-											<span class="status-dot-crit">&#10007;</span>
+											<span class="text-[var(--accent)]">&#10007;</span>
 										{/if}
 									</span>
-									<div class="activity-body">
-										<div class="activity-head">
-											<span class="activity-course font-mono">{ext.courseCode}</span>
-											<span class="activity-status font-mono">{ext.status}</span>
+									<div class="min-w-0 flex-1">
+										<div class="mb-px flex items-center gap-2">
+											<span class=" font-medium text-[var(--ink)] text-[var(--text-caption)]"
+												>{ext.courseCode}</span
+											>
+											<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
+												>{ext.status}</span
+											>
 										</div>
-										<div class="activity-meta">
-											<span class="activity-time font-mono">{timeSince(ext.createdAt)}</span>
+										<div class="flex flex-wrap gap-2">
+											<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
+												>{timeSince(ext.createdAt)}</span
+											>
 											{#if ext.completedAt}
-												<span class="activity-time font-mono"
+												<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
 													>done {timeSince(ext.completedAt)}</span
 												>
 											{/if}
 										</div>
 										{#if ext.status === 'completed'}
-											<div class="activity-link">
+											<div class="mt-1">
 												<a
 													href={`/app/syllabus/result/${encodeURIComponent(ext.courseCode)}`}
-													class="activity-result-link font-mono"
+													class=" text-[var(--ink)] text-[var(--text-caption)] underline underline-offset-2"
 												>
 													view results
 												</a>
@@ -258,6 +403,19 @@
 										{/if}
 									</div>
 								</div>
+								<button
+									class="btn btn-ghost btn-sm size-9 shrink-0 p-0 text-[var(--pen-red)]"
+									aria-label={`Remove ${ext.courseCode} syllabus import`}
+									title="Remove"
+									onclick={() =>
+										(deleteTarget = {
+											kind: 'syllabus',
+											id: ext.courseId,
+											label: `${ext.courseCode} syllabus import`
+										})}
+								>
+									<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+								</button>
 							</div>
 						{/each}
 					</div>
@@ -267,113 +425,19 @@
 	{/if}
 </div>
 
+<AlertDialog
+	open={deleteTarget !== null}
+	title="Delete activity item?"
+	description={deleteTarget
+		? `Delete ${deleteTarget.label}? This cannot be undone.`
+		: 'This cannot be undone.'}
+	confirmLabel="Remove"
+	busy={deleting}
+	onConfirm={deleteActivity}
+	onCancel={() => (deleteTarget = null)}
+/>
+
 <style>
-	.page {
-		max-width: 900px;
-		margin-inline: auto;
-		padding-block: 2rem 4rem;
-	}
-	.page-title {
-		font-size: clamp(2.4rem, 4vw, 3rem);
-		color: var(--ink);
-		margin: 0.25rem 0 0;
-		line-height: 1;
-	}
-	.page-tagline {
-		color: var(--ink-soft);
-		font-size: 0.92rem;
-		margin: 0.5rem 0 0;
-	}
-	.page-cover-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 1rem;
-	}
-	.error-banner {
-		padding: 0.5rem 0.75rem;
-		margin-bottom: 1rem;
-		border: 1px solid var(--accent);
-		background: rgba(176, 58, 46, 0.05);
-		color: var(--accent);
-		font-size: 0.8rem;
-	}
-	.loading-state {
-		padding: 2rem;
-		text-align: center;
-		color: var(--ink-faint);
-		font-size: 0.85rem;
-	}
-	.empty-state {
-		padding: 3rem 2rem;
-		text-align: center;
-	}
-	.empty-head {
-		font-size: 1.5rem;
-		color: var(--ink);
-		margin: 0 0 0.5rem;
-		line-height: 1;
-	}
-	.empty-text {
-		font-size: 0.9rem;
-		color: var(--ink-soft);
-		margin: 0;
-	}
-	.activity-sections {
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-	.activity-section-head {
-		font-size: 0.72rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-		margin-bottom: 0.5rem;
-	}
-	.activity-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-	}
-	.activity-item {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 0.75rem;
-		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--rule);
-	}
-	.activity-item:last-child {
-		border-bottom: none;
-	}
-	.activity-left {
-		display: flex;
-		gap: 0.65rem;
-		flex: 1;
-		min-width: 0;
-		align-items: flex-start;
-	}
-	.activity-status-dot {
-		width: 1.25rem;
-		height: 1.25rem;
-		display: grid;
-		place-items: center;
-		flex-shrink: 0;
-		margin-top: 2px;
-		font-size: 0.8rem;
-	}
-	.status-dot-queued {
-		color: var(--ink-faint);
-	}
-	.status-dot-running {
-		color: var(--warn);
-	}
-	.animate-pulse {
-		animation: act-pulse 1.2s ease-in-out infinite;
-	}
 	@keyframes act-pulse {
 		0%,
 		100% {
@@ -382,58 +446,5 @@
 		50% {
 			opacity: 0.3;
 		}
-	}
-	.status-dot-crit {
-		color: var(--accent);
-	}
-	.status-dot-idle {
-		color: var(--ink-faint);
-	}
-	.activity-body {
-		flex: 1;
-		min-width: 0;
-	}
-	.activity-head {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 1px;
-	}
-	.activity-course {
-		font-size: 0.82rem;
-		color: var(--ink);
-		font-weight: 500;
-	}
-	.activity-status {
-		font-size: 0.62rem;
-		color: var(--ink-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-	}
-	.activity-meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-	.activity-time {
-		font-size: 0.65rem;
-		color: var(--ink-faint);
-	}
-	.activity-error {
-		font-size: 0.72rem;
-		color: var(--accent);
-		margin-top: 0.25rem;
-	}
-	.activity-link {
-		margin-top: 0.25rem;
-	}
-	.activity-result-link {
-		font-size: 0.72rem;
-		color: var(--accent);
-		text-decoration: underline;
-		text-underline-offset: 2px;
-	}
-	.activity-right {
-		flex-shrink: 0;
 	}
 </style>
