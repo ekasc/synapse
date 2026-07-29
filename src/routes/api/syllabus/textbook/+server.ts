@@ -13,7 +13,9 @@ function getCourseId(value: unknown) {
 	return typeof courseId === 'string' && courseId.trim() ? courseId.trim() : undefined;
 }
 
-export async function POST({ request }: RequestEvent) {
+export async function POST({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	const body: unknown = await request.json().catch(() => ({}));
-	return json(updateSyllabusTextbook(getFileName(body), getCourseId(body)));
+	return json(updateSyllabusTextbook(userId, getFileName(body), getCourseId(body)));
 }

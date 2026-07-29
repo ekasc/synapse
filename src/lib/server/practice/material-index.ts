@@ -78,18 +78,20 @@ type ChunkRow = {
 };
 
 export type MaterialIndexRepository = {
-	ensure(material: MaterialRecord): Promise<MaterialIndexRecord>;
-	get(materialId: string): Promise<MaterialIndexRecord | null>;
-	list(courseId: string): Promise<MaterialIndexRecord[]>;
-	listReadyChunks(courseId: string): Promise<MaterialChunk[]>;
-	saveBatch(update: BatchUpdate): Promise<MaterialIndexRecord>;
+	ensure(userId: string, material: MaterialRecord): Promise<MaterialIndexRecord>;
+	get(userId: string, materialId: string): Promise<MaterialIndexRecord | null>;
+	list(userId: string, courseId: string): Promise<MaterialIndexRecord[]>;
+	listIndexable(limit: number): Promise<Array<MaterialIndexRecord & { userId: string }>>;
+	listReadyChunks(userId: string, courseId: string): Promise<MaterialChunk[]>;
+	saveBatch(userId: string, update: BatchUpdate): Promise<MaterialIndexRecord>;
 	setStatus(
+		userId: string,
 		materialId: string,
 		courseId: string,
 		status: MaterialIndexStatus,
 		options?: { pageCount?: number | null; errorMessage?: string | null }
 	): Promise<MaterialIndexRecord>;
-	delete(materialId: string): Promise<void>;
+	delete(userId: string, materialId: string): Promise<void>;
 };
 
 function supportsIndexing(material: Pick<MaterialRecord, 'mimeType' | 'fileName'>): boolean {
@@ -145,18 +147,19 @@ function fromChunkRow(row: ChunkRow): MaterialChunk {
 
 function createD1Repository(binding: D1Database): MaterialIndexRepository {
 	return {
-		async ensure(material) {
+		async ensure(userId, material) {
 			const initial = initialRecord(material);
 			await binding
 				.prepare(
 					`INSERT INTO practice_material_indexes
-					 (material_id, course_id, status, page_count, next_page, character_count,
+					 (material_id, user_id, course_id, status, page_count, next_page, character_count,
 					  error_message, index_version, created_at, updated_at)
-					 VALUES (?, ?, ?, NULL, 1, 0, NULL, ?, ?, ?)
+					 VALUES (?, ?, ?, ?, NULL, 1, 0, NULL, ?, ?, ?)
 					 ON CONFLICT(material_id) DO NOTHING`
 				)
 				.bind(
 					initial.materialId,
+					userId,
 					initial.courseId,
 					initial.status,
 					initial.indexVersion,
@@ -164,49 +167,61 @@ function createD1Repository(binding: D1Database): MaterialIndexRepository {
 					initial.updatedAt
 				)
 				.run();
-			return (await this.get(material.id)) ?? initial;
+			return (await this.get(userId, material.id)) ?? initial;
 		},
 
-		async get(materialId) {
+		async get(userId, materialId) {
 			const row = await binding
-				.prepare('SELECT * FROM practice_material_indexes WHERE material_id = ?')
-				.bind(materialId)
+				.prepare('SELECT * FROM practice_material_indexes WHERE material_id = ? AND user_id = ?')
+				.bind(materialId, userId)
 				.first<IndexRow>();
 			return row ? fromIndexRow(row) : null;
 		},
 
-		async list(courseId) {
+		async list(userId, courseId) {
 			const result = await binding
 				.prepare(
-					'SELECT * FROM practice_material_indexes WHERE course_id = ? ORDER BY created_at, material_id'
+					'SELECT * FROM practice_material_indexes WHERE course_id = ? AND user_id = ? ORDER BY created_at, material_id'
 				)
-				.bind(courseId)
+				.bind(courseId, userId)
 				.all<IndexRow>();
 			return (result.results ?? []).map(fromIndexRow);
 		},
 
-		async listReadyChunks(courseId) {
+		async listIndexable(limit) {
+			const result = await binding
+				.prepare(
+					`SELECT * FROM practice_material_indexes
+					 WHERE status IN ('pending', 'indexing')
+					 ORDER BY updated_at, material_id LIMIT ?`
+				)
+				.bind(limit)
+				.all<IndexRow & { user_id: string }>();
+			return (result.results ?? []).map((row) => ({ ...fromIndexRow(row), userId: row.user_id }));
+		},
+
+		async listReadyChunks(userId, courseId) {
 			const result = await binding
 				.prepare(
 					`SELECT c.* FROM practice_material_chunks c
 					 JOIN practice_material_indexes i ON i.material_id = c.material_id
-					 WHERE c.course_id = ? AND i.status = 'ready'
+					 WHERE c.course_id = ? AND i.user_id = ? AND i.status = 'ready'
 					 ORDER BY c.material_id, c.chunk_index`
 				)
-				.bind(courseId)
+				.bind(courseId, userId)
 				.all<ChunkRow>();
 			return (result.results ?? []).map(fromChunkRow);
 		},
 
-		async saveBatch(update) {
+		async saveBatch(userId, update) {
 			const now = new Date().toISOString();
 			const statements = update.chunks.map((chunk) =>
 				binding
 					.prepare(
 						`INSERT INTO practice_material_chunks
-						 (id, material_id, course_id, chunk_index, page_start, page_end, text,
+						 (id, user_id, material_id, course_id, chunk_index, page_start, page_end, text,
 						  normalized_text, created_at)
-						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+						 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 						 ON CONFLICT(material_id, chunk_index) DO UPDATE SET
 						  id = excluded.id, page_start = excluded.page_start,
 						  page_end = excluded.page_end, text = excluded.text,
@@ -214,6 +229,7 @@ function createD1Repository(binding: D1Database): MaterialIndexRepository {
 					)
 					.bind(
 						chunk.id,
+						userId,
 						chunk.materialId,
 						chunk.courseId,
 						chunk.chunkIndex,
@@ -230,7 +246,7 @@ function createD1Repository(binding: D1Database): MaterialIndexRepository {
 						`UPDATE practice_material_indexes
 						 SET status = ?, page_count = ?, next_page = ?, character_count = ?,
 						     error_message = NULL, updated_at = ?
-						 WHERE material_id = ? AND course_id = ?`
+						 WHERE material_id = ? AND course_id = ? AND user_id = ?`
 					)
 					.bind(
 						update.status,
@@ -239,22 +255,23 @@ function createD1Repository(binding: D1Database): MaterialIndexRepository {
 						update.characterCount,
 						now,
 						update.materialId,
-						update.courseId
+						update.courseId,
+						userId
 					)
 			);
 			await binding.batch(statements);
-			const result = await this.get(update.materialId);
+			const result = await this.get(userId, update.materialId);
 			if (!result) throw new Error('Material index disappeared after batch update');
 			return result;
 		},
 
-		async setStatus(materialId, courseId, status, options = {}) {
+		async setStatus(userId, materialId, courseId, status, options = {}) {
 			const now = new Date().toISOString();
 			await binding
 				.prepare(
 					`UPDATE practice_material_indexes
 					 SET status = ?, page_count = COALESCE(?, page_count), error_message = ?, updated_at = ?
-					 WHERE material_id = ? AND course_id = ?`
+					 WHERE material_id = ? AND course_id = ? AND user_id = ?`
 				)
 				.bind(
 					status,
@@ -262,22 +279,23 @@ function createD1Repository(binding: D1Database): MaterialIndexRepository {
 					options.errorMessage ?? null,
 					now,
 					materialId,
-					courseId
+					courseId,
+					userId
 				)
 				.run();
-			const result = await this.get(materialId);
+			const result = await this.get(userId, materialId);
 			if (!result) throw new Error('Material index not found');
 			return result;
 		},
 
-		async delete(materialId) {
+		async delete(userId, materialId) {
 			await binding.batch([
 				binding
 					.prepare('DELETE FROM practice_material_chunks WHERE material_id = ?')
 					.bind(materialId),
 				binding
-					.prepare('DELETE FROM practice_material_indexes WHERE material_id = ?')
-					.bind(materialId)
+					.prepare('DELETE FROM practice_material_indexes WHERE material_id = ? AND user_id = ?')
+					.bind(materialId, userId)
 			]);
 		}
 	};
@@ -303,7 +321,7 @@ function writeFallback(data: FallbackData) {
 
 function createFallbackRepository(): MaterialIndexRepository {
 	return {
-		async ensure(material) {
+		async ensure(_userId, material) {
 			const data = readFallback();
 			const existing = data.indexes.find((item) => item.materialId === material.id);
 			if (existing) return existing;
@@ -312,13 +330,19 @@ function createFallbackRepository(): MaterialIndexRepository {
 			writeFallback(data);
 			return record;
 		},
-		async get(materialId) {
+		async get(_userId, materialId) {
 			return readFallback().indexes.find((item) => item.materialId === materialId) ?? null;
 		},
-		async list(courseId) {
+		async list(_userId, courseId) {
 			return readFallback().indexes.filter((item) => item.courseId === courseId);
 		},
-		async listReadyChunks(courseId) {
+		async listIndexable(limit) {
+			return readFallback()
+				.indexes.filter((item) => item.status === 'pending' || item.status === 'indexing')
+				.slice(0, limit)
+				.map((item) => ({ ...item, userId: 'local' }));
+		},
+		async listReadyChunks(_userId, courseId) {
 			const data = readFallback();
 			const ready = new Set(
 				data.indexes
@@ -333,7 +357,7 @@ function createFallbackRepository(): MaterialIndexRepository {
 						: a.materialId.localeCompare(b.materialId)
 				);
 		},
-		async saveBatch(update) {
+		async saveBatch(_userId, update) {
 			const data = readFallback();
 			for (const chunk of update.chunks) {
 				const position = data.chunks.findIndex(
@@ -356,7 +380,7 @@ function createFallbackRepository(): MaterialIndexRepository {
 			writeFallback(data);
 			return data.indexes[position];
 		},
-		async setStatus(materialId, courseId, status, options = {}) {
+		async setStatus(_userId, materialId, courseId, status, options = {}) {
 			const data = readFallback();
 			const position = data.indexes.findIndex(
 				(item) => item.materialId === materialId && item.courseId === courseId
@@ -372,7 +396,7 @@ function createFallbackRepository(): MaterialIndexRepository {
 			writeFallback(data);
 			return data.indexes[position];
 		},
-		async delete(materialId) {
+		async delete(_userId, materialId) {
 			const data = readFallback();
 			data.indexes = data.indexes.filter((item) => item.materialId !== materialId);
 			data.chunks = data.chunks.filter((item) => item.materialId !== materialId);
@@ -387,12 +411,13 @@ export function createMaterialIndexRepository(binding?: D1Database): MaterialInd
 
 export async function attachMaterialIndexes(
 	materials: MaterialRecord[],
-	repository: MaterialIndexRepository
+	repository: MaterialIndexRepository,
+	userId: string
 ): Promise<MaterialWithIndex[]> {
 	return Promise.all(
 		materials.map(async (material) => ({
 			...material,
-			index: await repository.ensure(material)
+			index: await repository.ensure(userId, material)
 		}))
 	);
 }

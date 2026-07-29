@@ -381,7 +381,7 @@ function validateFlashcards(
 }
 
 export function createPracticeSessionRepository(binding: D1Database) {
-	async function list(courseId?: string): Promise<SessionResult<PracticeSessionSummary[]>> {
+	async function list(userId: string, courseId?: string): Promise<SessionResult<PracticeSessionSummary[]>> {
 		let rows: SessionRow[];
 		if (courseId) {
 			const id = validateString(courseId, 'courseId');
@@ -392,10 +392,10 @@ export function createPracticeSessionRepository(binding: D1Database) {
 						`SELECT id, course_id, course_code, source_materials, questions, flashcards,
 						 score, current_question_index, missed_question_ids, current_card_index,
 						 card_side, status, created_at, updated_at
-						 FROM practice_sessions WHERE course_id = ?
+						 FROM practice_sessions WHERE course_id = ? AND user_id = ?
 						 ORDER BY updated_at DESC, id`
 					)
-					.bind(id.value)
+					.bind(id.value, userId)
 					.all<SessionRow>()
 			).results;
 		} else {
@@ -405,15 +405,17 @@ export function createPracticeSessionRepository(binding: D1Database) {
 						`SELECT id, course_id, course_code, source_materials, questions, flashcards,
 						 score, current_question_index, missed_question_ids, current_card_index,
 						 card_side, status, created_at, updated_at
-						 FROM practice_sessions ORDER BY updated_at DESC, id`
+						 FROM practice_sessions WHERE user_id = ?
+						 ORDER BY updated_at DESC, id`
 					)
+					.bind(userId)
 					.all<SessionRow>()
 			).results;
 		}
 		return { outcome: 'ok', value: rows.map(mapSummary) };
 	}
 
-	async function get(idInput: unknown): Promise<SessionResult<PracticeSession>> {
+	async function get(userId: string, idInput: unknown): Promise<SessionResult<PracticeSession>> {
 		const id = validateString(idInput, 'id');
 		if (id.outcome !== 'ok') return id;
 		const row = await binding
@@ -421,15 +423,15 @@ export function createPracticeSessionRepository(binding: D1Database) {
 				`SELECT id, course_id, course_code, source_materials, questions, flashcards,
 				 score, current_question_index, missed_question_ids, current_card_index,
 				 card_side, status, created_at, updated_at
-				 FROM practice_sessions WHERE id = ?`
+				 FROM practice_sessions WHERE id = ? AND user_id = ?`
 			)
-			.bind(id.value)
+			.bind(id.value, userId)
 			.first<SessionRow>();
 		if (!row) return { outcome: 'not-found' };
 		return { outcome: 'ok', value: mapSession(row) };
 	}
 
-	async function create(input: unknown): Promise<SessionResult<PracticeSession>> {
+	async function create(userId: string, input: unknown): Promise<SessionResult<PracticeSession>> {
 		if (!isPlainObject(input))
 			return { outcome: 'validation', message: 'request must be a plain object' };
 		if (
@@ -454,13 +456,14 @@ export function createPracticeSessionRepository(binding: D1Database) {
 		await binding
 			.prepare(
 				`INSERT INTO practice_sessions
-				 (id, course_id, course_code, source_materials, questions, flashcards,
+				 (id, user_id, course_id, course_code, source_materials, questions, flashcards,
 				  score, current_question_index, missed_question_ids, current_card_index,
 				  card_side, status, created_at, updated_at)
-				 VALUES (?, ?, ?, ?, ?, ?, 0, 0, '[]', 0, 'front', 'in_progress', ?, ?)`
+				 VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, '[]', 0, 'front', 'in_progress', ?, ?)`
 			)
 			.bind(
 				id,
+				userId,
 				courseId.value,
 				courseCode.value,
 				JSON.stringify(sourceMaterials.value),
@@ -492,6 +495,7 @@ export function createPracticeSessionRepository(binding: D1Database) {
 	}
 
 	async function updateProgress(
+		userId: string,
 		idInput: unknown,
 		input: unknown
 	): Promise<SessionResult<PracticeSession>> {
@@ -504,7 +508,7 @@ export function createPracticeSessionRepository(binding: D1Database) {
 		)
 			return { outcome: 'validation', message: 'request contains unsupported fields' };
 
-		const existing = await get(id.value);
+		const existing = await get(userId, id.value);
 		if (existing.outcome !== 'ok') return existing;
 
 		const session = existing.value;
@@ -598,7 +602,7 @@ export function createPracticeSessionRepository(binding: D1Database) {
 				`UPDATE practice_sessions
 				 SET score = ?, current_question_index = ?, missed_question_ids = ?,
 				     current_card_index = ?, card_side = ?, status = ?, updated_at = ?
-				 WHERE id = ?`
+				 WHERE id = ? AND user_id = ?`
 			)
 			.bind(
 				score,
@@ -608,7 +612,8 @@ export function createPracticeSessionRepository(binding: D1Database) {
 				cardSide,
 				status,
 				now,
-				id.value
+				id.value,
+				userId
 			)
 			.run();
 
@@ -627,12 +632,12 @@ export function createPracticeSessionRepository(binding: D1Database) {
 		};
 	}
 
-	async function remove(idInput: unknown): Promise<SessionResult<null>> {
+	async function remove(userId: string, idInput: unknown): Promise<SessionResult<null>> {
 		const id = validateString(idInput, 'id');
 		if (id.outcome !== 'ok') return id;
 		const deleted = await binding
-			.prepare(`DELETE FROM practice_sessions WHERE id = ?`)
-			.bind(id.value)
+			.prepare(`DELETE FROM practice_sessions WHERE id = ? AND user_id = ?`)
+			.bind(id.value, userId)
 			.run();
 		if ((deleted.meta.changes ?? 0) > 0) return { outcome: 'ok', value: null };
 		return { outcome: 'not-found' };

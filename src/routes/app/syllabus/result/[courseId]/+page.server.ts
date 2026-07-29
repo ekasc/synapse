@@ -1,8 +1,10 @@
 import { error, redirect } from '@sveltejs/kit';
 import { getCourses } from '$lib/server/store';
 
-export async function load({ params }) {
-	const course = (await getCourses()).find(
+export async function load({ params, locals }) {
+	const userId = locals.user?.id;
+	if (!userId) return;
+	const course = (await getCourses(userId)).find(
 		(item) =>
 			item.id === params.courseId || item.code.toLowerCase() === params.courseId.toLowerCase()
 	);

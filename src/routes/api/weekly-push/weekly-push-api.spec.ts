@@ -40,7 +40,8 @@ function mockPostEvent(
 			headers: { 'content-type': 'application/json' },
 			body: body !== undefined ? JSON.stringify(body) : undefined
 		}),
-		platform
+		platform,
+		locals: { user: { id: 'test-user' } }
 	} as never;
 }
 
@@ -164,7 +165,7 @@ describe('weekly-push subscribe POST', () => {
 		expect(response.status).toBe(200);
 		expect(await response.json()).toEqual({ ok: true, id: 'sub-001' });
 		expect(createWeeklyPushRepository).toHaveBeenCalledWith({});
-		expect(mockUpsert).toHaveBeenCalledWith({
+		expect(mockUpsert).toHaveBeenCalledWith('test-user', {
 			endpoint: VALID_SUB.endpoint,
 			p256dh: VALID_SUB.keys.p256dh,
 			auth: VALID_SUB.keys.auth
@@ -199,7 +200,8 @@ describe('weekly-push unsubscribe POST', () => {
 				headers: { 'content-type': 'application/json' },
 				body: '{bad'
 			}),
-			platform: { env: { BRIEF_DB: {} } }
+			platform: { env: { BRIEF_DB: {} } },
+			locals: { user: { id: 'test-user' } }
 		} as never;
 
 		const response = await POST(event);
@@ -244,7 +246,7 @@ describe('weekly-push unsubscribe POST', () => {
 		expect(response.status).toBe(200);
 		expect(await response.json()).toEqual({ ok: true });
 		expect(createWeeklyPushRepository).toHaveBeenCalledWith({});
-		expect(mockRemoveByEndpoint).toHaveBeenCalledWith('https://example.com');
+		expect(mockRemoveByEndpoint).toHaveBeenCalledWith('test-user', 'https://example.com');
 	});
 });
 

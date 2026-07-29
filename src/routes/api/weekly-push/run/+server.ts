@@ -73,8 +73,10 @@ export async function POST(event) {
 		vapid,
 		nowSeconds: Math.floor(Date.now() / 1000)
 	});
+	const ownerByEndpoint = new Map(subscriptions.map((s) => [s.endpoint, s.userId]));
 	for (const endpoint of summary.prunedEndpoints) {
-		await repository.removeByEndpoint(endpoint);
+		const ownerId = ownerByEndpoint.get(endpoint);
+		if (ownerId) await repository.removeByEndpoint(ownerId, endpoint);
 	}
 	return json({
 		weekStart: bundle.digest.weekStart,

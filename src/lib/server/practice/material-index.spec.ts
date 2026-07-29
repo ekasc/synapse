@@ -60,7 +60,7 @@ const indexRow = {
 describe('material index repository', () => {
 	it('initializes a supported material idempotently', async () => {
 		const mock = mockBinding({ first: [indexRow] });
-		const result = await createMaterialIndexRepository(mock.binding).ensure(material);
+		const result = await createMaterialIndexRepository(mock.binding).ensure('test-user', material);
 		expect(result).toMatchObject({ materialId: material.id, status: 'pending', nextPage: 1 });
 		expect(mock.statements[0].sql).toContain('ON CONFLICT(material_id) DO NOTHING');
 	});
@@ -78,7 +78,7 @@ describe('material index repository', () => {
 			created_at: '2026-01-01T00:00:00.000Z'
 		};
 		const mock = mockBinding({ all: [[chunkRow]] });
-		const chunks = await createMaterialIndexRepository(mock.binding).listReadyChunks('course-1');
+		const chunks = await createMaterialIndexRepository(mock.binding).listReadyChunks('test-user', 'course-1');
 		expect(chunks[0]).toMatchObject({ id: chunkRow.id, pageStart: 12, pageEnd: 12 });
 		expect(mock.statements[0].sql).toContain("i.status = 'ready'");
 	});
@@ -86,7 +86,7 @@ describe('material index repository', () => {
 	it('writes chunks and the page checkpoint in one D1 batch', async () => {
 		const readyRow = { ...indexRow, status: 'ready', page_count: 12, next_page: 13 };
 		const mock = mockBinding({ first: [readyRow] });
-		await createMaterialIndexRepository(mock.binding).saveBatch({
+		await createMaterialIndexRepository(mock.binding).saveBatch('test-user', {
 			materialId: 'material-1',
 			courseId: 'course-1',
 			pageCount: 12,
@@ -114,7 +114,7 @@ describe('material index repository', () => {
 
 	it('deletes derived chunks and index metadata together', async () => {
 		const mock = mockBinding();
-		await createMaterialIndexRepository(mock.binding).delete('material-1');
+		await createMaterialIndexRepository(mock.binding).delete('test-user', 'material-1');
 		expect(mock.batch).toHaveBeenCalledOnce();
 		expect(mock.statements.map((statement) => statement.sql)).toEqual([
 			'DELETE FROM practice_material_chunks WHERE material_id = ?',

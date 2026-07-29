@@ -2,10 +2,12 @@ import { json } from '@sveltejs/kit';
 import type { RequestEvent } from './$types';
 import { answerChat, parseChatRequest } from '$lib/server/chat';
 
-export async function POST({ request, platform }: RequestEvent) {
+export async function POST({ request, platform, locals }: RequestEvent) {
 	try {
+		const userId = locals.user?.id;
+		if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 		const input = parseChatRequest(await request.json());
-		const courses = await (await import('$lib/server/store')).getCourses();
+		const courses = await (await import('$lib/server/store')).getCourses(userId);
 		if (input.courseId !== 'all' && !courses.some((course) => course.id === input.courseId))
 			return json({ ok: false, error: 'Course not found' }, { status: 404 });
 		const result = await answerChat(input, {

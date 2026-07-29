@@ -1,8 +1,10 @@
 import { error } from '@sveltejs/kit';
 import { getCourses, getGraphState, getSemesters, getSyllabusImport } from '$lib/server/store';
 
-export async function load({ params }) {
-	const courses = await getCourses();
+export async function load({ params, locals }) {
+	const userId = locals.user?.id;
+	if (!userId) return { course: null, semester: null, graphState: null };
+	const courses = await getCourses(userId);
 	const course = courses.find(
 		(c) => c.id === params.courseId && c.semesterId === params.semesterId
 	);
@@ -11,9 +13,9 @@ export async function load({ params }) {
 	}
 
 	const [semesters, graph, syllabus] = await Promise.all([
-		getSemesters(),
-		getGraphState(),
-		getSyllabusImport(course.id)
+		getSemesters(userId),
+		getGraphState(userId),
+		getSyllabusImport(userId, course.id)
 	]);
 	const semester = semesters.find((s) => s.id === course.semesterId) ?? null;
 

@@ -121,13 +121,14 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 		return (await statement.all<MoveRow>()).results;
 	}
 
-	async function list(): Promise<ScenarioResult<PlanningScenario[]>> {
+	async function list(userId: string): Promise<ScenarioResult<PlanningScenario[]>> {
 		const rows = (
 			await binding
 				.prepare(
 					`SELECT id, name, revision, created_at, updated_at
-					 FROM planning_scenarios ORDER BY updated_at DESC, id`
+					 FROM planning_scenarios WHERE user_id = ? ORDER BY updated_at DESC, id`
 				)
+				.bind(userId)
 				.all<ScenarioRow>()
 		).results;
 		const moves = await readMoves(rows.map((row) => row.id));
@@ -142,20 +143,20 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 		};
 	}
 
-	async function get(idInput: unknown): Promise<ScenarioResult<PlanningScenario>> {
+	async function get(userId: string, idInput: unknown): Promise<ScenarioResult<PlanningScenario>> {
 		const id = validateId(idInput);
 		if (id.outcome !== 'ok') return id;
 		const row = await binding
 			.prepare(
-				`SELECT id, name, revision, created_at, updated_at FROM planning_scenarios WHERE id = ?`
+				`SELECT id, name, revision, created_at, updated_at FROM planning_scenarios WHERE id = ? AND user_id = ?`
 			)
-			.bind(id.value)
+			.bind(id.value, userId)
 			.first<ScenarioRow>();
 		if (!row) return { outcome: 'not-found' };
 		return { outcome: 'ok', value: mapScenario(row, await readMoves([id.value])) };
 	}
 
-	async function create(input: unknown): Promise<ScenarioResult<PlanningScenario>> {
+	async function create(userId: string, input: unknown): Promise<ScenarioResult<PlanningScenario>> {
 		const object = validateObject(input, ['name', 'moves']);
 		if (object.outcome !== 'ok') return object;
 		const name = validateName(object.value.name);
@@ -168,10 +169,10 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 		const statements = [
 			binding
 				.prepare(
-					`INSERT INTO planning_scenarios (id, name, revision, created_at, updated_at)
-					 VALUES (?, ?, 1, ?, ?)`
+					`INSERT INTO planning_scenarios (id, user_id, name, revision, created_at, updated_at)
+					 VALUES (?, ?, ?, 1, ?, ?)`
 				)
-				.bind(id, name.value, now, now),
+				.bind(id, userId, name.value, now, now),
 			...moves.value.map((move, index) =>
 				binding
 					.prepare(
@@ -196,6 +197,7 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 	}
 
 	async function update(
+		userId: string,
 		idInput: unknown,
 		input: unknown
 	): Promise<ScenarioResult<PlanningScenario>> {
@@ -217,39 +219,39 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 				.prepare(
 					`DELETE FROM planning_scenario_moves
 					 WHERE scenario_id = ? AND EXISTS (
-					   SELECT 1 FROM planning_scenarios WHERE id = ? AND revision = ?
+					   SELECT 1 FROM planning_scenarios WHERE id = ? AND user_id = ? AND revision = ?
 					 )`
 				)
-				.bind(id.value, id.value, revision.value),
+				.bind(id.value, id.value, userId, revision.value),
 			...moves.value.map((move, index) =>
 				binding
 					.prepare(
 						`INSERT INTO planning_scenario_moves
 						 (scenario_id, move_order, course_id, target_semester_id)
 						 SELECT ?, ?, ?, ? WHERE EXISTS (
-						   SELECT 1 FROM planning_scenarios WHERE id = ? AND revision = ?
+						   SELECT 1 FROM planning_scenarios WHERE id = ? AND user_id = ? AND revision = ?
 						 )`
 					)
-					.bind(id.value, index, move.courseId, move.targetSemesterId, id.value, revision.value)
+					.bind(id.value, index, move.courseId, move.targetSemesterId, id.value, userId, revision.value)
 			),
 			binding
 				.prepare(
 					`UPDATE planning_scenarios SET name = ?, revision = ?, updated_at = ?
-					 WHERE id = ? AND revision = ?`
+					 WHERE id = ? AND user_id = ? AND revision = ?`
 				)
-				.bind(name.value, nextRevision, now, id.value, revision.value)
+				.bind(name.value, nextRevision, now, id.value, userId, revision.value)
 		];
 		const results = await binding.batch(statements);
 		if ((results.at(-1)?.meta.changes ?? 0) === 0) {
 			const exists = await binding
-				.prepare(`SELECT 1 AS found FROM planning_scenarios WHERE id = ?`)
-				.bind(id.value)
+				.prepare(`SELECT 1 AS found FROM planning_scenarios WHERE id = ? AND user_id = ?`)
+				.bind(id.value, userId)
 				.first<{ found: number }>();
 			return exists ? { outcome: 'conflict' } : { outcome: 'not-found' };
 		}
 		const created = await binding
-			.prepare(`SELECT created_at FROM planning_scenarios WHERE id = ?`)
-			.bind(id.value)
+			.prepare(`SELECT created_at FROM planning_scenarios WHERE id = ? AND user_id = ?`)
+			.bind(id.value, userId)
 			.first<{ created_at: string }>();
 		return {
 			outcome: 'ok',
@@ -265,6 +267,7 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 	}
 
 	async function rename(
+		userId: string,
 		idInput: unknown,
 		input: unknown
 	): Promise<ScenarioResult<PlanningScenario>> {
@@ -280,33 +283,33 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 		const changed = await binding
 			.prepare(
 				`UPDATE planning_scenarios SET name = ?, revision = revision + 1, updated_at = ?
-				 WHERE id = ? AND revision = ?`
+				 WHERE id = ? AND user_id = ? AND revision = ?`
 			)
-			.bind(name.value, now, id.value, revision.value)
+			.bind(name.value, now, id.value, userId, revision.value)
 			.run();
 		if ((changed.meta.changes ?? 0) === 0) {
 			const exists = await binding
-				.prepare(`SELECT 1 AS found FROM planning_scenarios WHERE id = ?`)
-				.bind(id.value)
+				.prepare(`SELECT 1 AS found FROM planning_scenarios WHERE id = ? AND user_id = ?`)
+				.bind(id.value, userId)
 				.first<{ found: number }>();
 			return exists ? { outcome: 'conflict' } : { outcome: 'not-found' };
 		}
-		return get(id.value);
+		return get(userId, id.value);
 	}
 
-	async function remove(idInput: unknown, revisionInput: unknown): Promise<ScenarioResult<null>> {
+	async function remove(userId: string, idInput: unknown, revisionInput: unknown): Promise<ScenarioResult<null>> {
 		const id = validateId(idInput);
 		if (id.outcome !== 'ok') return id;
 		const revision = validateRevision(revisionInput);
 		if (revision.outcome !== 'ok') return revision;
 		const deleted = await binding
-			.prepare(`DELETE FROM planning_scenarios WHERE id = ? AND revision = ?`)
-			.bind(id.value, revision.value)
+			.prepare(`DELETE FROM planning_scenarios WHERE id = ? AND user_id = ? AND revision = ?`)
+			.bind(id.value, userId, revision.value)
 			.run();
 		if ((deleted.meta.changes ?? 0) > 0) return { outcome: 'ok', value: null };
 		const exists = await binding
-			.prepare(`SELECT 1 AS found FROM planning_scenarios WHERE id = ?`)
-			.bind(id.value)
+			.prepare(`SELECT 1 AS found FROM planning_scenarios WHERE id = ? AND user_id = ?`)
+			.bind(id.value, userId)
 			.first<{ found: number }>();
 		return exists ? { outcome: 'conflict' } : { outcome: 'not-found' };
 	}

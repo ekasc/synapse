@@ -179,7 +179,7 @@ describe('practice session validation', () => {
 		]
 	])('rejects invalid create input %#', async (input, message) => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create(input);
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',input);
 		expect(result).toMatchObject({ outcome: 'validation' });
 		if (result.outcome === 'validation') expect(result.message).toContain(message);
 		expect(mock.prepare).not.toHaveBeenCalled();
@@ -187,7 +187,7 @@ describe('practice session validation', () => {
 
 	it('rejects question with unsupported fields', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, extra: true }]
 		});
@@ -198,7 +198,7 @@ describe('practice session validation', () => {
 
 	it('rejects question with courseCode mismatch', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, courseCode: 'OTHER-1234' }]
 		});
@@ -210,7 +210,7 @@ describe('practice session validation', () => {
 
 	it('rejects question with source materialId not in sourceMaterials', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, source: { materialId: 'unknown', fileName: 'notes.pdf' } }]
 		});
@@ -222,7 +222,7 @@ describe('practice session validation', () => {
 
 	it('rejects question with source fileName mismatch', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, source: { materialId: 'm1', fileName: 'wrong.pdf' } }]
 		});
@@ -236,7 +236,7 @@ describe('practice session validation', () => {
 		const explanation = 'A detailed explanation grounded in the selected source passage. '.repeat(
 			5
 		);
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, explanation }]
 		});
@@ -246,7 +246,7 @@ describe('practice session validation', () => {
 
 	it('still rejects unbounded generated explanations', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, explanation: 'x'.repeat(4001) }]
 		});
@@ -255,7 +255,7 @@ describe('practice session validation', () => {
 
 	it('accepts trusted page metadata on generated item sources', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [
 				{
@@ -269,7 +269,7 @@ describe('practice session validation', () => {
 
 	it('rejects invalid source page ranges', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [
 				{
@@ -283,7 +283,7 @@ describe('practice session validation', () => {
 
 	it('rejects question with empty option', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, options: ['A', '', 'C', 'D'] }]
 		});
@@ -294,7 +294,7 @@ describe('practice session validation', () => {
 
 	it('rejects duplicate question ids', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [validQuestion, { ...validQuestion, id: 'q1' }]
 		});
@@ -305,7 +305,7 @@ describe('practice session validation', () => {
 
 	it('rejects duplicate flashcard ids', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			flashcards: [validFlashcard, { ...validFlashcard, id: 'f1' }]
 		});
@@ -316,7 +316,7 @@ describe('practice session validation', () => {
 
 	it('rejects duplicate source material ids', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			sourceMaterials: [validSource, { ...validSource, materialId: 'm1' }]
 		});
@@ -328,7 +328,7 @@ describe('practice session validation', () => {
 
 	it('rejects question with non-integer correctIndex', async () => {
 		const mock = mockBinding();
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			questions: [{ ...validQuestion, correctIndex: 1.5 }]
 		});
@@ -389,7 +389,7 @@ describe('practice session validation', () => {
 			updated_at: 'updated'
 		};
 		const mock = mockBinding({ firstResults: [existing] });
-		const result = await createPracticeSessionRepository(mock.binding).updateProgress('s1', {
+		const result = await createPracticeSessionRepository(mock.binding).updateProgress('test-user','s1', {
 			score: 5
 		});
 		expect(result).toMatchObject({ outcome: 'validation' });
@@ -414,7 +414,7 @@ describe('practice session validation', () => {
 			updated_at: 'updated'
 		};
 		const mock = mockBinding({ firstResults: [existing] });
-		const result = await createPracticeSessionRepository(mock.binding).updateProgress('s1', {
+		const result = await createPracticeSessionRepository(mock.binding).updateProgress('test-user','s1', {
 			missedQuestionIds: ['q1', 'q1']
 		});
 		expect(result).toMatchObject({ outcome: 'validation' });
@@ -439,7 +439,7 @@ describe('practice session validation', () => {
 			updated_at: 'updated'
 		};
 		const mock = mockBinding({ firstResults: [existing] });
-		const result = await createPracticeSessionRepository(mock.binding).updateProgress('s1', {
+		const result = await createPracticeSessionRepository(mock.binding).updateProgress('test-user','s1', {
 			missedQuestionIds: ['unknown']
 		});
 		expect(result).toMatchObject({ outcome: 'validation' });
@@ -464,7 +464,7 @@ describe('practice session validation', () => {
 			updated_at: 'updated'
 		};
 		const mock = mockBinding({ firstResults: [existing], runChanges: 1 });
-		const result = await createPracticeSessionRepository(mock.binding).updateProgress('s1', {
+		const result = await createPracticeSessionRepository(mock.binding).updateProgress('test-user','s1', {
 			currentQuestionIndex: 1
 		});
 		expect(result.outcome).toBe('ok');
@@ -488,7 +488,7 @@ describe('practice session validation', () => {
 			updated_at: 'updated'
 		};
 		const mock = mockBinding({ firstResults: [existing], runChanges: 1 });
-		const result = await createPracticeSessionRepository(mock.binding).updateProgress('s1', {
+		const result = await createPracticeSessionRepository(mock.binding).updateProgress('test-user','s1', {
 			score: 2,
 			currentQuestionIndex: 2,
 			missedQuestionIds: ['q1'],
@@ -510,7 +510,7 @@ describe('practice session validation', () => {
 describe('practice session persistence contracts', () => {
 	it('trims input, assigns server fields, and persists creation', async () => {
 		const mock = mockBinding({ runChanges: 1 });
-		const result = await createPracticeSessionRepository(mock.binding).create({
+		const result = await createPracticeSessionRepository(mock.binding).create('test-user',{
 			...validCreate,
 			courseId: '  course-1  ',
 			courseCode: '  CSIS-2200  '
@@ -562,7 +562,7 @@ describe('practice session persistence contracts', () => {
 				]
 			]
 		});
-		const result = await createPracticeSessionRepository(mock.binding).list();
+		const result = await createPracticeSessionRepository(mock.binding).list('test-user',);
 		expect(result.outcome).toBe('ok');
 		if (result.outcome !== 'ok') return;
 		expect(result.value).toHaveLength(1);
@@ -585,7 +585,7 @@ describe('practice session persistence contracts', () => {
 
 	it('filters list by courseId', async () => {
 		const mock = mockBinding({ allResults: [[]] });
-		await createPracticeSessionRepository(mock.binding).list('course-2');
+		await createPracticeSessionRepository(mock.binding).list('test-user','course-2');
 		expect(mock.statements[0].sql).toContain('WHERE course_id = ?');
 		expect(mock.statements[0].values[0]).toBe('course-2');
 	});
@@ -611,7 +611,7 @@ describe('practice session persistence contracts', () => {
 				}
 			]
 		});
-		const result = await createPracticeSessionRepository(mock.binding).get('s1');
+		const result = await createPracticeSessionRepository(mock.binding).get('test-user','s1');
 		expect(result.outcome).toBe('ok');
 		if (result.outcome !== 'ok') return;
 		expect(result.value.id).toBe('s1');
@@ -626,7 +626,7 @@ describe('practice session persistence contracts', () => {
 
 	it('returns not-found for missing session', async () => {
 		const mock = mockBinding({ firstResults: [null] });
-		const result = await createPracticeSessionRepository(mock.binding).get('missing');
+		const result = await createPracticeSessionRepository(mock.binding).get('test-user','missing');
 		expect(result).toEqual({ outcome: 'not-found' });
 	});
 
@@ -648,7 +648,7 @@ describe('practice session persistence contracts', () => {
 			updated_at: 'updated'
 		};
 		const mock = mockBinding({ firstResults: [existing], runChanges: 1 });
-		const result = await createPracticeSessionRepository(mock.binding).updateProgress('s1', {
+		const result = await createPracticeSessionRepository(mock.binding).updateProgress('test-user','s1', {
 			score: 2,
 			currentQuestionIndex: 1,
 			missedQuestionIds: ['q1'],
@@ -688,22 +688,22 @@ describe('practice session persistence contracts', () => {
 		};
 		const mock = mockBinding({ firstResults: [existing, existing] });
 		const repo = createPracticeSessionRepository(mock.binding);
-		const overIndex = await repo.updateProgress('s1', { currentQuestionIndex: 5 });
+		const overIndex = await repo.updateProgress('test-user', 's1', { currentQuestionIndex: 5 });
 		expect(overIndex).toMatchObject({ outcome: 'validation' });
-		const overCard = await repo.updateProgress('s1', { currentCardIndex: 5 });
+		const overCard = await repo.updateProgress('test-user', 's1', { currentCardIndex: 5 });
 		expect(overCard).toMatchObject({ outcome: 'validation' });
 	});
 
 	it('deletes an existing session', async () => {
 		const mock = mockBinding({ runChanges: 1 });
-		const result = await createPracticeSessionRepository(mock.binding).delete('s1');
+		const result = await createPracticeSessionRepository(mock.binding).delete('test-user','s1');
 		expect(result).toEqual({ outcome: 'ok', value: null });
 		expect(mock.statements[0].sql).toContain('DELETE FROM practice_sessions WHERE id = ?');
 	});
 
 	it('returns not-found on delete for missing session', async () => {
 		const mock = mockBinding({ runChanges: 0 });
-		const result = await createPracticeSessionRepository(mock.binding).delete('missing');
+		const result = await createPracticeSessionRepository(mock.binding).delete('test-user','missing');
 		expect(result).toEqual({ outcome: 'not-found' });
 	});
 });

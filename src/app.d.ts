@@ -9,11 +9,22 @@ declare global {
 			cf?: IncomingRequestCfProperties;
 		}
 
-		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
+		interface Locals {
+			user: AppUser | null;
+			sessionId: string | null;
+		}
+
+		interface PageData {
+			user: AppUser | null;
+		}
 		// interface PageState {}
 	}
 }
+
+type AppUser = {
+	id: string;
+	email: string;
+	name: string | null;
+};
 
 export {};

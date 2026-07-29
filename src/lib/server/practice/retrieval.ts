@@ -1,11 +1,23 @@
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { WorkerMessageHandler } from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
 import type { MaterialChunk } from './material-index';
 
-const pdfjsGlobal = globalThis as typeof globalThis & {
-	pdfjsWorker?: { WorkerMessageHandler: typeof WorkerMessageHandler };
-};
-pdfjsGlobal.pdfjsWorker ??= { WorkerMessageHandler };
+type PdfJsModule = typeof import('pdfjs-dist/legacy/build/pdf.mjs');
+type PdfJsWorkerModule = typeof import('pdfjs-dist/legacy/build/pdf.worker.mjs');
+
+let pdfjsPromise: Promise<PdfJsModule> | undefined;
+
+async function loadPdfJs(): Promise<PdfJsModule> {
+	pdfjsPromise ??= (async () => {
+		const { WorkerMessageHandler } = (await import(
+			'pdfjs-dist/legacy/build/pdf.worker.mjs'
+		)) as PdfJsWorkerModule;
+		const pdfjsGlobal = globalThis as typeof globalThis & {
+			pdfjsWorker?: { WorkerMessageHandler: typeof WorkerMessageHandler };
+		};
+		pdfjsGlobal.pdfjsWorker ??= { WorkerMessageHandler };
+		return (await import('pdfjs-dist/legacy/build/pdf.mjs')) as PdfJsModule;
+	})();
+	return pdfjsPromise;
+}
 
 export const CHUNK_SIZE = 2000;
 export const CHUNK_OVERLAP = 200;
@@ -49,6 +61,7 @@ export async function extractPageBatch(
 	batchSize: number
 ): Promise<ExtractionBatch> {
 	if (mimeType === 'application/pdf') {
+		const pdfjsLib = await loadPdfJs();
 		const loadingTask = pdfjsLib.getDocument({ data: content.slice() });
 		const doc = await loadingTask.promise;
 		try {
@@ -89,6 +102,7 @@ export function normalizeText(text: string): string {
 
 export async function extractText(content: Uint8Array, mimeType: string): Promise<string> {
 	if (mimeType === 'application/pdf') {
+		const pdfjsLib = await loadPdfJs();
 		const doc = await pdfjsLib.getDocument({ data: content.slice() }).promise;
 		let text = '';
 		for (let i = 1; i <= doc.numPages; i++) {
@@ -340,6 +354,43 @@ export function selectIndexedChunks(
 
 	if (scored.length === 0) return [];
 	for (const { chunk } of scored.slice(0, 12)) {
+		const group = byMaterial.get(chunk.materialId) ?? [];
+		const position = group.findIndex((candidate) => candidate.id === chunk.id);
+		if (position > 0) addWithinBudget(selected, seen, group[position - 1], remaining);
+		addWithinBudget(selected, seen, chunk, remaining);
+		if (position >= 0 && position < group.length - 1)
+			addWithinBudget(selected, seen, group[position + 1], remaining);
+	}
+	return selected.sort((a, b) =>
+		a.materialId === b.materialId
+			? a.chunkIndex - b.chunkIndex
+			: a.materialId.localeCompare(b.materialId)
+	);
+}
+
+// Selects chunks matching semantic search hits plus their adjacent chunks for
+// local context, mirroring the lexical path's budget and ordering rules.
+export function selectSemanticChunks(
+	chunks: MaterialChunk[],
+	matches: Array<{ chunkId: string; score: number }>,
+	totalBudget: number = TOTAL_BUDGET
+): MaterialChunk[] {
+	if (chunks.length === 0 || matches.length === 0 || totalBudget <= 0) return [];
+	const byId = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+	const byMaterial = new Map<string, MaterialChunk[]>();
+	for (const chunk of chunks) {
+		const group = byMaterial.get(chunk.materialId) ?? [];
+		group.push(chunk);
+		byMaterial.set(chunk.materialId, group);
+	}
+
+	const selected: MaterialChunk[] = [];
+	const seen = new Set<string>();
+	const remaining = { value: totalBudget };
+	const ranked = [...matches].sort((a, b) => b.score - a.score);
+	for (const match of ranked) {
+		const chunk = byId.get(match.chunkId);
+		if (!chunk) continue;
 		const group = byMaterial.get(chunk.materialId) ?? [];
 		const position = group.findIndex((candidate) => candidate.id === chunk.id);
 		if (position > 0) addWithinBudget(selected, seen, group[position - 1], remaining);

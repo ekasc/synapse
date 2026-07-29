@@ -7,8 +7,10 @@ import {
 	createMaterialIndexRepository
 } from '$lib/server/practice/material-index';
 
-export async function load({ params, platform }: RequestEvent) {
-	const course = (await getCourses()).find(
+export async function load({ params, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return { course: null, materials: [] };
+	const course = (await getCourses(userId)).find(
 		(item) => item.id === params.courseId && item.semesterId === params.semesterId
 	);
 	if (!course) error(404, 'Course not found in this semester');
@@ -20,7 +22,8 @@ export async function load({ params, platform }: RequestEvent) {
 	materials.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
 	const indexedMaterials = await attachMaterialIndexes(
 		materials,
-		createMaterialIndexRepository(platform?.env?.BRIEF_DB)
+		createMaterialIndexRepository(platform?.env?.BRIEF_DB),
+		userId
 	);
 
 	return { course, materials: indexedMaterials };

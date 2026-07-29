@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
-import { sql, desc } from 'drizzle-orm';
+import { sql, desc, eq, and } from 'drizzle-orm';
 import * as schema from './d1-schema';
 
 export type Briefing = {
@@ -72,6 +72,7 @@ export type Briefing = {
 
 export type CalendarEventRow = {
 	id: string;
+	userId: string;
 	courseId: string | null;
 	courseCode: string;
 	title: string;
@@ -83,6 +84,9 @@ export type CalendarEventRow = {
 	gradeWeight: number | null;
 	status: string | null;
 	notes: string | null;
+	origin?: 'manual' | 'syllabus';
+	sourceKey?: string | null;
+	sourceImportId?: string | null;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -330,10 +334,11 @@ export function createDb(binding: D1Database) {
 
 		// ── Calendar Events CRUD ──
 
-		getCalendarEvents: async (): Promise<CalendarEventRow[]> => {
-			const rows = await db.select().from(ce).all();
+		getCalendarEvents: async (userId: string): Promise<CalendarEventRow[]> => {
+			const rows = await db.select().from(ce).where(eq(ce.userId, userId)).all();
 			return rows.map((r: Record<string, unknown>) => ({
 				id: String(r.id),
+				userId: String(r.userId),
 				courseId: r.courseId ? String(r.courseId) : null,
 				courseCode: String(r.courseCode),
 				title: String(r.title),
@@ -345,17 +350,22 @@ export function createDb(binding: D1Database) {
 				gradeWeight: r.gradeWeight != null ? Number(r.gradeWeight) : null,
 				status: r.status ? String(r.status) : null,
 				notes: r.notes ? String(r.notes) : null,
+				origin: r.origin === 'syllabus' ? 'syllabus' : 'manual',
+				sourceKey: r.sourceKey ? String(r.sourceKey) : null,
+				sourceImportId: r.sourceImportId ? String(r.sourceImportId) : null,
 				createdAt: String(r.createdAt),
 				updatedAt: String(r.updatedAt)
 			}));
 		},
 
 		createCalendarEvent: async (
-			ev: Omit<CalendarEventRow, 'createdAt' | 'updatedAt'>
+			userId: string,
+			ev: Omit<CalendarEventRow, 'userId' | 'createdAt' | 'updatedAt'>
 		): Promise<void> => {
 			const now = new Date().toISOString();
 			await db.insert(ce).values({
 				id: ev.id,
+				userId: userId,
 				courseId: ev.courseId ?? null,
 				courseCode: ev.courseCode,
 				title: ev.title,
@@ -367,19 +377,23 @@ export function createDb(binding: D1Database) {
 				gradeWeight: ev.gradeWeight ?? null,
 				status: ev.status ?? null,
 				notes: ev.notes ?? null,
+				origin: ev.origin ?? 'manual',
+				sourceKey: ev.sourceKey ?? null,
+				sourceImportId: ev.sourceImportId ?? null,
 				createdAt: now,
 				updatedAt: now
 			});
 		},
 
 		updateCalendarEvent: async (
+			userId: string,
 			id: string,
-			ev: Partial<Omit<CalendarEventRow, 'id' | 'createdAt' | 'updatedAt'>>
+			ev: Partial<Omit<CalendarEventRow, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
 		): Promise<void> => {
 			const now = new Date().toISOString();
 			await binding
 				.prepare(
-					'UPDATE calendar_events SET title = ?, type = ?, date = ?, month = ?, year = ?, time = ?, course_code = ?, grade_weight = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?'
+					'UPDATE calendar_events SET title = ?, type = ?, date = ?, month = ?, year = ?, time = ?, course_code = ?, grade_weight = ?, status = ?, notes = ?, updated_at = ? WHERE id = ? AND user_id = ?'
 				)
 				.bind(
 					ev.title ?? '',
@@ -393,36 +407,43 @@ export function createDb(binding: D1Database) {
 					ev.status ?? null,
 					ev.notes ?? null,
 					now,
-					id
+					id,
+					userId
 				)
 				.run();
 		},
 
-		deleteCalendarEvent: async (id: string): Promise<void> => {
-			await db.delete(ce).where(sql`${ce.id} = ${id}`);
+		deleteCalendarEvent: async (userId: string, id: string): Promise<void> => {
+			await db.delete(ce).where(and(eq(ce.id, id), eq(ce.userId, userId)));
 		},
 
 		// ── Weekly digest cache ──
 
-		getWeeklyDigestCache: async (weekStart: string): Promise<string | null> => {
+		getWeeklyDigestCache: async (userId: string, weekStart: string): Promise<string | null> => {
 			const row = await db
 				.select({ digestJson: schema.weeklyDigestCache.digestJson })
 				.from(schema.weeklyDigestCache)
-				.where(sql`${schema.weeklyDigestCache.weekStart} = ${weekStart}`)
+				.where(
+					and(
+						eq(schema.weeklyDigestCache.weekStart, weekStart),
+						eq(schema.weeklyDigestCache.userId, userId)
+					)
+				)
 				.get();
 			return row ? String(row.digestJson) : null;
 		},
 
-		setWeeklyDigestCache: async (weekStart: string, json: string): Promise<void> => {
+		setWeeklyDigestCache: async (userId: string, weekStart: string, json: string): Promise<void> => {
 			await db
 				.insert(schema.weeklyDigestCache)
 				.values({
 					weekStart,
+					userId,
 					digestJson: json,
 					createdAt: new Date().toISOString()
 				})
 				.onConflictDoUpdate({
-					target: schema.weeklyDigestCache.weekStart,
+					target: [schema.weeklyDigestCache.weekStart, schema.weeklyDigestCache.userId],
 					set: {
 						digestJson: json,
 						createdAt: new Date().toISOString()

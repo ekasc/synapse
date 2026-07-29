@@ -17,6 +17,7 @@ import { GET as list, POST } from './+server';
 import { DELETE, GET, PATCH, PUT } from './[id]/+server';
 
 const platform = { env: { BRIEF_DB: {} } };
+const locals = { user: { id: 'test-user' } };
 
 function request(method: string, body?: string) {
 	return new Request('http://localhost/api/course-map/scenarios/scenario-1', {
@@ -33,9 +34,10 @@ describe('course map scenario API', () => {
 		repository.list.mockResolvedValue({ outcome: 'ok', value: [{ id: 'scenario-1' }] });
 		repository.create.mockResolvedValue({ outcome: 'ok', value: { id: 'scenario-2' } });
 
-		const listed = await list({ platform } as never);
+		const listed = await list({ platform, locals } as never);
 		const created = await POST({
 			platform,
+			locals,
 			request: request('POST', JSON.stringify({ name: 'Plan', moves: [{}] }))
 		} as never);
 
@@ -55,6 +57,7 @@ describe('course map scenario API', () => {
 		);
 		const response = await PUT({
 			platform,
+			locals,
 			params: { id: 'scenario-1' },
 			request: request('PUT', '{}')
 		} as never);
@@ -66,9 +69,9 @@ describe('course map scenario API', () => {
 			outcome: 'validation',
 			message: 'request must be a plain object'
 		});
-		const response = await POST({ platform, request: request('POST', '{') } as never);
+		const response = await POST({ platform, locals, request: request('POST', '{') } as never);
 		expect(response.status).toBe(400);
-		expect(repository.create).toHaveBeenCalledWith(undefined);
+		expect(repository.create).toHaveBeenCalledWith('test-user', undefined);
 	});
 
 	it('supports get, rename, and revision-controlled delete', async () => {
@@ -79,11 +82,12 @@ describe('course map scenario API', () => {
 		});
 		repository.delete.mockResolvedValue({ outcome: 'ok', value: null });
 
-		expect((await GET({ platform, params: { id: 'scenario-1' } } as never)).status).toBe(200);
+		expect((await GET({ platform, locals, params: { id: 'scenario-1' } } as never)).status).toBe(200);
 		expect(
 			(
 				await PATCH({
 					platform,
+					locals,
 					params: { id: 'scenario-1' },
 					request: request('PATCH', JSON.stringify({ name: 'Renamed', revision: 1 }))
 				} as never)
@@ -91,22 +95,23 @@ describe('course map scenario API', () => {
 		).toBe(200);
 		const deleted = await DELETE({
 			platform,
+			locals,
 			params: { id: 'scenario-1' },
 			request: request('DELETE', JSON.stringify({ revision: 2 }))
 		} as never);
 		expect(deleted.status).toBe(200);
-		expect(repository.delete).toHaveBeenCalledWith('scenario-1', 2);
+		expect(repository.delete).toHaveBeenCalledWith('test-user', 'scenario-1', 2);
 	});
 
 	it('returns safe 500 responses without exposing repository errors', async () => {
 		repository.get.mockRejectedValue(new Error('SQLITE_ERROR: no such table secret_table'));
-		const response = await GET({ platform, params: { id: 'scenario-1' } } as never);
+		const response = await GET({ platform, locals, params: { id: 'scenario-1' } } as never);
 		expect(response.status).toBe(500);
 		expect(await response.json()).toEqual({ error: 'Unable to load scenario' });
 	});
 
 	it('returns safe 500 when the platform binding is unavailable', async () => {
-		const response = await list({ platform: undefined } as never);
+		const response = await list({ platform: undefined, locals } as never);
 		expect(response.status).toBe(500);
 		expect(await response.json()).toEqual({ error: 'Service unavailable' });
 	});

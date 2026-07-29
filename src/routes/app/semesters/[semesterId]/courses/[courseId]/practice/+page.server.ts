@@ -7,8 +7,10 @@ import {
 } from '$lib/server/practice/material-index';
 import type { RequestEvent } from './$types';
 
-export async function load({ params, platform }: RequestEvent) {
-	const courses = await getCourses();
+export async function load({ params, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return { courses: [] };
+	const courses = await getCourses(userId);
 	const course = courses.find(
 		(item) => item.id === params.courseId && item.semesterId === params.semesterId
 	);
@@ -19,7 +21,8 @@ export async function load({ params, platform }: RequestEvent) {
 		: await listMaterialsFallback(course.id);
 	const indexedMaterials = await attachMaterialIndexes(
 		materials,
-		createMaterialIndexRepository(platform?.env?.BRIEF_DB)
+		createMaterialIndexRepository(platform?.env?.BRIEF_DB),
+		userId
 	);
 	const readyMaterials = indexedMaterials
 		.filter((material) => material.index.status === 'ready')

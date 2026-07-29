@@ -2,6 +2,8 @@ import { json } from '@sveltejs/kit';
 import { createWeeklyPushRepository } from '$lib/server/push/subscriptions';
 
 export async function POST(event) {
+	const userId = event.locals.user?.id;
+	if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
 	const binding = event.platform?.env?.BRIEF_DB as D1Database | undefined;
 	if (!binding) {
 		return json({ error: 'database unavailable' }, { status: 503 });
@@ -16,6 +18,6 @@ export async function POST(event) {
 	if (typeof endpoint !== 'string' || endpoint.length === 0 || endpoint.length > 2048) {
 		return json({ error: 'endpoint is required' }, { status: 400 });
 	}
-	await createWeeklyPushRepository(binding).removeByEndpoint(endpoint);
+	await createWeeklyPushRepository(binding).removeByEndpoint(userId, endpoint);
 	return json({ ok: true });
 }

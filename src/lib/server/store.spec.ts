@@ -8,6 +8,8 @@ import { join } from 'node:path';
 const testDir = mkdtempSync(join(tmpdir(), 'synapse-store-'));
 process.chdir(testDir);
 
+const TEST_USER_ID = 'test-user-id';
+
 const {
 	addCourse,
 	addSemester,
@@ -61,7 +63,7 @@ describe('D1 course row mapping', () => {
 		const { binding, stored } = courseBinding(raw);
 		setStoreDb(binding);
 
-		const [course] = await getCourses();
+		const [course] = await getCourses(TEST_USER_ID);
 
 		expect(course.signals?.status).toBe('active');
 		expect(course.signals?.topics).toEqual(['joins', 'indexes']);
@@ -73,20 +75,21 @@ describe('D1 course row mapping', () => {
 		async (signals) => {
 			const { binding } = courseBinding(signals);
 			setStoreDb(binding);
-			expect((await getCourses())[0]?.signals).toBeUndefined();
+			expect((await getCourses(TEST_USER_ID))[0]?.signals).toBeUndefined();
 		}
 	);
 
 	it('leaves filesystem signal objects unchanged', async () => {
 		const signals = { status: 'planned' as const, topics: ['foundations'] };
-		await addCourse({
+		await addCourse(TEST_USER_ID, {
 			id: 'fs-course',
+			userId: TEST_USER_ID,
 			semesterId: 's1',
 			code: 'CSIS 1000',
 			name: 'Foundations',
 			signals
 		});
-		expect((await getCourses())[0]?.signals).toEqual(signals);
+		expect((await getCourses(TEST_USER_ID))[0]?.signals).toEqual(signals);
 	});
 });
 
@@ -119,54 +122,55 @@ describe('sanitizeCourseColor', () => {
 describe('addCourse / updateCourse color sanitization', () => {
 	const base = {
 		id: 'c1',
+		userId: TEST_USER_ID,
 		semesterId: 's1',
 		code: 'CSIS 1000',
 		name: 'Foundations'
 	};
 
 	it('strips a malicious color on add', async () => {
-		await addCourse({ ...base, color: 'red; background: url(http://evil)' });
-		const courses = await getCourses();
+		await addCourse(TEST_USER_ID, { ...base, color: 'red; background: url(http://evil)' });
+		const courses = await getCourses(TEST_USER_ID);
 		expect(courses[0]?.color).toBeUndefined();
 	});
 
 	it('strips a malicious color on update', async () => {
-		await addCourse({ ...base });
-		await updateCourse('c1', { color: '#fff; color: red' });
-		const courses = await getCourses();
+		await addCourse(TEST_USER_ID, { ...base });
+		await updateCourse(TEST_USER_ID, 'c1', { color: '#fff; color: red' });
+		const courses = await getCourses(TEST_USER_ID);
 		expect(courses[0]?.color).toBeUndefined();
 	});
 
 	it('keeps a valid hex color on update', async () => {
-		await addCourse({ ...base });
-		await updateCourse('c1', { color: '#4a6fa5' });
-		const courses = await getCourses();
+		await addCourse(TEST_USER_ID, { ...base });
+		await updateCourse(TEST_USER_ID, 'c1', { color: '#4a6fa5' });
+		const courses = await getCourses(TEST_USER_ID);
 		expect(courses[0]?.color).toBe('#4a6fa5');
 	});
 
 	it('clears the color when an invalid value is sent', async () => {
-		await addCourse({ ...base, color: '#fff' });
-		await updateCourse('c1', { color: 'red; bad' });
-		const courses = await getCourses();
+		await addCourse(TEST_USER_ID, { ...base, color: '#fff' });
+		await updateCourse(TEST_USER_ID, 'c1', { color: 'red; bad' });
+		const courses = await getCourses(TEST_USER_ID);
 		expect(courses[0]?.color).toBeUndefined();
 	});
 
 	it('survives a delete without resurrecting the bad color', async () => {
-		await addCourse({ ...base, color: 'red; bad' });
-		await deleteCourse('c1');
-		const courses = await getCourses();
+		await addCourse(TEST_USER_ID, { ...base, color: 'red; bad' });
+		await deleteCourse(TEST_USER_ID, 'c1');
+		const courses = await getCourses(TEST_USER_ID);
 		expect(courses).toHaveLength(0);
 	});
 });
 
 describe('Course Linker deletion integrity', () => {
 	beforeEach(async () => {
-		await addSemester({ id: 's1', term: 'Fall', year: 2026, order: 1 });
-		await addSemester({ id: 's2', term: 'Spring', year: 2027, order: 2 });
-		await addCourse({ id: 'c1', semesterId: 's1', code: 'ONE', name: 'One' });
-		await addCourse({ id: 'c2', semesterId: 's1', code: 'TWO', name: 'Two' });
-		await addCourse({ id: 'c3', semesterId: 's2', code: 'THREE', name: 'Three' });
-		await saveGraphState({
+		await addSemester(TEST_USER_ID, { id: 's1', userId: TEST_USER_ID, term: 'Fall', year: 2026, order: 1 });
+		await addSemester(TEST_USER_ID, { id: 's2', userId: TEST_USER_ID, term: 'Spring', year: 2027, order: 2 });
+		await addCourse(TEST_USER_ID, { id: 'c1', userId: TEST_USER_ID, semesterId: 's1', code: 'ONE', name: 'One' });
+		await addCourse(TEST_USER_ID, { id: 'c2', userId: TEST_USER_ID, semesterId: 's1', code: 'TWO', name: 'Two' });
+		await addCourse(TEST_USER_ID, { id: 'c3', userId: TEST_USER_ID, semesterId: 's2', code: 'THREE', name: 'Three' });
+		await saveGraphState(TEST_USER_ID, {
 			positions: { c1: { x: 1, y: 1 }, c2: { x: 2, y: 2 }, c3: { x: 3, y: 3 } },
 			edges: [
 				{ id: 'e1', source: 'c1', target: 'c2' },
@@ -177,19 +181,19 @@ describe('Course Linker deletion integrity', () => {
 	});
 
 	it('deletes a course position and incident edges without touching unrelated graph data', async () => {
-		await deleteCourse('c2');
-		expect((await getCourses()).map((course) => course.id)).toEqual(['c1', 'c3']);
-		expect(await getGraphState()).toEqual({
+		await deleteCourse(TEST_USER_ID, 'c2');
+		expect((await getCourses(TEST_USER_ID)).map((course) => course.id)).toEqual(['c1', 'c3']);
+		expect(await getGraphState(TEST_USER_ID)).toEqual({
 			positions: { c1: { x: 1, y: 1 }, c3: { x: 3, y: 3 } },
 			edges: [{ id: 'e3', source: 'c3', target: 'external' }]
 		});
 	});
 
 	it('deletes all semester courses and their graph data while retaining other semesters', async () => {
-		await deleteSemester('s1');
-		expect((await getSemesters()).map((semester) => semester.id)).toEqual(['s2']);
-		expect((await getCourses()).map((course) => course.id)).toEqual(['c3']);
-		expect(await getGraphState()).toEqual({
+		await deleteSemester(TEST_USER_ID, 's1');
+		expect((await getSemesters(TEST_USER_ID)).map((semester) => semester.id)).toEqual(['s2']);
+		expect((await getCourses(TEST_USER_ID)).map((course) => course.id)).toEqual(['c3']);
+		expect(await getGraphState(TEST_USER_ID)).toEqual({
 			positions: { c3: { x: 3, y: 3 } },
 			edges: [{ id: 'e3', source: 'c3', target: 'external' }]
 		});
@@ -215,9 +219,10 @@ describe('Course Linker D1 atomic writes', () => {
 
 		await expect(
 			applyGraphImport(
+				TEST_USER_ID,
 				[
 					{
-						course: { id: 'atomic', semesterId: 's1', code: 'ATOMIC', name: 'Atomic' },
+						course: { id: 'atomic', userId: TEST_USER_ID, semesterId: 's1', code: 'ATOMIC', name: 'Atomic' },
 						existing: false
 					}
 				],

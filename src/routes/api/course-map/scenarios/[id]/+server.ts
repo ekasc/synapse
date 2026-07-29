@@ -30,20 +30,25 @@ function unavailable() {
 	return json({ error: 'Service unavailable' }, { status: 500 });
 }
 
-export async function GET({ params, platform }: RequestEvent) {
+export async function GET({ params, platform, locals }: RequestEvent) {
 	if (!platform) return unavailable();
 	try {
-		return response(await createPlanningScenarioRepository(platform.env.BRIEF_DB).get(params.id));
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
+		return response(await createPlanningScenarioRepository(platform.env.BRIEF_DB).get(userId, params.id));
 	} catch {
 		return json({ error: 'Unable to load scenario' }, { status: 500 });
 	}
 }
 
-export async function PUT({ params, request, platform }: RequestEvent) {
+export async function PUT({ params, request, platform, locals }: RequestEvent) {
 	if (!platform) return unavailable();
 	try {
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		return response(
 			await createPlanningScenarioRepository(platform.env.BRIEF_DB).update(
+				userId,
 				params.id,
 				withRevision(await bodyOf(request))
 			)
@@ -53,11 +58,14 @@ export async function PUT({ params, request, platform }: RequestEvent) {
 	}
 }
 
-export async function PATCH({ params, request, platform }: RequestEvent) {
+export async function PATCH({ params, request, platform, locals }: RequestEvent) {
 	if (!platform) return unavailable();
 	try {
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		return response(
 			await createPlanningScenarioRepository(platform.env.BRIEF_DB).rename(
+				userId,
 				params.id,
 				withRevision(await bodyOf(request))
 			)
@@ -67,9 +75,11 @@ export async function PATCH({ params, request, platform }: RequestEvent) {
 	}
 }
 
-export async function DELETE({ params, request, platform }: RequestEvent) {
+export async function DELETE({ params, request, platform, locals }: RequestEvent) {
 	if (!platform) return unavailable();
 	try {
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const body = await bodyOf(request);
 		if (
 			body === null ||
@@ -82,7 +92,7 @@ export async function DELETE({ params, request, platform }: RequestEvent) {
 		}
 		const revision = (body as Record<string, unknown>).revision;
 		return response(
-			await createPlanningScenarioRepository(platform.env.BRIEF_DB).delete(params.id, revision)
+			await createPlanningScenarioRepository(platform.env.BRIEF_DB).delete(userId, params.id, revision)
 		);
 	} catch {
 		return json({ error: 'Unable to delete scenario' }, { status: 500 });

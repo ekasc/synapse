@@ -26,7 +26,9 @@ function unsupportedKeys(value: Record<string, unknown>, allowed: Set<string>) {
 
 const POST_ALLOWED = new Set(['source', 'target', 'type', 'label', 'directed', 'reviewStatus']);
 
-export async function POST({ request }: RequestEvent) {
+export async function POST({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	let body: unknown;
 	try {
 		body = await request.json();
@@ -64,14 +66,14 @@ export async function POST({ request }: RequestEvent) {
 	if (reviewStatus !== undefined && !VALID_REVIEW_STATUS.has(reviewStatus as string))
 		return json({ ok: false, error: `Invalid reviewStatus: ${reviewStatus}` }, { status: 400 });
 
-	const courses = await getCourses();
+	const courses = await getCourses(userId);
 	const courseIds = new Set(courses.map((c) => c.id));
 	if (!courseIds.has(source))
 		return json({ ok: false, error: `source course not found: ${source}` }, { status: 400 });
 	if (!courseIds.has(target))
 		return json({ ok: false, error: `target course not found: ${target}` }, { status: 400 });
 
-	const graph = await getGraphState();
+	const graph = await getGraphState(userId);
 	if (graph.edges.some((e) => e.source === source && e.target === target && e.type === type))
 		return json(
 			{ ok: false, error: 'Edge with same source, target, and type already exists' },
@@ -90,14 +92,16 @@ export async function POST({ request }: RequestEvent) {
 	};
 
 	graph.edges.push(edge);
-	await saveGraphState(graph);
+	await saveGraphState(userId, graph);
 
 	return json(edge, { status: 201 });
 }
 
 const PATCH_ALLOWED = new Set(['id', 'label', 'type', 'directed', 'reviewStatus']);
 
-export async function PATCH({ request }: RequestEvent) {
+export async function PATCH({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	let body: unknown;
 	try {
 		body = await request.json();
@@ -130,7 +134,7 @@ export async function PATCH({ request }: RequestEvent) {
 	if (reviewStatus !== undefined && !VALID_REVIEW_STATUS.has(reviewStatus as string))
 		return json({ ok: false, error: `Invalid reviewStatus: ${reviewStatus}` }, { status: 400 });
 
-	const graph = await getGraphState();
+	const graph = await getGraphState(userId);
 	const idx = graph.edges.findIndex((e) => e.id === id);
 	if (idx === -1) return json({ ok: false, error: 'Edge not found' }, { status: 404 });
 
@@ -158,12 +162,14 @@ export async function PATCH({ request }: RequestEvent) {
 	if (reviewStatus !== undefined) updates.reviewStatus = reviewStatus;
 
 	graph.edges[idx] = { ...existing, ...updates };
-	await saveGraphState(graph);
+	await saveGraphState(userId, graph);
 
 	return json(graph.edges[idx]);
 }
 
-export async function DELETE({ request }: RequestEvent) {
+export async function DELETE({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	let body: unknown;
 	try {
 		body = await request.json();
@@ -182,13 +188,13 @@ export async function DELETE({ request }: RequestEvent) {
 	if (typeof id !== 'string' || !id)
 		return json({ ok: false, error: 'id must be a non-empty string' }, { status: 400 });
 
-	const graph = await getGraphState();
+	const graph = await getGraphState(userId);
 	const len = graph.edges.length;
 	graph.edges = graph.edges.filter((e) => e.id !== id);
 	if (graph.edges.length === len)
 		return json({ ok: false, error: 'Edge not found' }, { status: 404 });
 
-	await saveGraphState(graph);
+	await saveGraphState(userId, graph);
 
 	return json({ ok: true });
 }

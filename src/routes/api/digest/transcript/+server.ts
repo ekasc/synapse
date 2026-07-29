@@ -15,23 +15,25 @@ function fallbackFileName(value: FormDataEntryValue | null): string {
 	return 'Uploaded transcript';
 }
 
-async function processTranscript(jobId: string, transcript: File, fileName: string) {
+async function processTranscript(userId: string, jobId: string, transcript: File, fileName: string) {
 	try {
-		await updateAcademicDigestJob(jobId, { status: 'processing' });
+		await updateAcademicDigestJob(userId, jobId, { status: 'processing' });
 		const analysis = await analyzeTranscriptFile(
 			transcript,
-			await getCourses(),
-			await getSemesters()
+			await getCourses(userId),
+			await getSemesters(userId)
 		);
-		await saveAcademicDigest({ fileName, source: 'transcript-upload', analysis });
-		await updateAcademicDigestJob(jobId, { status: 'completed' });
+		await saveAcademicDigest(userId, { fileName, source: 'transcript-upload', analysis });
+		await updateAcademicDigestJob(userId, jobId, { status: 'completed' });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Transcript digestion failed';
-		await updateAcademicDigestJob(jobId, { status: 'failed', error: message });
+		await updateAcademicDigestJob(userId, jobId, { status: 'failed', error: message });
 	}
 }
 
-export async function POST({ request, platform }: RequestEvent) {
+export async function POST({ request, platform, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	const contentLength = Number(request.headers.get('content-length') ?? 0);
 	if (Number.isFinite(contentLength) && contentLength > MAX_TRANSCRIPT_BYTES) {
 		return json(
@@ -61,7 +63,7 @@ export async function POST({ request, platform }: RequestEvent) {
 
 	let job;
 	try {
-		job = await createAcademicDigestJob(fileName);
+		job = await createAcademicDigestJob(userId, fileName);
 	} catch (error) {
 		console.error('Could not create transcript digestion job:', error);
 		return json(
@@ -72,7 +74,7 @@ export async function POST({ request, platform }: RequestEvent) {
 			{ status: 500 }
 		);
 	}
-	const processing = processTranscript(job.id, transcript, fileName);
+	const processing = processTranscript(userId, job.id, transcript, fileName);
 	if (typeof platform?.ctx?.waitUntil === 'function') platform.ctx.waitUntil(processing);
 	else void processing;
 

@@ -1,5 +1,6 @@
 export type WeeklyPushSubscription = {
 	id: string;
+	userId: string;
 	endpoint: string;
 	p256dh: string;
 	auth: string;
@@ -14,6 +15,7 @@ export type WeeklyPushSubscriptionInput = {
 
 type SubscriptionRow = {
 	id: string;
+	user_id: string;
 	endpoint: string;
 	p256dh: string;
 	auth: string;
@@ -23,6 +25,7 @@ type SubscriptionRow = {
 function rowToSubscription(row: SubscriptionRow): WeeklyPushSubscription {
 	return {
 		id: row.id,
+		userId: row.user_id,
 		endpoint: row.endpoint,
 		p256dh: row.p256dh,
 		auth: row.auth,
@@ -35,18 +38,18 @@ export function createWeeklyPushRepository(binding: D1Database) {
 		async list(): Promise<WeeklyPushSubscription[]> {
 			const result = await binding
 				.prepare(
-					'SELECT id, endpoint, p256dh, auth, created_at FROM weekly_push_subscriptions ORDER BY created_at ASC, id ASC'
+					'SELECT id, user_id, endpoint, p256dh, auth, created_at FROM weekly_push_subscriptions ORDER BY created_at ASC, id ASC'
 				)
 				.all<SubscriptionRow>();
 			return (result.results ?? []).map(rowToSubscription);
 		},
 
-		async upsert(input: WeeklyPushSubscriptionInput): Promise<WeeklyPushSubscription> {
+		async upsert(userId: string, input: WeeklyPushSubscriptionInput): Promise<WeeklyPushSubscription> {
 			const existing = await binding
 				.prepare(
-					'SELECT id, endpoint, p256dh, auth, created_at FROM weekly_push_subscriptions WHERE endpoint = ?1'
+					'SELECT id, user_id, endpoint, p256dh, auth, created_at FROM weekly_push_subscriptions WHERE endpoint = ?1 AND user_id = ?2'
 				)
-				.bind(input.endpoint)
+				.bind(input.endpoint, userId)
 				.first<SubscriptionRow>();
 			if (existing) {
 				await binding
@@ -64,17 +67,17 @@ export function createWeeklyPushRepository(binding: D1Database) {
 			};
 			await binding
 				.prepare(
-					'INSERT INTO weekly_push_subscriptions (id, endpoint, p256dh, auth, created_at) VALUES (?1, ?2, ?3, ?4, ?5)'
+					'INSERT INTO weekly_push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)'
 				)
-				.bind(record.id, record.endpoint, record.p256dh, record.auth, record.createdAt)
+				.bind(record.id, userId, record.endpoint, record.p256dh, record.auth, record.createdAt)
 				.run();
 			return record;
 		},
 
-		async removeByEndpoint(endpoint: string): Promise<void> {
+		async removeByEndpoint(userId: string, endpoint: string): Promise<void> {
 			await binding
-				.prepare('DELETE FROM weekly_push_subscriptions WHERE endpoint = ?1')
-				.bind(endpoint)
+				.prepare('DELETE FROM weekly_push_subscriptions WHERE endpoint = ?1 AND user_id = ?2')
+				.bind(endpoint, userId)
 				.run();
 		}
 	};

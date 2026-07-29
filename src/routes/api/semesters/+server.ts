@@ -27,29 +27,37 @@ function hasId(value: unknown): value is { id: string } {
 	);
 }
 
-export async function GET() {
-	const semesters = (await getSemesters()).sort((a, b) => b.order - a.order);
+export async function GET(event: RequestEvent) {
+	const userId = event.locals.user?.id;
+	if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
+	const semesters = (await getSemesters(userId)).sort((a, b) => b.order - a.order);
 	return json(semesters);
 }
 
-export async function POST({ request }: RequestEvent) {
+export async function POST({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	const body: unknown = await request.json();
 	if (!isSemester(body)) return json({ ok: false, error: 'Invalid semester' }, { status: 400 });
-	await addSemester(body);
+	await addSemester(userId, body);
 	return json({ ok: true });
 }
 
-export async function DELETE({ request }: RequestEvent) {
+export async function DELETE({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	const body: unknown = await request.json();
 	if (!hasId(body)) return json({ ok: false, error: 'Invalid semester delete' }, { status: 400 });
-	await deleteSemester(body.id);
+	await deleteSemester(userId, body.id);
 	return json({ ok: true });
 }
 
-export async function PUT({ request }: RequestEvent) {
+export async function PUT({ request, locals }: RequestEvent) {
+	const userId = locals.user?.id;
+	if (!userId) return json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 	const body: unknown = await request.json();
 	if (!hasId(body)) return json({ ok: false, error: 'Missing semester id' }, { status: 400 });
 	const { id, ...updates } = body as { id: string };
-	await updateSemester(id, updates);
+	await updateSemester(userId, id, updates);
 	return json({ ok: true });
 }

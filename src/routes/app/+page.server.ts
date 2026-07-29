@@ -3,8 +3,11 @@ import { createDb } from '$lib/server/db/d1';
 import { createPracticeSessionRepository } from '$lib/server/practice/sessions';
 import { listMaterials, listMaterialsFallback } from '$lib/server/r2';
 import { buildPriorityDashboard } from '$lib/dashboard/priority';
+import { completePastCalendarEvents } from '$lib/server/calendar/complete-past-events';
 
 export async function load(event) {
+	const userId = event.locals.user?.id;
+	if (!userId) return { semesters: [], courses: [], graph: { positions: {}, edges: [] }, dashboardDataAvailable: false };
 	type ReadResult<T> = { value: T; available: boolean };
 	const safe = async <T>(fallback: T, fn: () => Promise<T>): Promise<ReadResult<T>> => {
 		try {
@@ -26,18 +29,21 @@ export async function load(event) {
 		practiceRead,
 		materialsRead
 	] = await Promise.all([
-		safe([], () => getSemesters()),
-		safe([], () => getCourses()),
-		safe({ positions: {}, edges: [] }, () => getGraphState()),
+		safe([], () => getSemesters(userId)),
+		safe([], () => getCourses(userId)),
+		safe({ positions: {}, edges: [] }, () => getGraphState(userId)),
 		binding
-			? safe([], () => createDb(binding).getCalendarEvents())
+			? safe([], async () => {
+					await completePastCalendarEvents(binding, userId);
+					return createDb(binding).getCalendarEvents(userId);
+				})
 			: Promise.resolve({ value: [], available: false }),
 		binding
 			? safe([], () => createDb(binding).getBriefs())
 			: Promise.resolve({ value: [], available: false }),
 		binding
 			? safe({ outcome: 'ok' as const, value: [] }, () =>
-					createPracticeSessionRepository(binding).list()
+					createPracticeSessionRepository(binding).list(userId)
 				)
 			: Promise.resolve({
 					value: { outcome: 'ok' as const, value: [] },

@@ -6,6 +6,8 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 export async function POST(event) {
+	const userId = event.locals.user?.id;
+	if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
 	const binding = event.platform?.env?.BRIEF_DB as D1Database | undefined;
 	if (!binding) {
 		return json({ error: 'database unavailable' }, { status: 503 });
@@ -26,7 +28,7 @@ export async function POST(event) {
 	if (!isNonEmptyString(endpoint) || !isNonEmptyString(p256dh) || !isNonEmptyString(auth)) {
 		return json({ error: 'endpoint, keys.p256dh, and keys.auth are required' }, { status: 400 });
 	}
-	const subscription = await createWeeklyPushRepository(binding).upsert({
+	const subscription = await createWeeklyPushRepository(binding).upsert(userId, {
 		endpoint,
 		p256dh,
 		auth

@@ -20,10 +20,12 @@ async function bodyOf(request: Request): Promise<unknown> {
 	}
 }
 
-export async function GET({ platform }: RequestEvent) {
+export async function GET({ platform, locals }: RequestEvent) {
 	if (!platform) return json({ error: 'Service unavailable' }, { status: 500 });
 	try {
-		const result = await createPlanningScenarioRepository(platform.env.BRIEF_DB).list();
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
+		const result = await createPlanningScenarioRepository(platform.env.BRIEF_DB).list(userId);
 		if (result.outcome !== 'ok') return response(result);
 		return json({ scenarios: result.value });
 	} catch {
@@ -31,11 +33,13 @@ export async function GET({ platform }: RequestEvent) {
 	}
 }
 
-export async function POST({ request, platform }: RequestEvent) {
+export async function POST({ request, platform, locals }: RequestEvent) {
 	if (!platform) return json({ error: 'Service unavailable' }, { status: 500 });
 	try {
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		return response(
-			await createPlanningScenarioRepository(platform.env.BRIEF_DB).create(await bodyOf(request)),
+			await createPlanningScenarioRepository(platform.env.BRIEF_DB).create(userId, await bodyOf(request)),
 			201
 		);
 	} catch {

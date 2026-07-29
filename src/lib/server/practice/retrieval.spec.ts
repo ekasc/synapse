@@ -6,6 +6,7 @@ import {
 	extractText,
 	normalizeText,
 	selectIndexedChunks,
+	selectSemanticChunks,
 	splitChunks,
 	selectRepresentativeChunks,
 	shouldSkipMaterial,
@@ -213,5 +214,65 @@ describe('selectRepresentativeChunks', () => {
 		const result = selectRepresentativeChunks(chunks, 10_000);
 		const fileCount = new Set(result.map((c) => c.source.materialId)).size;
 		expect(fileCount).toBe(6);
+	});
+});
+
+describe('selectSemanticChunks', () => {
+	function makeMaterialChunk(id: string, materialId: string, chunkIndex: number, text: string) {
+		return {
+			id,
+			materialId,
+			courseId: 'course-1',
+			chunkIndex,
+			pageStart: 1,
+			pageEnd: 1,
+			text,
+			normalizedText: text.toLowerCase(),
+			createdAt: '2026-07-27T00:00:00.000Z'
+		};
+	}
+
+	it('selects matched chunks with adjacent context in document order', () => {
+		const chunks = [0, 1, 2, 3, 4].map((i) =>
+			makeMaterialChunk(`m1:p1:c${i}`, 'm1', i, `chunk ${i} with padding text`)
+		);
+		const result = selectSemanticChunks(chunks, [{ chunkId: 'm1:p1:c2', score: 0.9 }], 10_000);
+		expect(result.map((chunk) => chunk.id)).toEqual(['m1:p1:c1', 'm1:p1:c2', 'm1:p1:c3']);
+	});
+
+	it('ignores matches that are not in the chunk list', () => {
+		const chunks = [makeMaterialChunk('m1:p1:c0', 'm1', 0, 'only chunk')];
+		expect(selectSemanticChunks(chunks, [{ chunkId: 'ghost', score: 1 }], 1000)).toEqual([]);
+	});
+
+	it('stops adding chunks once the budget is exhausted', () => {
+		const chunks = [0, 1, 2].map((i) =>
+			makeMaterialChunk(`m1:p1:c${i}`, 'm1', i, 'x'.repeat(100))
+		);
+		const result = selectSemanticChunks(
+			chunks,
+			[
+				{ chunkId: 'm1:p1:c0', score: 0.9 },
+				{ chunkId: 'm1:p1:c2', score: 0.8 }
+			],
+			150
+		);
+		expect(result.map((chunk) => chunk.id)).toEqual(['m1:p1:c0']);
+	});
+
+	it('prefers higher-scoring matches when the budget is tight', () => {
+		const chunks = [
+			makeMaterialChunk('a:p1:c0', 'a', 0, 'x'.repeat(90)),
+			makeMaterialChunk('b:p1:c0', 'b', 0, 'y'.repeat(90))
+		];
+		const result = selectSemanticChunks(
+			chunks,
+			[
+				{ chunkId: 'b:p1:c0', score: 0.95 },
+				{ chunkId: 'a:p1:c0', score: 0.4 }
+			],
+			100
+		);
+		expect(result.map((chunk) => chunk.id)).toEqual(['b:p1:c0']);
 	});
 });

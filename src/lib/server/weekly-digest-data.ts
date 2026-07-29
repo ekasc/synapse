@@ -50,6 +50,7 @@ export function weeklyPlanKey(date: Date): string {
  * `updateDigestCacheProse` after generating prose separately).
  */
 export async function getOrAssembleWeeklyDigest(input: {
+	userId: string;
 	now: Date;
 	binding?: D1Database;
 	bucket?: R2Bucket;
@@ -80,6 +81,7 @@ export async function getOrAssembleWeeklyDigest(input: {
 	}
 
 	const bundle = await assembleWeeklyDigest({
+		userId: input.userId,
 		now: input.now,
 		binding: input.binding,
 		bucket: input.bucket
@@ -129,11 +131,12 @@ export async function updateDigestCacheProse(input: {
  * plan from identical inputs. Each source degrades independently.
  */
 export async function assembleWeeklyDigest(input: {
+	userId: string;
 	now: Date;
 	binding?: D1Database;
 	bucket?: R2Bucket;
 }): Promise<WeeklyDigestBundle> {
-	const { binding, bucket } = input;
+	const { userId, binding, bucket } = input;
 	const degraded: string[] = [];
 	const safe = async <T>(label: string, fallback: T, fn: () => Promise<T>): Promise<T> => {
 		try {
@@ -143,19 +146,19 @@ export async function assembleWeeklyDigest(input: {
 			return fallback;
 		}
 	};
-	const semesters = await safe('semesters', [], () => getSemesters());
-	const courses = await safe('courses', [], () => getCourses());
-	const graph = await safe('course map', { positions: {}, edges: [] }, () => getGraphState());
-	const studySessions = await safe('study sessions', [], () => getStudySessions(100));
+	const semesters = await safe('semesters', [], () => getSemesters(userId));
+	const courses = await safe('courses', [], () => getCourses(userId));
+	const graph = await safe('course map', { positions: {}, edges: [] }, () => getGraphState(userId));
+	const studySessions = await safe('study sessions', [], () => getStudySessions(userId, 100));
 	const calendarEvents = binding
-		? await safe('calendar', [], () => createDb(binding).getCalendarEvents())
+		? await safe('calendar', [], () => createDb(binding).getCalendarEvents(userId))
 		: [];
 	const briefings = binding
 		? await safe('course briefs', [], () => createDb(binding).getBriefs())
 		: [];
 	const practiceResult = binding
 		? await safe('practice sessions', { outcome: 'ok' as const, value: [] }, () =>
-				createPracticeSessionRepository(binding).list()
+				createPracticeSessionRepository(binding).list(userId)
 			)
 		: { outcome: 'ok' as const, value: [] };
 	const practiceSessions = practiceResult.outcome === 'ok' ? practiceResult.value : [];
@@ -167,7 +170,7 @@ export async function assembleWeeklyDigest(input: {
 				await Promise.all(
 					courses.map((course) =>
 						safe('material indexes', [], () =>
-							createMaterialIndexRepository(binding).list(course.id)
+							createMaterialIndexRepository(binding).list(userId, course.id)
 						)
 					)
 				)

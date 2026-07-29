@@ -16,11 +16,13 @@ async function bodyOf(request: Request): Promise<unknown> {
 	}
 }
 
-export async function GET({ platform, url }: RequestEvent) {
+export async function GET({ platform, url, locals }: RequestEvent) {
 	if (!platform) return json({ error: 'Service unavailable' }, { status: 500 });
 	try {
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const courseId = url.searchParams.get('courseId') ?? undefined;
-		const result = await createPracticeSessionRepository(platform.env.BRIEF_DB).list(courseId);
+		const result = await createPracticeSessionRepository(platform.env.BRIEF_DB).list(userId, courseId);
 		if (result.outcome !== 'ok') return response(result);
 		return json({ sessions: result.value });
 	} catch {
@@ -28,11 +30,13 @@ export async function GET({ platform, url }: RequestEvent) {
 	}
 }
 
-export async function POST({ request, platform }: RequestEvent) {
+export async function POST({ request, platform, locals }: RequestEvent) {
 	if (!platform) return json({ error: 'Service unavailable' }, { status: 500 });
 	try {
+		const userId = locals.user?.id;
+		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		return response(
-			await createPracticeSessionRepository(platform.env.BRIEF_DB).create(await bodyOf(request)),
+			await createPracticeSessionRepository(platform.env.BRIEF_DB).create(userId, await bodyOf(request)),
 			201
 		);
 	} catch {
