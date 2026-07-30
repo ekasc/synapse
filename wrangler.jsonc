@@ -43,11 +43,10 @@
 		// Web Push (weekly digest). VAPID_PUBLIC_KEY is public; set
 		// VAPID_PRIVATE_KEY and WEEKLY_PUSH_SECRET with `wrangler secret put`
 		// (or .dev.vars locally). Generate keys: node scripts/generate-vapid-keys.mjs
-		"VAPID_PUBLIC_KEY": "",
+		"VAPID_PUBLIC_KEY": "BHEmrfqqND4uHC5sXFVX8yYzV3_Q5aLkC_oSJO_-fkj0cJz3wdDI6aIP2uSbzlEv4N4U-o3sqcUy6OaITc2NJEw",
 		"VAPID_SUBJECT": "mailto:team@synapse.study",
 		"WORKOS_CLIENT_ID": "",
-		"ENCRYPTION_KEY": "",
-		"WORKOS_REDIRECT_URI": ""
+		"WORKOS_REDIRECT_URI": "https://synapse.ekasc.workers.dev/auth/callback"
 	},
 	"d1_databases": [
 		{
