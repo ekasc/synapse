@@ -46,5 +46,8 @@ vite.config.ts.timestamp-*
 .synapse-local/**
 .tmp/**
 
+# Agent workspace (Claude worktrees, plans, etc.)
+.claude/
+
 # Wrangler local secrets
 .dev.vars
