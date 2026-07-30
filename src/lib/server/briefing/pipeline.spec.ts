@@ -287,7 +287,6 @@ describe('Course Brief extraction boundary', () => {
 		const result = await runEvidenceFirstPipeline(request, {
 			apiKey: 'x',
 			fetchImpl,
-			costCeilingMicrodollars: 200_000,
 			forceRefresh: true,
 			categoryCache: { get: getCachedEvidence, set: async () => {} }
 		});
@@ -348,7 +347,6 @@ describe('Course Brief extraction boundary', () => {
 		const result = await runEvidenceFirstPipeline(request, {
 			apiKey: 'x',
 			fetchImpl,
-			costCeilingMicrodollars: 200_000,
 			forceRefresh: true,
 			categoryCache: {
 				get: async (category) => (category === 'catalog' ? [cached] : null),
@@ -408,7 +406,6 @@ describe('Course Brief extraction boundary', () => {
 		const result = await runEvidenceFirstPipeline(request, {
 			apiKey: 'x',
 			fetchImpl,
-			costCeilingMicrodollars: 200_000
 		});
 		expect(result.briefing.description.text).toBe('');
 		expect(result.briefing.prerequisites.text).toBe('');

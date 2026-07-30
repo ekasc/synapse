@@ -6,7 +6,6 @@ export const MODEL_PRICES_MICRODOLLARS: Record<string, ModelPrice> = {
 	[PRO_SYNTHESIS_MODEL]: { inputPerMillion: 1_392_000, outputPerMillion: 2_784_000 }
 };
 export const EXA_SEARCH_COST_MICRODOLLARS = 5_000;
-export const DEFAULT_COST_CEILING_MICRODOLLARS = 100_000;
 export function estimateCostMicrodollars(
 	model: string,
 	inputTokens: number,
@@ -53,9 +52,9 @@ export function aggregateUsage(parts: BriefingUsage[]): BriefingUsage {
 	);
 }
 export function assertWithinBudget(
-	usage: BriefingUsage,
-	ceiling = DEFAULT_COST_CEILING_MICRODOLLARS
+	_usage: BriefingUsage,
+	_ceiling?: number
 ) {
-	if (!Number.isInteger(ceiling) || ceiling < 0 || usage.costMicrodollars > ceiling)
-		throw new Error('COST_BUDGET_EXCEEDED');
+	// Budget enforcement removed — API costs are tracked for analytics but
+	// never capped here. The ceiling parameter is kept for API compatibility.
 }

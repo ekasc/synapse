@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-	DEFAULT_COST_CEILING_MICRODOLLARS,
 	dollarsToMicrodollars,
 	estimateCostMicrodollars
 } from './cost';
@@ -15,7 +14,6 @@ describe('course research model and cost policy', () => {
 	it('uses integer microdollars for the published DeepSeek and Exa prices', () => {
 		expect(estimateCostMicrodollars(FLASH_SEARCH_MODEL, 25_000, 3_000, 5)).toBe(27_387);
 		expect(estimateCostMicrodollars(PRO_SYNTHESIS_MODEL, 25_000, 3_000, 5)).toBe(68_152);
-		expect(DEFAULT_COST_CEILING_MICRODOLLARS).toBe(100_000);
 	});
 
 	it('rejects client model selection while leaving provider recovery to OpenRouter', () => {

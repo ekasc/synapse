@@ -1,8 +1,6 @@
 import {
 	aggregateUsage,
-	assertWithinBudget,
-	dollarsToMicrodollars,
-	estimateCostMicrodollars
+	dollarsToMicrodollars
 } from './cost';
 import { buildEvidenceBundle, makeEvidenceSources } from './evidence';
 import { filterRelevantEvidence, targetForCategory } from './relevance';
@@ -123,8 +121,8 @@ export class PipelineError extends Error {
 			| 'NOT_FOUND'
 			| 'UPSTREAM_ERROR'
 			| 'INVALID_MODEL_OUTPUT'
-			| 'COST_BUDGET_EXCEEDED'
 			| 'CANCELLED'
+			| 'SEARCH_LIMIT_EXCEEDED'
 			| 'TIME_LIMIT_EXCEEDED',
 		message: string,
 		public readonly status?: number
@@ -136,7 +134,6 @@ export class PipelineError extends Error {
 export type PipelineOptions = {
 	apiKey: string;
 	fetchImpl?: typeof fetch;
-	costCeilingMicrodollars?: number;
 	timeoutMs?: number;
 	modelPolicy?: ResearchModelPolicy;
 	hooks?: PipelineHooks;
@@ -332,33 +329,12 @@ export async function runEvidenceFirstPipeline(
 		throw new PipelineError('UPSTREAM_ERROR', 'Unapproved internal model policy');
 	let searchOps = 0;
 	const usages: BriefingUsage[] = [];
-	projectReportBudget(policy, options.costCeilingMicrodollars);
 
 	const cancelled = async () => {
 		if (await options.isCancelled?.())
 			throw new PipelineError('CANCELLED', 'Course research was cancelled');
 		if (now() - started > (options.timeoutMs ?? PIPELINE_TIMEOUT_MS))
 			throw new PipelineError('TIME_LIMIT_EXCEEDED', 'Course research timed out');
-	};
-
-	const projected = (model: string, input: number, output: number, search = 0) => {
-		try {
-			assertWithinBudget(
-				aggregateUsage([
-					...usages,
-					{
-						...emptyUsage(),
-						inputTokens: input,
-						outputTokens: output,
-						searchRequests: search,
-						costMicrodollars: estimateCostMicrodollars(model, input, output, search)
-					}
-				]),
-				options.costCeilingMicrodollars
-			);
-		} catch {
-			throw new PipelineError('COST_BUDGET_EXCEEDED', 'Cost budget exceeded');
-		}
 	};
 
 	async function call(
@@ -374,10 +350,9 @@ export async function runEvidenceFirstPipeline(
 			await cancelled();
 			if (isSearch) {
 				if (searchOps >= MAX_SEARCH_REQUESTS)
-					throw new PipelineError('COST_BUDGET_EXCEEDED', 'Search operation limit exceeded');
-				projected(model, 8_000, 3_000, 1);
+					throw new PipelineError('SEARCH_LIMIT_EXCEEDED', 'Search operation limit exceeded');
 				searchOps++;
-			} else projected(model, 8_000, 3_500);
+			}
 			const began = now();
 			let status = 0;
 			try {
@@ -727,7 +702,7 @@ export async function runEvidenceFirstPipeline(
 	} catch (error) {
 		if (
 			error instanceof PipelineError &&
-			['INVALID_MODEL_OUTPUT', 'TIME_LIMIT_EXCEEDED', 'COST_BUDGET_EXCEEDED'].includes(error.code)
+			['INVALID_MODEL_OUTPUT', 'TIME_LIMIT_EXCEEDED'].includes(error.code)
 		)
 			throw error;
 		briefing = buildUnavailableBriefing(
@@ -809,8 +784,4 @@ function buildUnavailableBriefing(
 	};
 }
 
-function projectReportBudget(policy: ResearchModelPolicy, ceiling = 100_000) {
-	const maximum = MAX_SEARCH_REQUESTS * estimateCostMicrodollars(policy.search, 8_000, 3_000, 1);
-	if (maximum > ceiling)
-		throw new PipelineError('COST_BUDGET_EXCEEDED', 'Projected report cost exceeds budget');
-}
+

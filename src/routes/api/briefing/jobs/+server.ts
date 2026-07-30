@@ -258,10 +258,6 @@ export async function _processJob(binding: D1Database, jobId: string) {
 			{
 				apiKey,
 				modelPolicy: modelPolicy(),
-				costCeilingMicrodollars: Math.round(
-					Math.min(0.1, Math.max(0, Number(env.COURSE_RESEARCH_MAX_ESTIMATED_COST_USD ?? 0.1))) *
-						1_000_000
-				),
 				hooks: {
 					onStage: (stage) =>
 						runner.updateStage(
@@ -373,11 +369,9 @@ export async function _processJob(binding: D1Database, jobId: string) {
 					? 'AMBIGUOUS_COURSE'
 					: err.code === 'NOT_FOUND'
 						? 'COURSE_NOT_FOUND'
-						: err.code === 'COST_BUDGET_EXCEEDED'
-							? 'BUDGET_EXCEEDED'
-							: err.code === 'INVALID_MODEL_OUTPUT'
-								? 'VALIDATION_FAILED'
-								: 'PROVIDER_UNAVAILABLE';
+						: err.code === 'INVALID_MODEL_OUTPUT'
+							? 'VALIDATION_FAILED'
+							: 'PROVIDER_UNAVAILABLE';
 			await runner.failJob(jobId, code, 'Course research could not be completed.', leaseToken);
 			return;
 		}

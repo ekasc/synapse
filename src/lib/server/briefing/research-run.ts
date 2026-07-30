@@ -7,7 +7,7 @@ export const RESEARCH_RUN_DEFAULT_LIMITS = {
 	maxProviderCalls: 8,
 	maxSearchCalls: 6,
 	maxFetchCalls: 4,
-	maxCostUsd: 0.1
+	maxCostUsd: Infinity
 } as const;
 
 export type ResearchRunLimits = typeof RESEARCH_RUN_DEFAULT_LIMITS;
