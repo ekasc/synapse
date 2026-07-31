@@ -6,23 +6,24 @@ p1_count: 3
 timestamp: 2026-07-26T00-32-54Z
 slug: src-routes-app-page-svelte
 ---
+
 # Dashboard Design Critique
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---:|---|
-| 1 | Visibility of System Status | 2/4 | Feed failures can become a false “all clear”; save success only closes the dialog. |
-| 2 | Match System / Real World | 3/4 | Academic language is strong, though “Briefs” and “Course map” need product knowledge. |
-| 3 | User Control and Freedom | 2/4 | “Show fewer” is unreachable after expansion; priority cards lack inline completion or deferral. |
-| 4 | Consistency and Standards | 2/4 | Notebook identity is cohesive, but local typography, focus styling, and repeated actions drift from the system. |
-| 5 | Error Prevention | 2/4 | A semester with no courses still exposes an impossible Add deadline flow. |
-| 6 | Recognition Rather Than Recall | 3/4 | Metadata is descriptive, but the computed action labels are not shown. |
-| 7 | Flexibility and Efficiency | 1/4 | No shortcuts, inline completion, batch actions, or exact event deep links. |
-| 8 | Aesthetic and Minimalist Design | 2/4 | Strong hero hierarchy, weakened by stripes, metric treatment, arrows, and duplicated quick actions. |
-| 9 | Error Recovery | 2/4 | Dialog errors preserve input; dashboard feed errors are hidden. |
-| 10 | Help and Documentation | 1/4 | Priority logic, course-color meaning, and actionable all-clear guidance are absent. |
-| **Total** |  | **20/40** | **Acceptable; significant improvements needed** |
+| #         | Heuristic                       |     Score | Key issue                                                                                                       |
+| --------- | ------------------------------- | --------: | --------------------------------------------------------------------------------------------------------------- |
+| 1         | Visibility of System Status     |       2/4 | Feed failures can become a false “all clear”; save success only closes the dialog.                              |
+| 2         | Match System / Real World       |       3/4 | Academic language is strong, though “Briefs” and “Course map” need product knowledge.                           |
+| 3         | User Control and Freedom        |       2/4 | “Show fewer” is unreachable after expansion; priority cards lack inline completion or deferral.                 |
+| 4         | Consistency and Standards       |       2/4 | Notebook identity is cohesive, but local typography, focus styling, and repeated actions drift from the system. |
+| 5         | Error Prevention                |       2/4 | A semester with no courses still exposes an impossible Add deadline flow.                                       |
+| 6         | Recognition Rather Than Recall  |       3/4 | Metadata is descriptive, but the computed action labels are not shown.                                          |
+| 7         | Flexibility and Efficiency      |       1/4 | No shortcuts, inline completion, batch actions, or exact event deep links.                                      |
+| 8         | Aesthetic and Minimalist Design |       2/4 | Strong hero hierarchy, weakened by stripes, metric treatment, arrows, and duplicated quick actions.             |
+| 9         | Error Recovery                  |       2/4 | Dialog errors preserve input; dashboard feed errors are hidden.                                                 |
+| 10        | Help and Documentation          |       1/4 | Priority logic, course-color meaning, and actionable all-clear guidance are absent.                             |
+| **Total** |                                 | **20/40** | **Acceptable; significant improvements needed**                                                                 |
 
 ## Anti-Patterns Verdict
 

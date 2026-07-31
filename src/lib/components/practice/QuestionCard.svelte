@@ -7,7 +7,6 @@
 	};
 
 	type Question = {
-		id: string;
 		course: string;
 		topic: string;
 		question: string;

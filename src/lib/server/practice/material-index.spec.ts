@@ -78,7 +78,10 @@ describe('material index repository', () => {
 			created_at: '2026-01-01T00:00:00.000Z'
 		};
 		const mock = mockBinding({ all: [[chunkRow]] });
-		const chunks = await createMaterialIndexRepository(mock.binding).listReadyChunks('test-user', 'course-1');
+		const chunks = await createMaterialIndexRepository(mock.binding).listReadyChunks(
+			'test-user',
+			'course-1'
+		);
 		expect(chunks[0]).toMatchObject({ id: chunkRow.id, pageStart: 12, pageEnd: 12 });
 		expect(mock.statements[0].sql).toContain("i.status = 'ready'");
 	});

@@ -10,6 +10,7 @@
 		editingEventId = null,
 		title = $bindable(''),
 		courseId = $bindable(''),
+		// eslint-disable-next-line no-useless-assignment -- value is read by the parent via bind:course on submit.
 		course = $bindable(''),
 		type = $bindable('assignment'),
 		time = $bindable(''),

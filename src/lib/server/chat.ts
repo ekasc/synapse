@@ -33,8 +33,9 @@ export function parseChatRequest(value: unknown): ChatRequest {
 						(item): item is { role: 'user' | 'assistant'; content: string } =>
 							!!item &&
 							typeof item === 'object' &&
-							((item as any).role === 'user' || (item as any).role === 'assistant') &&
-							typeof (item as any).content === 'string'
+							((item as { role?: unknown }).role === 'user' ||
+								(item as { role?: unknown }).role === 'assistant') &&
+							typeof (item as { content?: unknown }).content === 'string'
 					)
 					.slice(-8)
 			: []
@@ -48,7 +49,13 @@ function courseContext(course: Course): string {
 
 export async function answerChat(
 	request: ChatRequest,
-	options: { userId: string; db?: D1Database; materials?: R2Bucket; apiKey?: string; model?: string }
+	options: {
+		userId: string;
+		db?: D1Database;
+		materials?: R2Bucket;
+		apiKey?: string;
+		model?: string;
+	}
 ) {
 	const courses = await getCourses(options.userId);
 	const scoped =

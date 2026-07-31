@@ -21,7 +21,10 @@ async function loadManualEvents(event: RequestEvent, userId: string): Promise<Ca
 export async function load(event: RequestEvent) {
 	const userId = event.locals.user?.id;
 	if (!userId) return { events: [], courseColors: [] };
-	const [courses, manualEvents] = await Promise.all([getCourses(userId), loadManualEvents(event, userId)]);
+	const [courses, manualEvents] = await Promise.all([
+		getCourses(userId),
+		loadManualEvents(event, userId)
+	]);
 
 	const courseColors: CourseColor[] = courses.map((c) => ({
 		id: c.id,

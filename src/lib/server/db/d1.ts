@@ -433,7 +433,11 @@ export function createDb(binding: D1Database) {
 			return row ? String(row.digestJson) : null;
 		},
 
-		setWeeklyDigestCache: async (userId: string, weekStart: string, json: string): Promise<void> => {
+		setWeeklyDigestCache: async (
+			userId: string,
+			weekStart: string,
+			json: string
+		): Promise<void> => {
 			await db
 				.insert(schema.weeklyDigestCache)
 				.values({

@@ -52,7 +52,7 @@
 							><span class="d py-0.5 text-center font-semibold">T</span><span
 								class="d py-0.5 text-center font-semibold">F</span
 							><span class="d py-0.5 text-center font-semibold">S</span>
-							{#each ['', '', 'cross', '', 'red', '', '', '', '', '', 'cross', 'red', '', '', '', '', 'cross', '', '', '', ''] as state}
+							{#each ['', '', 'cross', '', 'red', '', '', '', '', '', 'cross', 'red', '', '', '', '', 'cross', '', '', '', ''] as state (state)}
 								<span
 									class="cell aspect-square rounded-[1px] border border-[var(--border-faint)]"
 									class:bg-[rgba(26,26,23,0.18)]={state === 'cross'}

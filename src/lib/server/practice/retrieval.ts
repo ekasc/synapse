@@ -7,9 +7,8 @@ let pdfjsPromise: Promise<PdfJsModule> | undefined;
 
 async function loadPdfJs(): Promise<PdfJsModule> {
 	pdfjsPromise ??= (async () => {
-		const { WorkerMessageHandler } = (await import(
-			'pdfjs-dist/legacy/build/pdf.worker.mjs'
-		)) as PdfJsWorkerModule;
+		const { WorkerMessageHandler } =
+			(await import('pdfjs-dist/legacy/build/pdf.worker.mjs')) as PdfJsWorkerModule;
 		const pdfjsGlobal = globalThis as typeof globalThis & {
 			pdfjsWorker?: { WorkerMessageHandler: typeof WorkerMessageHandler };
 		};

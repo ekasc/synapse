@@ -56,7 +56,6 @@
 
 	type SetupCourse = {
 		id: string;
-		semesterId: string;
 		code: string;
 		name: string;
 		instructor?: string;
@@ -66,7 +65,6 @@
 		id: string;
 		term: string;
 		year: number;
-		order: number;
 	};
 
 	const extractionItems = [
@@ -84,7 +82,10 @@
 
 	const courseOptions = $derived([
 		{
-			...data.course,
+			id: data.course.id,
+			code: data.course.code,
+			name: data.course.name,
+			instructor: data.course.instructor,
 			term: `${data.semester.term} ${data.semester.year}`
 		}
 	]);

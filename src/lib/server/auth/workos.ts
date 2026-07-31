@@ -70,7 +70,7 @@ function extractSidFromJWT(token: string): string {
 	try {
 		const payload = token.split('.')[1];
 		const decoded = JSON.parse(atob(payload));
-		return (decoded as Record<string, unknown>).sid as string ?? '';
+		return ((decoded as Record<string, unknown>).sid as string) ?? '';
 	} catch {
 		return '';
 	}

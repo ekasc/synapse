@@ -8,7 +8,6 @@
 
 import type { Briefing } from '$lib/server/db/d1';
 import { isCleanCourseField, type CourseOutlineField } from './field-quality';
-import type { Currentness } from './schema';
 
 // ── Re-exports from extracted modules ──
 export type {
@@ -234,10 +233,13 @@ export function toDetailViewModel(b: Briefing): BriefingDetailViewModel {
 			sources,
 
 			assessmentComponents:
-				mapV4Components(v4.assessmentComponents as Array<Record<string, unknown>> | undefined | null, sources) ??
-				assessmentComponentsFromText(assessmentsSection, sources),
+				mapV4Components(
+					v4.assessmentComponents as Array<Record<string, unknown>> | undefined | null
+				) ?? assessmentComponentsFromText(assessmentsSection, sources),
 			assessmentHistoryNote: assessmentHistoryNoteFromSources(sources),
-			passingRequirements: mapV4PassingRules(v4.passingRequirements as Array<Record<string, unknown>> | undefined | null),
+			passingRequirements: mapV4PassingRules(
+				v4.passingRequirements as Array<Record<string, unknown>> | undefined | null
+			),
 
 			gradeBreakdown: null,
 			gradeNotes: null,

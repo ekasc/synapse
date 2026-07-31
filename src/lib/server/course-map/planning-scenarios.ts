@@ -232,7 +232,15 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 						   SELECT 1 FROM planning_scenarios WHERE id = ? AND user_id = ? AND revision = ?
 						 )`
 					)
-					.bind(id.value, index, move.courseId, move.targetSemesterId, id.value, userId, revision.value)
+					.bind(
+						id.value,
+						index,
+						move.courseId,
+						move.targetSemesterId,
+						id.value,
+						userId,
+						revision.value
+					)
 			),
 			binding
 				.prepare(
@@ -297,7 +305,11 @@ export function createPlanningScenarioRepository(binding: D1Database) {
 		return get(userId, id.value);
 	}
 
-	async function remove(userId: string, idInput: unknown, revisionInput: unknown): Promise<ScenarioResult<null>> {
+	async function remove(
+		userId: string,
+		idInput: unknown,
+		revisionInput: unknown
+	): Promise<ScenarioResult<null>> {
 		const id = validateId(idInput);
 		if (id.outcome !== 'ok') return id;
 		const revision = validateRevision(revisionInput);

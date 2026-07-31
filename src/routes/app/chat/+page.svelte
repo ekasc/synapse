@@ -54,47 +54,6 @@
 		[...messages].reverse().find((message) => message.sources)?.sources ?? []
 	);
 
-	function demoAnswer(question: string): ChatMessage {
-		const course = selectedCourse;
-		if (course) {
-			return {
-				id: crypto.randomUUID(),
-				role: 'assistant',
-				content: `This is the frontend demonstration for ${course.code}. Once the RAG service is connected, I’ll retrieve the strongest passages from its syllabus and uploaded materials, then answer “${question}” with page-level citations.`,
-				confidence: 'limited',
-				sources: [
-					{
-						id: 'demo-syllabus',
-						label: `${course.code} syllabus`,
-						detail: 'Demo citation · page 3',
-						excerpt: 'Retrieved passages will appear here with the exact supporting text.'
-					},
-					{
-						id: 'demo-notes',
-						label: `${course.code} course notes`,
-						detail: 'Demo citation · section 2',
-						excerpt: 'Source cards will link back to the original uploaded material.'
-					}
-				]
-			};
-		}
-
-		return {
-			id: crypto.randomUUID(),
-			role: 'assistant',
-			content: `This is the frontend demonstration. The RAG service will search across your selected courses before answering “${question}”. It will separate recorded facts from study recommendations and decline when no supporting evidence is found.`,
-			confidence: 'limited',
-			sources: [
-				{
-					id: 'demo-catalog',
-					label: 'Academic catalog',
-					detail: `Demo citation · ${courses.length} courses`,
-					excerpt: 'Cross-course results will identify the course and source for every claim.'
-				}
-			]
-		};
-	}
-
 	async function scrollToLatest() {
 		await tick();
 		thread?.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
@@ -243,7 +202,7 @@
 		<aside class="evidence-panel">
 			<div class="suggestion-block">
 				<p class="eyebrow">Try asking</p>
-				{#each suggestions as suggestion}
+				{#each suggestions as suggestion (suggestion)}
 					<button onclick={() => sendMessage(suggestion)}>{suggestion}<span>→</span></button>
 				{/each}
 			</div>

@@ -7,7 +7,6 @@
 	};
 
 	type Flashcard = {
-		id: string;
 		course: string;
 		topic: string;
 		front: string;

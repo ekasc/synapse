@@ -352,7 +352,8 @@ export function acquireStateLock(root, operation) {
 			? `operation=${existing.operation} pid=${existing.pid} hostname=${existing.hostname}`
 			: 'owner metadata unavailable';
 		throw new Error(
-			`LOCAL_STATE_LOCKED: ${details}; lock=${path}; stop the owner or rerun after confirming a stale same-host lock.`
+			`LOCAL_STATE_LOCKED: ${details}; lock=${path}; stop the owner or rerun after confirming a stale same-host lock.`,
+			{ cause: error }
 		);
 	}
 	return {
@@ -362,7 +363,9 @@ export function acquireStateLock(root, operation) {
 			try {
 				const current = JSON.parse(readFileSync(join(path, 'owner.json'), 'utf8'));
 				if (current.token === token) rmSync(path, { recursive: true, force: true });
-			} catch {}
+			} catch {
+				// Lock may already be gone — release is best-effort.
+			}
 		}
 	};
 }

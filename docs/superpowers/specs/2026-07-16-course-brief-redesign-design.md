@@ -35,9 +35,9 @@ The redesign covers three concerns, all approved:
 
 ### Two routes, not one page with states
 
-| Route | Purpose | Owns |
-|---|---|---|
-| `/app/brief` | The library | Form state, job polling, library rendering, empty state |
+| Route               | Purpose        | Owns                                                                           |
+| ------------------- | -------------- | ------------------------------------------------------------------------------ |
+| `/app/brief`        | The library    | Form state, job polling, library rendering, empty state                        |
 | `/app/brief/[code]` | A single brief | Read-only rendering of one `BriefingDetailViewModel`; delete + refresh actions |
 
 The detail view is a separate route, not an in-page expansion of the library. This keeps the library-first metaphor clean and makes briefs URL-shareable and back-button friendly.
@@ -91,7 +91,7 @@ The page is a single scroll. The slip is `position: sticky; top: 0` on desktop.
 - **Course code:** JetBrains Mono, `0.85rem`, uppercase, letter-spaced, `--ink`.
 - **Course title:** Kalam 700, `1.4rem`, `--ink`. Dominant element of the row.
 - **RMP chip:** right-aligned, Inter `0.78rem`. Background `--highlight-soft` if rating ≥ 4, `--paper-shelf` if 3–3.9, `--pen-red` background (white text) if < 3, `--paper-shelf` with "N/A" if no data. Format: `X.X / 5`.
-- **Meta line:** Inter `0.82rem`, `--ink-soft`, separated by ` · `. Includes requested professor, term, credits (if available), source count.
+- **Meta line:** Inter `0.82rem`, `--ink-soft`, separated by `·`. Includes requested professor, term, credits (if available), source count.
 - **Padding:** 1.25rem vertical, 1.5rem horizontal.
 - **Separator:** 1px `--rule-soft` between entries.
 - **Hover:** background shifts to `--paper-shelf`, subject stripe stays. Title gets `translateY(-1px)`.
@@ -225,15 +225,15 @@ The "more options" gate shrinks the form by ~60% in the common case. The common 
 
 ### Slip state transitions
 
-| From | To | Trigger |
-|---|---|---|
-| idle → researching | submit click | Form valid (code non-empty), job created |
-| researching → succeeded | poll returns success | After brief saved, navigate to detail |
-| researching → failed | poll returns error | Show failed UI in slip |
-| researching → conflict | poll returns conflict | Show conflict UI in slip |
-| researching → expired | poll returns expired | Show expired UI in slip |
-| researching → canceled | cancel button click | Show canceled UI; re-enable form |
-| succeeded → idle | user navigates to detail | One-line confirmation appears, then collapses |
+| From                    | To                       | Trigger                                       |
+| ----------------------- | ------------------------ | --------------------------------------------- |
+| idle → researching      | submit click             | Form valid (code non-empty), job created      |
+| researching → succeeded | poll returns success     | After brief saved, navigate to detail         |
+| researching → failed    | poll returns error       | Show failed UI in slip                        |
+| researching → conflict  | poll returns conflict    | Show conflict UI in slip                      |
+| researching → expired   | poll returns expired     | Show expired UI in slip                       |
+| researching → canceled  | cancel button click      | Show canceled UI; re-enable form              |
+| succeeded → idle        | user navigates to detail | One-line confirmation appears, then collapses |
 
 ### Mobile slip
 
@@ -396,15 +396,18 @@ The 5s interval is a deliberate tradeoff. A research job takes 1–3 minutes. 2s
 Local component state only. No global stores.
 
 **Form state:**
+
 - `courseCode`, `courseName`, `professorName`, `institution`, `additionalNotes`
 - `moreOptionsOpen`
 
 **Polling state:**
+
 - `activeJobId`, `jobStatus`, `jobStage`, `stageUpdatedAt`
 - `jobErrorMsg`, `pollTimer`, `pollCount`, `pollTimedOut`
 - `cacheHit`, `jobTelemetry`
 
 **UI state:**
+
 - `deleting`, `confirmDeleteCode`
 
 Form state is ephemeral (lost on navigation). Library state comes from the server load.
@@ -412,6 +415,7 @@ Form state is ephemeral (lost on navigation). Library state comes from the serve
 ### Detail page
 
 Local component state:
+
 - `deleting`, `confirmDeleteCode`
 
 No polling, no form state.
@@ -424,19 +428,19 @@ No polling, no form state.
 
 ## Error Handling
 
-| Failure | Where shown | UX |
-|---|---|---|
-| Empty course code on submit | Form input border | Red border, mono hint. No submission. |
-| Server returns 5xx on job create | Slip (form → failed state) | "Couldn't start research. [retry]" |
-| Job returns `failed` | Slip transforms to failed state | "Briefing failed. [retry]" |
-| Job returns `conflict` | Slip transforms to conflict state | Server error message, "[retry]" |
-| Job returns `expired` | Slip transforms to expired state | "Briefing expired. [retry]" |
-| Polling times out (4 min) | Slip holds researching state with timeout message | "Briefing is taking longer than expected. [retry] [stop]" |
-| Job is canceled by user | Slip transforms to canceled state | "Research canceled. You can retry when ready." Form re-enabled. |
-| Fetch error during polling | Silent (keep polling) | Up to 4 min, then timeout UI |
-| Brief not found (`/app/brief/[code]`) | Detail view renders "not found" empty state | Polaroid with "Briefing not found" + return link |
-| Server load error on detail page | Detail view renders "error" empty state | Polaroid with "Could not load" + return link |
-| Server load error on library | Library renders error empty state | Polaroid with "Could not load your notebook" + reload link |
+| Failure                               | Where shown                                       | UX                                                              |
+| ------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| Empty course code on submit           | Form input border                                 | Red border, mono hint. No submission.                           |
+| Server returns 5xx on job create      | Slip (form → failed state)                        | "Couldn't start research. [retry]"                              |
+| Job returns `failed`                  | Slip transforms to failed state                   | "Briefing failed. [retry]"                                      |
+| Job returns `conflict`                | Slip transforms to conflict state                 | Server error message, "[retry]"                                 |
+| Job returns `expired`                 | Slip transforms to expired state                  | "Briefing expired. [retry]"                                     |
+| Polling times out (4 min)             | Slip holds researching state with timeout message | "Briefing is taking longer than expected. [retry] [stop]"       |
+| Job is canceled by user               | Slip transforms to canceled state                 | "Research canceled. You can retry when ready." Form re-enabled. |
+| Fetch error during polling            | Silent (keep polling)                             | Up to 4 min, then timeout UI                                    |
+| Brief not found (`/app/brief/[code]`) | Detail view renders "not found" empty state       | Polaroid with "Briefing not found" + return link                |
+| Server load error on detail page      | Detail view renders "error" empty state           | Polaroid with "Could not load" + return link                    |
+| Server load error on library          | Library renders error empty state                 | Polaroid with "Could not load your notebook" + reload link      |
 
 **Slip failure treatment** is unified: any non-recoverable state shows the same slip layout. Label changes color, error message replaces stage label, retry button replaces cancel. No error modals, no toast notifications, no extra UI.
 
@@ -451,6 +455,7 @@ No polling, no form state.
 ## Testing
 
 Existing tests in `src/routes/app/brief/`:
+
 - `brief-page.svelte.spec.ts` — basic page render
 - `brief-v4-rendering.svelte.spec.ts` — V4 schema rendering
 
@@ -499,6 +504,7 @@ Existing tests in `src/routes/app/brief/`:
 ## File Map
 
 **New files:**
+
 - `src/routes/app/brief/[code]/+page.svelte` — detail view component
 - `src/routes/app/brief/[code]/+page.server.ts` — detail view server load
 - `src/routes/app/brief/[code]/+page.svelte.spec.ts` — detail view tests (optional)
@@ -512,11 +518,13 @@ Existing tests in `src/routes/app/brief/`:
 - `src/lib/components/brief/ActionRow.svelte` — bottom of detail view
 
 **Modified files:**
+
 - `src/routes/app/brief/+page.svelte` — replace with library page
 - `src/routes/app/brief/+page.server.ts` — unchanged
 - `src/lib/sidebar/routes.ts` — no change (route stays `/app/brief`)
 
 **Deleted:**
+
 - Inline `BookShelf`, `SectionHead` usage in the library (replaced by `NotebookEntry`).
 - The 5-field always-visible form (replaced by slip).
 - The in-page text filter.
@@ -525,16 +533,16 @@ Existing tests in `src/routes/app/brief/`:
 
 Each new component has one clear job:
 
-| Component | Job | Inputs | Depends on |
-|---|---|---|---|
-| `ResearchSlip` | The sticky form/tracker container | `onSubmit` callback | `JobTracker`, design tokens |
-| `JobTracker` | The researching/terminal states | `job`, `onCancel`, `onRetry` | `stageLabel` |
-| `NotebookEntry` | A single library entry | `brief` | design tokens |
-| `DetailHero` | The hero region | `brief` | design tokens |
-| `DetailSidebar` | The sticky sidebar | `brief` | design tokens |
-| `DetailNarrative` | The main column sections | `brief` | design tokens |
-| `EmptyState` | The empty library message | — | design tokens |
-| `ActionRow` | Bottom of detail view | `code`, `onRefresh`, `onDelete` | `Button` |
+| Component         | Job                               | Inputs                          | Depends on                  |
+| ----------------- | --------------------------------- | ------------------------------- | --------------------------- |
+| `ResearchSlip`    | The sticky form/tracker container | `onSubmit` callback             | `JobTracker`, design tokens |
+| `JobTracker`      | The researching/terminal states   | `job`, `onCancel`, `onRetry`    | `stageLabel`                |
+| `NotebookEntry`   | A single library entry            | `brief`                         | design tokens               |
+| `DetailHero`      | The hero region                   | `brief`                         | design tokens               |
+| `DetailSidebar`   | The sticky sidebar                | `brief`                         | design tokens               |
+| `DetailNarrative` | The main column sections          | `brief`                         | design tokens               |
+| `EmptyState`      | The empty library message         | —                               | design tokens               |
+| `ActionRow`       | Bottom of detail view             | `code`, `onRefresh`, `onDelete` | `Button`                    |
 
 No component reaches into another component's state. All data flows through props and server loads.
 

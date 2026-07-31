@@ -19,10 +19,7 @@ export function encrypt(payload: SessionPayload, secret: string): string {
 	const key = deriveKey(secret);
 	const iv = randomBytes(IV_LENGTH);
 	const cipher = createCipheriv(ALGORITHM, key, iv);
-	const encrypted = Buffer.concat([
-		cipher.update(JSON.stringify(payload), 'utf8'),
-		cipher.final()
-	]);
+	const encrypted = Buffer.concat([cipher.update(JSON.stringify(payload), 'utf8'), cipher.final()]);
 	const tag = cipher.getAuthTag();
 	return Buffer.concat([iv, tag, encrypted]).toString('base64url');
 }

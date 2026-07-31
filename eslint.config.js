@@ -21,7 +21,19 @@ export default defineConfig(
 		rules: {
 			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
 			// see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
-			'no-undef': 'off'
+			'no-undef': 'off',
+			// Leading-underscore names are the codebase convention for values that
+			// must be destructured (e.g. to skip a tuple slot) but are intentionally
+			// unused. Allow them rather than forcing eslint-disable comments.
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{
+					args: 'after-used',
+					argsIgnorePattern: '^_',
+					varsIgnorePattern: '^_',
+					caughtErrorsIgnorePattern: '^_'
+				}
+			]
 		}
 	},
 	{

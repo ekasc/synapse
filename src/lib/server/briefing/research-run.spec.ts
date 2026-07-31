@@ -184,10 +184,9 @@ describe('ResearchRun', () => {
 			status: 'completed',
 			metadata: { searchCalls: 1, fetchCalls: 1, toolCalls: 2 }
 		});
-		expect((result as { candidate: CandidateBriefing }).candidate.sources.map((item) => item.id)).toEqual([
-			'search_1',
-			'fetch_1'
-		]);
+		expect(
+			(result as { candidate: CandidateBriefing }).candidate.sources.map((item) => item.id)
+		).toEqual(['search_1', 'fetch_1']);
 	});
 
 	it('rejects malformed actions and returns submitted candidates without persistence capabilities', async () => {

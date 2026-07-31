@@ -32,7 +32,7 @@
 			<fieldset class="m-0 border-0 p-0">
 				<legend class="mb-1 text-[var(--text-caption)]">Term</legend>
 				<div class="term-buttons flex gap-2">
-					{#each termChoices as choice}
+					{#each termChoices as choice (choice)}
 						<button
 							type="button"
 							aria-pressed={term === choice}

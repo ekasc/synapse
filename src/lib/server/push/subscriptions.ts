@@ -44,7 +44,10 @@ export function createWeeklyPushRepository(binding: D1Database) {
 			return (result.results ?? []).map(rowToSubscription);
 		},
 
-		async upsert(userId: string, input: WeeklyPushSubscriptionInput): Promise<WeeklyPushSubscription> {
+		async upsert(
+			userId: string,
+			input: WeeklyPushSubscriptionInput
+		): Promise<WeeklyPushSubscription> {
 			const existing = await binding
 				.prepare(
 					'SELECT id, user_id, endpoint, p256dh, auth, created_at FROM weekly_push_subscriptions WHERE endpoint = ?1 AND user_id = ?2'

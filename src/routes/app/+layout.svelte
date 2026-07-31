@@ -2,6 +2,7 @@
 	import { navigating, page } from '$app/stores';
 	import { afterNavigate } from '$app/navigation';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import { routes, isRouteActive } from '$lib/sidebar/routes';
 	import { onMount } from 'svelte';
 	import { resolveTermContext } from '$lib/dashboard/priority';
@@ -16,7 +17,7 @@
 	// ── Auth guard ──
 	$effect(() => {
 		if (!data.user) {
-			goto('/auth/error?reason=unauthenticated', { replaceState: true });
+			goto(resolveRoute('/auth/error?reason=unauthenticated'), { replaceState: true });
 		}
 	});
 
@@ -110,7 +111,7 @@
 			}
 			addSemesterOpen = false;
 			await invalidateAll();
-			await goto(`/app/semesters/${encodeURIComponent(id)}`);
+			await goto(resolveRoute(`/app/semesters/${encodeURIComponent(id)}`));
 		} catch (error) {
 			semesterError = error instanceof Error ? error.message : 'Could not add semester.';
 		} finally {
@@ -355,7 +356,7 @@
 		<DigestBanner job={academicDigestJob} ondismiss={dismissAcademicDigestJob} />
 
 		<main
-			class="app-main relative min-w-0 flex-1 bg-[var(--paper)] p-0 data-[canvas=true]:flex data-[canvas=true]:flex-col [&>*]:mx-auto [&>*]:px-[var(--page-gutter)] [&>*]:max-w-[var(--page-width)] [&>*]:py-10 max-sm:[&>*]:px-5"
+			class="app-main relative min-w-0 flex-1 bg-[var(--paper)] p-0 data-[canvas=true]:flex data-[canvas=true]:flex-col [&>*]:mx-auto [&>*]:max-w-[var(--page-width)] [&>*]:px-[var(--page-gutter)] [&>*]:py-10 max-sm:[&>*]:px-5"
 			data-canvas={$page.url.pathname === '/app/courses'}
 		>
 			{#if weeklyPlanPending}

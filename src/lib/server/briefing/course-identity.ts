@@ -6,7 +6,12 @@
 
 import type { BriefingRequest, EvidenceSource } from './schema';
 import { resolveInstitution, matchInstitutionDomain, REGISTERED_INSTITUTIONS } from './institution';
-import { normalizeCourseCode, courseCodePattern, cleanCanonicalTitle, normalizeCanonicalTitle } from './course-code';
+import {
+	normalizeCourseCode,
+	courseCodePattern,
+	cleanCanonicalTitle,
+	normalizeCanonicalTitle
+} from './course-code';
 import { classifySource, isSourceAdmissibleFor, extractTermScope } from './source-classification';
 
 export type CourseIdentityFailureCode =

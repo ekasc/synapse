@@ -255,7 +255,6 @@
 	<CourseHeader
 		{course}
 		{semester}
-		{backHref}
 		onEdit={() => (showEditModal = true)}
 		onDelete={() => (showDeleteModal = true)}
 		onBack={goBack}

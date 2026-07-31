@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
+	import { resolveRoute } from '$app/paths';
 	import JobTracker from './JobTracker.svelte';
 
 	type JobStatus =
@@ -282,7 +283,7 @@
 			>
 				<strong>{succeededCode}</strong> ready —
 				<a
-					href={`/app/brief/${encodeURIComponent(succeededCode)}`}
+					href={resolveRoute(`/app/brief/${encodeURIComponent(succeededCode)}`)}
 					onclick={() => onSuccess?.(succeededCode!)}>view brief →</a
 				>
 			</span>
@@ -294,7 +295,7 @@
 					>researching · {courseCode.trim().toUpperCase()}</span
 				>
 			</div>
-			<JobTracker {job} {courseCode} {timedOut} onCancel={cancelJob} onRetry={retry} />
+			<JobTracker {job} {timedOut} onCancel={cancelJob} onRetry={retry} />
 		</div>
 	{:else}
 		<div class="grid gap-[0.6rem]">

@@ -169,6 +169,7 @@ const DEFAULT_FOCUS_PREFERENCES: FocusPreferences = {
 };
 
 export type GraphState = {
+	userId?: string;
 	positions: Record<string, { x: number; y: number }>;
 	viewport?: { x: number; y: number; zoom: number };
 	edges: {
@@ -351,7 +352,10 @@ const MOCK_SYLLABUS_DATA: SyllabusExtractedData = {
 
 export async function getSemesters(userId: string): Promise<Semester[]> {
 	if (_d1) {
-		return d1All<Semester>('SELECT id, user_id, term, year, "order" FROM semesters WHERE user_id = ? ORDER BY "order"', userId);
+		return d1All<Semester>(
+			'SELECT id, user_id, term, year, "order" FROM semesters WHERE user_id = ? ORDER BY "order"',
+			userId
+		);
 	}
 	const all = read<Semester>('semesters');
 	return all.filter((s) => s.userId === userId);
@@ -421,7 +425,9 @@ export async function deleteSemester(userId: string, id: string): Promise<void> 
 		]);
 		return;
 	}
-	const semesters = read<Semester>('semesters').filter((s) => !(s.id === id && s.userId === userId));
+	const semesters = read<Semester>('semesters').filter(
+		(s) => !(s.id === id && s.userId === userId)
+	);
 	const allCourses = getCoursesFsSync();
 	const removedIds = new Set(allCourses.filter((c) => c.semesterId === id).map((c) => c.id));
 	const courses = allCourses.filter((c) => c.semesterId !== id);
@@ -584,7 +590,11 @@ export async function addCourse(userId: string, c: Course): Promise<void> {
 	write('courses', all);
 }
 
-export async function updateCourse(userId: string, id: string, updates: Partial<Course>): Promise<void> {
+export async function updateCourse(
+	userId: string,
+	id: string,
+	updates: Partial<Course>
+): Promise<void> {
 	if (_d1) {
 		const sets: string[] = [];
 		const bind: unknown[] = [];
@@ -676,7 +686,7 @@ export async function getGraphState(userId: string): Promise<GraphState> {
 		};
 	}
 	const all = read<GraphState>('graph');
-	return all.find((g) => (g as any).userId === userId) ?? { positions: {}, edges: [] };
+	return all.find((g) => g.userId === userId) ?? { positions: {}, edges: [] };
 }
 
 export async function saveGraphState(userId: string, state: GraphState): Promise<void> {
@@ -691,8 +701,8 @@ export async function saveGraphState(userId: string, state: GraphState): Promise
 		);
 		return;
 	}
-	const all = read<GraphState>('graph').filter((g) => (g as any).userId !== userId);
-	write('graph', [...all, { ...state, userId } as any]);
+	const all = read<GraphState>('graph').filter((g) => g.userId !== userId);
+	write('graph', [...all, { ...state, userId }]);
 }
 
 function getGraphStateFsSync(): GraphState {
@@ -734,7 +744,9 @@ export async function applyGraphImport(
 			const sanitized = sanitizeCourse(course);
 			return existing
 				? _d1!
-						.prepare('UPDATE courses SET semester_id = ?, code = ?, name = ?, tag = ? WHERE id = ? AND user_id = ?')
+						.prepare(
+							'UPDATE courses SET semester_id = ?, code = ?, name = ?, tag = ? WHERE id = ? AND user_id = ?'
+						)
 						.bind(
 							sanitized.semesterId,
 							sanitized.code,
@@ -784,7 +796,10 @@ function currentCourseCredits(crs: Course[]): number {
 
 export async function getAcademicDigest(userId: string): Promise<AcademicDigest | null> {
 	if (_d1) {
-		const row = await d1First<Record<string, unknown>>('SELECT * FROM academic_digest WHERE user_id = ?', userId);
+		const row = await d1First<Record<string, unknown>>(
+			'SELECT * FROM academic_digest WHERE user_id = ?',
+			userId
+		);
 		if (!row) return null;
 		return rowToDigest(row);
 	}
@@ -833,11 +848,14 @@ export function buildAcademicDigest(input?: {
 	};
 }
 
-export async function saveAcademicDigest(userId: string, input?: {
-	fileName?: string;
-	source?: AcademicDigest['source'];
-	analysis?: AcademicDigestAnalysis;
-}): Promise<AcademicDigest> {
+export async function saveAcademicDigest(
+	userId: string,
+	input?: {
+		fileName?: string;
+		source?: AcademicDigest['source'];
+		analysis?: AcademicDigestAnalysis;
+	}
+): Promise<AcademicDigest> {
 	const record = buildAcademicDigest(input);
 	record.userId = userId;
 	if (_d1) {
@@ -900,7 +918,10 @@ export async function clearAcademicDigest(userId: string): Promise<AcademicDiges
 	return buildAcademicDigest();
 }
 
-export async function createAcademicDigestJob(userId: string, fileName: string): Promise<AcademicDigestJob> {
+export async function createAcademicDigestJob(
+	userId: string,
+	fileName: string
+): Promise<AcademicDigestJob> {
 	const now = new Date().toISOString();
 	const job: AcademicDigestJob = {
 		id: crypto.randomUUID(),
@@ -973,7 +994,9 @@ export async function updateAcademicDigestJob(
 	return jobs[index];
 }
 
-export async function getLatestAcademicDigestJob(userId: string): Promise<AcademicDigestJob | null> {
+export async function getLatestAcademicDigestJob(
+	userId: string
+): Promise<AcademicDigestJob | null> {
 	if (_d1) {
 		const row = await d1First<Record<string, unknown>>(
 			'SELECT * FROM academic_digest_jobs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
@@ -1039,7 +1062,10 @@ export async function getSyllabusImports(userId: string): Promise<SyllabusImport
 	return all.filter((s) => s.userId === userId);
 }
 
-export async function getSyllabusImport(userId: string, courseId?: string): Promise<SyllabusImport | null> {
+export async function getSyllabusImport(
+	userId: string,
+	courseId?: string
+): Promise<SyllabusImport | null> {
 	if (_d1) {
 		if (courseId) {
 			const row = await d1First<Record<string, unknown>>(
@@ -1063,7 +1089,11 @@ export async function getSyllabusImport(userId: string, courseId?: string): Prom
 export async function clearSyllabusImport(userId: string, courseId?: string): Promise<null> {
 	if (_d1) {
 		if (courseId) {
-			await d1Run('DELETE FROM syllabus_imports WHERE user_id = ? AND course_id = ?', userId, courseId);
+			await d1Run(
+				'DELETE FROM syllabus_imports WHERE user_id = ? AND course_id = ?',
+				userId,
+				courseId
+			);
 		} else {
 			await d1Run('DELETE FROM syllabus_imports WHERE user_id = ?', userId);
 		}
@@ -1072,11 +1102,16 @@ export async function clearSyllabusImport(userId: string, courseId?: string): Pr
 	if (courseId) {
 		write(
 			'syllabus-imports',
-			read<SyllabusImport>('syllabus-imports').filter((item) => !(item.userId === userId && item.courseId === courseId))
+			read<SyllabusImport>('syllabus-imports').filter(
+				(item) => !(item.userId === userId && item.courseId === courseId)
+			)
 		);
 		return null;
 	}
-	write('syllabus-imports', read<SyllabusImport>('syllabus-imports').filter((item) => item.userId !== userId));
+	write(
+		'syllabus-imports',
+		read<SyllabusImport>('syllabus-imports').filter((item) => item.userId !== userId)
+	);
 	return null;
 }
 
@@ -1121,13 +1156,16 @@ async function applySyllabusDetailsToCourse(
 	});
 }
 
-export async function saveSyllabusImport(userId: string, input: {
-	courseId?: string;
-	fileName: string;
-	rawText: string;
-	extractedData: SyllabusExtractedData;
-	status: SyllabusImport['status'];
-}): Promise<SyllabusImport> {
+export async function saveSyllabusImport(
+	userId: string,
+	input: {
+		courseId?: string;
+		fileName: string;
+		rawText: string;
+		extractedData: SyllabusExtractedData;
+		status: SyllabusImport['status'];
+	}
+): Promise<SyllabusImport> {
 	const courseId = input.courseId?.trim() || 'csis-4495';
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
@@ -1144,7 +1182,11 @@ export async function saveSyllabusImport(userId: string, input: {
 
 	if (_d1) {
 		// upsert: delete existing for this course then insert
-		await d1Run('DELETE FROM syllabus_imports WHERE user_id = ? AND course_id = ?', userId, courseId);
+		await d1Run(
+			'DELETE FROM syllabus_imports WHERE user_id = ? AND course_id = ?',
+			userId,
+			courseId
+		);
 		await d1Run(
 			'INSERT INTO syllabus_imports (id, user_id, course_id, file_name, raw_text, extracted_data, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
 			record.id,
@@ -1172,7 +1214,10 @@ export async function saveSyllabusImport(userId: string, input: {
 				existing.extractedData.requiredMaterials ?? input.extractedData.requiredMaterials
 		};
 	}
-	write('syllabus-imports', [...all.filter((item) => !(item.userId === userId && item.courseId === courseId)), record]);
+	write('syllabus-imports', [
+		...all.filter((item) => !(item.userId === userId && item.courseId === courseId)),
+		record
+	]);
 	await applySyllabusDetailsToCourse(userId, courseId, record.extractedData);
 	return record;
 }
@@ -1233,7 +1278,8 @@ export async function updateSyllabusTextbook(
 	}
 
 	const existing =
-		(await getSyllabusImport(userId, courseId)) ?? (await mockExtractSyllabus(userId, undefined, courseId));
+		(await getSyllabusImport(userId, courseId)) ??
+		(await mockExtractSyllabus(userId, undefined, courseId));
 	const all = _d1 ? [] : read<SyllabusImport>('syllabus-imports');
 	const now = new Date().toISOString();
 	const record: SyllabusImport = {
@@ -1320,10 +1366,13 @@ export async function getFocusPreferences(userId: string): Promise<FocusPreferen
 	return all.find((f) => f.userId === userId) ?? { ...DEFAULT_FOCUS_PREFERENCES, userId };
 }
 
-export async function saveFocusPreferences(userId: string, input: {
-	allowedSites: string[];
-	blockedSites: string[];
-}): Promise<FocusPreferences> {
+export async function saveFocusPreferences(
+	userId: string,
+	input: {
+		allowedSites: string[];
+		blockedSites: string[];
+	}
+): Promise<FocusPreferences> {
 	const record: FocusPreferences = { ...input, userId, updatedAt: new Date().toISOString() };
 	if (_d1) {
 		await d1Run(

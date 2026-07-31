@@ -129,7 +129,9 @@ export async function DELETE({ params, platform, locals }: RequestEvent) {
 	if (!platform) return json({ error: 'Platform unavailable' }, { status: 500 });
 	const userId = locals.user?.id;
 	if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
-	const result = await platform.env.BRIEF_DB.prepare('DELETE FROM calendar_events WHERE id = ? AND user_id = ?')
+	const result = await platform.env.BRIEF_DB.prepare(
+		'DELETE FROM calendar_events WHERE id = ? AND user_id = ?'
+	)
 		.bind(params.id, userId)
 		.run();
 	if (!result.meta.changes) return json({ error: 'Event not found' }, { status: 404 });

@@ -22,8 +22,6 @@
 	let {
 		viewYear,
 		viewMonth,
-		currentYear,
-		currentMonthIdx,
 		today,
 		monthName,
 		showYearPicker = false,
@@ -54,8 +52,6 @@
 	}: {
 		viewYear: number;
 		viewMonth: number;
-		currentYear: number;
-		currentMonthIdx: number;
 		today: number;
 		monthName: string;
 		showYearPicker: boolean;

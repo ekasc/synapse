@@ -318,7 +318,7 @@
 			</div>
 
 			<div class="duration-tabs" aria-label="Timer duration">
-				{#each [25, 45, 60] as minutes}
+				{#each [25, 45, 60] as minutes (minutes)}
 					<button
 						class="font-numeric"
 						class:active={durationMinutes === minutes}
@@ -397,7 +397,7 @@
 				</div>
 				<div class="session-trace" aria-label="Session progress and recorded distractions">
 					<div class="trace-progress" style={`width: ${progress * 100}%`}></div>
-					{#each distractionSeconds as second, index}
+					{#each distractionSeconds as second, index (index)}
 						<span
 							class="trace-mark"
 							style={`left: ${(second / totalSeconds) * 100}%`}

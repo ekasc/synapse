@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import { describe, expect, it, afterAll, beforeEach, vi } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -176,7 +176,10 @@ describe('uploadMaterialFallback', () => {
 
 describe('deleteMaterialRecordFallback', () => {
 	it('removes the record from the index and deletes the on-disk file', () => {
-		seedIndex([makeRecord({ id: 'del-1', fileName: 'to-delete.pdf' }), makeRecord({ id: 'keep', fileName: 'keep.pdf' })]);
+		seedIndex([
+			makeRecord({ id: 'del-1', fileName: 'to-delete.pdf' }),
+			makeRecord({ id: 'keep', fileName: 'keep.pdf' })
+		]);
 		seedFile('del-1', 'to-delete.pdf', 'delete me');
 		seedFile('keep', 'keep.pdf', 'keep me');
 

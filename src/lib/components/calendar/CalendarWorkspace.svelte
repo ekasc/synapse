@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { X } from '@lucide/svelte';
 	import { page } from '$app/stores';
 	import { ToggleGroup } from 'bits-ui';
 	import { resolveRoute } from '$app/paths';
@@ -151,6 +152,7 @@
 
 	// Resolved once per render — cells read O(1) instead of a find() per event.
 	const colorByCode = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient lookup table rebuilt inside $derived; SvelteMap reactivity would be pure overhead here.
 		const map = new Map<string, string>();
 		for (const c of courseColors) map.set(c.code, c.color);
 		for (const code of allCourseCodes) {
@@ -173,6 +175,7 @@
 	// the week view already uses), so month/week cells do a Map lookup per day
 	// instead of 2–3 full array scans per cell per render.
 	const eventsByDay = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient lookup table rebuilt inside $derived; SvelteMap reactivity would be pure overhead here.
 		const map = new Map<string, CalendarEvent[]>();
 		for (const e of filteredEvents) {
 			const key = `${e.year}-${e.month}-${e.date}`;
@@ -691,8 +694,6 @@
 				<CalendarMonthView
 					{viewYear}
 					{viewMonth}
-					{currentYear}
-					{currentMonthIdx}
 					{today}
 					{monthName}
 					{showYearPicker}

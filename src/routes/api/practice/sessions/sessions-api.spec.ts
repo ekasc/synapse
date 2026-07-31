@@ -86,7 +86,9 @@ describe('practice sessions API', () => {
 		});
 		repository.delete.mockResolvedValue({ outcome: 'ok', value: null });
 
-		expect((await GET({ platform, locals, params: { id: 'session-1' } } as never)).status).toBe(200);
+		expect((await GET({ platform, locals, params: { id: 'session-1' } } as never)).status).toBe(
+			200
+		);
 		expect(
 			(
 				await PATCH({

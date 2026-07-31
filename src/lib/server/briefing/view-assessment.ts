@@ -15,8 +15,7 @@ import { safeArray } from './view-parsing';
 // ── V4 assessment components ──
 
 export function mapV4Components(
-	raw: Array<Record<string, unknown>> | undefined | null,
-	sources: RenderableSource[]
+	raw: Array<Record<string, unknown>> | undefined | null
 ): AssessmentComponentView[] | null {
 	if (!raw || !Array.isArray(raw) || raw.length === 0) return null;
 	return raw.map((c) => ({
@@ -146,7 +145,7 @@ export function parseLegacyWeight(weight: string): {
 		const v = parseInt(trimmed);
 		return { minWeight: v, maxWeight: v, exactWeight: v, weightDisplay: `${v}%` };
 	}
-	const rangeMatch = trimmed.match(/(\d{1,3})%?\s*[\-\u2013]\s*(\d{1,3})%/);
+	const rangeMatch = trimmed.match(/(\d{1,3})%?\s*[\u2013-]\s*(\d{1,3})%/);
 	if (rangeMatch) {
 		const min = parseInt(rangeMatch[1]);
 		const max = parseInt(rangeMatch[2]);

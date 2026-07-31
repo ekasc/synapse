@@ -86,7 +86,10 @@ export async function POST({ params, request, platform, locals }: RequestEvent) 
 	}
 
 	const material = await getBackend({ platform }).upload(params.id, file);
-	const index = await createMaterialIndexRepository(platform?.env?.BRIEF_DB).ensure(userId, material);
+	const index = await createMaterialIndexRepository(platform?.env?.BRIEF_DB).ensure(
+		userId,
+		material
+	);
 	return json({ ok: true, material: { ...material, index } });
 }
 
@@ -149,7 +152,9 @@ export async function DELETE({ params, request, platform, locals }: RequestEvent
 		// list), so this cleanup is best-effort.
 		try {
 			const readyChunks = await repository.listReadyChunks(userId, params.id);
-			const staleIds = readyChunks.filter((chunk) => chunk.materialId === id).map((chunk) => chunk.id);
+			const staleIds = readyChunks
+				.filter((chunk) => chunk.materialId === id)
+				.map((chunk) => chunk.id);
 			await pipeline.store.deleteByIds(staleIds);
 		} catch {
 			// leave vectors in place; they are excluded by retrieval allow-lists

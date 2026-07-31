@@ -64,9 +64,11 @@ describe('ResearchSlip form', () => {
 	});
 
 	it('auto-submits when autoStart is true and initialCode is set', async () => {
-		const fetchMock = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ job: { id: 'job-1', status: 'queued' } }), { status: 200 })
-		);
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ job: { id: 'job-1', status: 'queued' } }), { status: 200 })
+			);
 		vi.stubGlobal('fetch', fetchMock);
 
 		render(ResearchSlip, { initialCode: 'CSIS 3375', autoStart: true });

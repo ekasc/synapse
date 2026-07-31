@@ -174,15 +174,17 @@ export const courses = sqliteTable('courses', {
 
 // ── Graph state (single row, JSON fields) ──
 
-export const graphState = sqliteTable('graph_state', {
-	id: text('id').notNull(),
-	userId: text('user_id').notNull(),
-	positions: text('positions').notNull(),
-	viewport: text('viewport'),
-	edges: text('edges').notNull()
-}, (table) => [
-	primaryKey({ columns: [table.id, table.userId] })
-]);
+export const graphState = sqliteTable(
+	'graph_state',
+	{
+		id: text('id').notNull(),
+		userId: text('user_id').notNull(),
+		positions: text('positions').notNull(),
+		viewport: text('viewport'),
+		edges: text('edges').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.id, table.userId] })]
+);
 
 // ── Course Map planning scenarios ──
 
@@ -232,26 +234,28 @@ export const syllabusImports = sqliteTable('syllabus_imports', {
 
 // ── Academic digest (single row, JSON fields) ──
 
-export const academicDigest = sqliteTable('academic_digest', {
-	id: text('id').notNull(),
-	userId: text('user_id').notNull(),
-	source: text('source').notNull(),
-	fileName: text('file_name'),
-	summary: text('summary').notNull(),
-	totalGpa: text('total_gpa').notNull(),
-	projectedGpa: text('projected_gpa').notNull(),
-	currentCourseCount: integer('current_course_count').notNull(),
-	finishedCourseCount: integer('finished_course_count').notNull(),
-	currentCredits: integer('current_credits').notNull(),
-	finishedCredits: integer('finished_credits').notNull(),
-	courses: text('courses').notNull(),
-	trend: text('trend').notNull(),
-	insights: text('insights').notNull(),
-	extractionSource: text('extraction_source').notNull(),
-	updatedAt: text('updated_at').notNull()
-}, (table) => [
-	primaryKey({ columns: [table.id, table.userId] })
-]);
+export const academicDigest = sqliteTable(
+	'academic_digest',
+	{
+		id: text('id').notNull(),
+		userId: text('user_id').notNull(),
+		source: text('source').notNull(),
+		fileName: text('file_name'),
+		summary: text('summary').notNull(),
+		totalGpa: text('total_gpa').notNull(),
+		projectedGpa: text('projected_gpa').notNull(),
+		currentCourseCount: integer('current_course_count').notNull(),
+		finishedCourseCount: integer('finished_course_count').notNull(),
+		currentCredits: integer('current_credits').notNull(),
+		finishedCredits: integer('finished_credits').notNull(),
+		courses: text('courses').notNull(),
+		trend: text('trend').notNull(),
+		insights: text('insights').notNull(),
+		extractionSource: text('extraction_source').notNull(),
+		updatedAt: text('updated_at').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.id, table.userId] })]
+);
 
 export const academicDigestJobs = sqliteTable('academic_digest_jobs', {
 	id: text('id').primaryKey(),
@@ -375,15 +379,17 @@ export const practiceSessions = sqliteTable(
 
 // — Study timer —
 
-export const focusPreferences = sqliteTable('focus_preferences', {
-	id: text('id').notNull(),
-	userId: text('user_id').notNull(),
-	allowedSites: text('allowed_sites').notNull(),
-	blockedSites: text('blocked_sites').notNull(),
-	updatedAt: text('updated_at').notNull()
-}, (table) => [
-	primaryKey({ columns: [table.id, table.userId] })
-]);
+export const focusPreferences = sqliteTable(
+	'focus_preferences',
+	{
+		id: text('id').notNull(),
+		userId: text('user_id').notNull(),
+		allowedSites: text('allowed_sites').notNull(),
+		blockedSites: text('blocked_sites').notNull(),
+		updatedAt: text('updated_at').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.id, table.userId] })]
+);
 
 export const studySessions = sqliteTable('study_sessions', {
 	id: text('id').primaryKey(),
@@ -428,14 +434,16 @@ export const weeklyPushSubscriptions = sqliteTable('weekly_push_subscriptions', 
 	createdAt: text('created_at').notNull()
 });
 
-export const weeklyDigestCache = sqliteTable('weekly_digest_cache', {
-	weekStart: text('week_start').notNull(),
-	userId: text('user_id').notNull(),
-	digestJson: text('digest_json').notNull(),
-	createdAt: text('created_at').notNull()
-}, (table) => [
-	primaryKey({ columns: [table.weekStart, table.userId] })
-]);
+export const weeklyDigestCache = sqliteTable(
+	'weekly_digest_cache',
+	{
+		weekStart: text('week_start').notNull(),
+		userId: text('user_id').notNull(),
+		digestJson: text('digest_json').notNull(),
+		createdAt: text('created_at').notNull()
+	},
+	(table) => [primaryKey({ columns: [table.weekStart, table.userId] })]
+);
 
 // ── Auth: users ──
 

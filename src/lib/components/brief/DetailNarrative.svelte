@@ -218,7 +218,12 @@
 							<div class="source-head">
 								<span class="source-num">{sid}.</span>
 								{#if source.url}
-									<a class="source-label" href={source.url} target="_blank" rel="noreferrer">
+									<a
+										class="source-label"
+										href={source.url}
+										target="_blank"
+										rel="external noreferrer"
+									>
 										{label}
 									</a>
 								{:else}

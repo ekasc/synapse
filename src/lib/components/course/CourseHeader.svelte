@@ -3,14 +3,11 @@
 	type RiskLevel = 'none' | 'low' | 'medium' | 'high';
 
 	type Course = {
-		id: string;
-		semesterId: string;
 		code: string;
 		name: string;
 		instructor?: string;
 		credits?: number;
 		tag?: string;
-		color?: string;
 		signals?: {
 			status?: CourseStatus;
 			riskLevel?: RiskLevel;
@@ -25,14 +22,12 @@
 	let {
 		course,
 		semester,
-		backHref,
 		onEdit,
 		onDelete,
 		onBack
 	}: {
 		course: Course;
 		semester: Semester | null;
-		backHref: string;
 		onEdit: () => void;
 		onDelete: () => void;
 		onBack: () => void;

@@ -6,23 +6,24 @@ p1_count: 3
 timestamp: 2026-07-26T00-59-24Z
 slug: src-routes-app-courses-page-svelte
 ---
+
 # Course Map Route Design Critique
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---:|---|
-| 1 | Visibility of System Status | 3/4 | Strong async feedback, but selection does not bring the inspector into view or focus. |
-| 2 | Match System / Real World | 3/4 | Academic language is grounded; “Check,” “Load,” and saved-versus-draft remain ambiguous. |
-| 3 | User Control and Freedom | 3/4 | Undo and reset are strong; whole-draft discard lacks recovery. |
-| 4 | Consistency and Standards | 2/4 | Cohesive styling, but controls are reimplemented and the static scroller conflicts with the documented canvas model. |
-| 5 | Error Prevention | 2/4 | Invalid moves are blocked, but draft discard is immediate and pending relationships cannot be resolved here. |
-| 6 | Recognition Rather Than Recall | 2/4 | Horizontal clipping and the inspector below the canvas force users to remember off-screen relationships. |
-| 7 | Flexibility and Efficiency | 1/4 | No search, fit-to-plan, zoom, minimap, semester jump, or dependable jump-to-course. |
-| 8 | Aesthetic and Minimalist Design | 2/4 | Saved plans and planning summaries compete with the graph. |
-| 9 | Error Recovery | 3/4 | Conflict, retry, sharing, and clipboard states are thorough; discard recovery is incomplete. |
-| 10 | Help and Documentation | 2/4 | Good inline explanation, but no actionable path for adding or reviewing relationships. |
-| **Total** |  | **23/40** | **Acceptable; significant improvements needed** |
+| #         | Heuristic                       |     Score | Key issue                                                                                                            |
+| --------- | ------------------------------- | --------: | -------------------------------------------------------------------------------------------------------------------- |
+| 1         | Visibility of System Status     |       3/4 | Strong async feedback, but selection does not bring the inspector into view or focus.                                |
+| 2         | Match System / Real World       |       3/4 | Academic language is grounded; “Check,” “Load,” and saved-versus-draft remain ambiguous.                             |
+| 3         | User Control and Freedom        |       3/4 | Undo and reset are strong; whole-draft discard lacks recovery.                                                       |
+| 4         | Consistency and Standards       |       2/4 | Cohesive styling, but controls are reimplemented and the static scroller conflicts with the documented canvas model. |
+| 5         | Error Prevention                |       2/4 | Invalid moves are blocked, but draft discard is immediate and pending relationships cannot be resolved here.         |
+| 6         | Recognition Rather Than Recall  |       2/4 | Horizontal clipping and the inspector below the canvas force users to remember off-screen relationships.             |
+| 7         | Flexibility and Efficiency      |       1/4 | No search, fit-to-plan, zoom, minimap, semester jump, or dependable jump-to-course.                                  |
+| 8         | Aesthetic and Minimalist Design |       2/4 | Saved plans and planning summaries compete with the graph.                                                           |
+| 9         | Error Recovery                  |       3/4 | Conflict, retry, sharing, and clipboard states are thorough; discard recovery is incomplete.                         |
+| 10        | Help and Documentation          |       2/4 | Good inline explanation, but no actionable path for adding or reviewing relationships.                               |
+| **Total** |                                 | **23/40** | **Acceptable; significant improvements needed**                                                                      |
 
 ## Anti-Patterns Verdict
 

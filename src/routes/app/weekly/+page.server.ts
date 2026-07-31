@@ -70,9 +70,7 @@ export const actions = {
 		const repository = createMaterialIndexRepository(binding);
 		const summary = await runBackgroundIndexing({
 			repository,
-			pipeline: createSemanticPipeline(
-				(event.platform?.env ?? {}) as Record<string, unknown>
-			),
+			pipeline: createSemanticPipeline((event.platform?.env ?? {}) as Record<string, unknown>),
 			load: async (materialId) => {
 				const material = bucket
 					? await getMaterialRecord(bucket, materialId)

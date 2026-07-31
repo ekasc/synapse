@@ -246,9 +246,7 @@ describe('selectSemanticChunks', () => {
 	});
 
 	it('stops adding chunks once the budget is exhausted', () => {
-		const chunks = [0, 1, 2].map((i) =>
-			makeMaterialChunk(`m1:p1:c${i}`, 'm1', i, 'x'.repeat(100))
-		);
+		const chunks = [0, 1, 2].map((i) => makeMaterialChunk(`m1:p1:c${i}`, 'm1', i, 'x'.repeat(100)));
 		const result = selectSemanticChunks(
 			chunks,
 			[

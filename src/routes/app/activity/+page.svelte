@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 	import { AlertDialog } from '$lib/components/ui';
 	import { RefreshCw, Trash2, X } from '@lucide/svelte';
@@ -394,7 +395,9 @@
 										{#if ext.status === 'completed'}
 											<div class="mt-1">
 												<a
-													href={`/app/syllabus/result/${encodeURIComponent(ext.courseCode)}`}
+													href={resolveRoute(
+														`/app/syllabus/result/${encodeURIComponent(ext.courseCode)}`
+													)}
 													class=" text-[var(--ink)] text-[var(--text-caption)] underline underline-offset-2"
 												>
 													view results

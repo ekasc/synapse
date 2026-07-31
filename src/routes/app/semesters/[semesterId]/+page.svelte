@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import { AlertDialog } from '$lib/components/ui';
 	import CourseEditDialog from '$lib/components/course/CourseEditDialog.svelte';
 	type CourseStatus = 'planned' | 'active' | 'completed' | 'at-risk';
@@ -42,7 +43,9 @@
 			: fallback;
 	};
 	function courseHref(id: string) {
-		return `/app/semesters/${encodeURIComponent(data.semester.id)}/courses/${encodeURIComponent(id)}`;
+		return resolveRoute(
+			`/app/semesters/${encodeURIComponent(data.semester.id)}/courses/${encodeURIComponent(id)}`
+		);
 	}
 	function openAdd() {
 		editing = null;
@@ -84,7 +87,7 @@
 				return;
 			}
 			deleteSemester = false;
-			await goto('/app/semesters', { invalidateAll: true, replaceState: true });
+			await goto(resolveRoute('/app/semesters'), { invalidateAll: true, replaceState: true });
 		} catch {
 			error = 'Network error. Is the server running?';
 		} finally {

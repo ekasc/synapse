@@ -347,12 +347,13 @@
 					</h2>
 				</div>
 				<div class="flex shrink-0 items-center gap-[0.6rem] max-[640px]:gap-[0.4rem]">
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- downloadUrl points to a generated file/API URL. -->
+					<!-- eslint-disable svelte/no-navigation-without-resolve -- downloadUrl points to a generated file/API URL. -->
 					<a
 						class=" text-[var(--ink)] text-[var(--text-caption)] underline decoration-[var(--border-faint)] underline-offset-[3px] transition-[text-decoration-color] duration-150 hover:decoration-[var(--ink)]"
 						href={downloadUrl}
 						download={fileName}>download</a
 					>
+					<!-- eslint-enable svelte/no-navigation-without-resolve -->
 					<button
 						type="button"
 						bind:this={closeRef}

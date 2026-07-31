@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	dollarsToMicrodollars,
-	estimateCostMicrodollars
-} from './cost';
+import { dollarsToMicrodollars, estimateCostMicrodollars } from './cost';
 import {
 	FLASH_SEARCH_MODEL,
 	PRO_SYNTHESIS_MODEL,

@@ -170,7 +170,8 @@ export function analyzeCalendar(
 							86400000
 					)
 				: Math.round(
-						(new Date(current.year, current.month, current.date).getTime() - now.getTime()) / 86400000
+						(new Date(current.year, current.month, current.date).getTime() - now.getTime()) /
+							86400000
 					);
 
 			if (gapDays > 7) {

@@ -199,6 +199,65 @@ body {
 	padding-block: 2rem 4rem;
 }
 
+/* Entrance animation for page roots. Children stagger in (40ms apart),
+   capped at 360ms so deep trees don't drag. */
+.page-enter {
+	animation: page-enter-in 240ms var(--ease-out-quart) both;
+}
+
+.page-enter > * {
+	animation: page-enter-up 320ms var(--ease-out-quart) both;
+}
+
+.page-enter > *:nth-child(2) {
+	animation-delay: 40ms;
+}
+
+.page-enter > *:nth-child(3) {
+	animation-delay: 80ms;
+}
+
+.page-enter > *:nth-child(4) {
+	animation-delay: 120ms;
+}
+
+.page-enter > *:nth-child(5) {
+	animation-delay: 160ms;
+}
+
+.page-enter > *:nth-child(6) {
+	animation-delay: 200ms;
+}
+
+.page-enter > *:nth-child(7) {
+	animation-delay: 240ms;
+}
+
+.page-enter > *:nth-child(8) {
+	animation-delay: 280ms;
+}
+
+.page-enter > *:nth-child(9) {
+	animation-delay: 320ms;
+}
+
+.page-enter > *:nth-child(n + 10) {
+	animation-delay: 360ms;
+}
+
+@keyframes page-enter-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes page-enter-up {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+}
+
 .page-route-detail {
 	margin-inline: auto;
 	padding-block: 2rem 4rem;

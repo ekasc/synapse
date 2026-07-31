@@ -165,11 +165,41 @@ describe('addCourse / updateCourse color sanitization', () => {
 
 describe('Course Linker deletion integrity', () => {
 	beforeEach(async () => {
-		await addSemester(TEST_USER_ID, { id: 's1', userId: TEST_USER_ID, term: 'Fall', year: 2026, order: 1 });
-		await addSemester(TEST_USER_ID, { id: 's2', userId: TEST_USER_ID, term: 'Spring', year: 2027, order: 2 });
-		await addCourse(TEST_USER_ID, { id: 'c1', userId: TEST_USER_ID, semesterId: 's1', code: 'ONE', name: 'One' });
-		await addCourse(TEST_USER_ID, { id: 'c2', userId: TEST_USER_ID, semesterId: 's1', code: 'TWO', name: 'Two' });
-		await addCourse(TEST_USER_ID, { id: 'c3', userId: TEST_USER_ID, semesterId: 's2', code: 'THREE', name: 'Three' });
+		await addSemester(TEST_USER_ID, {
+			id: 's1',
+			userId: TEST_USER_ID,
+			term: 'Fall',
+			year: 2026,
+			order: 1
+		});
+		await addSemester(TEST_USER_ID, {
+			id: 's2',
+			userId: TEST_USER_ID,
+			term: 'Spring',
+			year: 2027,
+			order: 2
+		});
+		await addCourse(TEST_USER_ID, {
+			id: 'c1',
+			userId: TEST_USER_ID,
+			semesterId: 's1',
+			code: 'ONE',
+			name: 'One'
+		});
+		await addCourse(TEST_USER_ID, {
+			id: 'c2',
+			userId: TEST_USER_ID,
+			semesterId: 's1',
+			code: 'TWO',
+			name: 'Two'
+		});
+		await addCourse(TEST_USER_ID, {
+			id: 'c3',
+			userId: TEST_USER_ID,
+			semesterId: 's2',
+			code: 'THREE',
+			name: 'Three'
+		});
 		await saveGraphState(TEST_USER_ID, {
 			positions: { c1: { x: 1, y: 1 }, c2: { x: 2, y: 2 }, c3: { x: 3, y: 3 } },
 			edges: [
@@ -222,7 +252,13 @@ describe('Course Linker D1 atomic writes', () => {
 				TEST_USER_ID,
 				[
 					{
-						course: { id: 'atomic', userId: TEST_USER_ID, semesterId: 's1', code: 'ATOMIC', name: 'Atomic' },
+						course: {
+							id: 'atomic',
+							userId: TEST_USER_ID,
+							semesterId: 's1',
+							code: 'ATOMIC',
+							name: 'Atomic'
+						},
 						existing: false
 					}
 				],

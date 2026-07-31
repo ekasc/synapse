@@ -134,18 +134,15 @@
 				canvas.height = Math.floor(viewport.height);
 				await page.render({ canvas, canvasContext: context, viewport }).promise;
 				const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-				const response = await fetch(
-					`/api/courses/${course.id}/materials/${material.id}/ocr`,
-					{
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							pageNumber,
-							image: dataUrl.slice(dataUrl.indexOf(',') + 1),
-							done: pageNumber === total
-						})
-					}
-				);
+				const response = await fetch(`/api/courses/${course.id}/materials/${material.id}/ocr`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						pageNumber,
+						image: dataUrl.slice(dataUrl.indexOf(',') + 1),
+						done: pageNumber === total
+					})
+				});
 				const body = (await response.json().catch(() => null)) as {
 					index?: MaterialIndex;
 					error?: string;
@@ -388,11 +385,13 @@
 								aria-label="Rename file"
 							/>
 						{:else}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- API download URL, not an app route. -->
 							<a
 								class="block truncate text-[var(--ink)] text-[var(--text-small)] no-underline hover:underline hover:decoration-[var(--ink)]"
 								href={`/api/courses/${course.id}/materials/${material.id}/download`}
 								download={material.fileName}>{material.fileName}</a
 							>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/if}
 						<div class="mt-[0.2rem] text-[var(--ink-faint)] text-[var(--text-caption)]">
 							{formatSize(material.size)} · uploaded {formatDate(material.uploadedAt)}

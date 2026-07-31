@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import { browser } from '$app/environment';
 	import ResearchSlip from '$lib/components/brief/ResearchSlip.svelte';
 	import NotebookEntry from '$lib/components/brief/NotebookEntry.svelte';
@@ -38,7 +39,7 @@
 	});
 
 	function handleSlipSuccess(code: string) {
-		goto(`/app/brief/${encodeURIComponent(code)}`);
+		goto(resolveRoute(`/app/brief/${encodeURIComponent(code)}`));
 	}
 </script>
 

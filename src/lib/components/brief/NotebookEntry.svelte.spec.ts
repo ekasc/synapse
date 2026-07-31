@@ -10,7 +10,16 @@ const baseBrief = {
 	researchedAt: '2025-03-12T14:22:00.000Z',
 	professor: { requestedName: 'Prof. Smith', currentListedInstructor: null },
 	studentReviews: { rating: 4.2, ratingCount: 42, wouldTakeAgainPercent: 78, present: true },
-	sources: [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }, { id: '6' }, { id: '7' }, { id: '8' }],
+	sources: [
+		{ id: '1' },
+		{ id: '2' },
+		{ id: '3' },
+		{ id: '4' },
+		{ id: '5' },
+		{ id: '6' },
+		{ id: '7' },
+		{ id: '8' }
+	],
 	offerings: { current: { term: 'Spring 2026', instructor: { name: 'Prof. Smith' } } }
 } as unknown as BriefingDetailViewModel;
 

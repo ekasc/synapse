@@ -19,13 +19,11 @@
 
 	let {
 		job,
-		courseCode,
 		timedOut = false,
 		onCancel,
 		onRetry
 	}: {
 		job: Job;
-		courseCode: string;
 		timedOut?: boolean;
 		onCancel: () => void;
 		onRetry: () => void;

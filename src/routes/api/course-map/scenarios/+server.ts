@@ -39,7 +39,10 @@ export async function POST({ request, platform, locals }: RequestEvent) {
 		const userId = locals.user?.id;
 		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		return response(
-			await createPlanningScenarioRepository(platform.env.BRIEF_DB).create(userId, await bodyOf(request)),
+			await createPlanningScenarioRepository(platform.env.BRIEF_DB).create(
+				userId,
+				await bodyOf(request)
+			),
 			201
 		);
 	} catch {

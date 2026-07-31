@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 	import DetailHero from '$lib/components/brief/DetailHero.svelte';
 	import DetailSidebar from '$lib/components/brief/DetailSidebar.svelte';
 	import DetailNarrative from '$lib/components/brief/DetailNarrative.svelte';
@@ -18,7 +19,7 @@
 	} = $props();
 
 	function onDeleted() {
-		goto('/app/brief');
+		goto(resolveRoute('/app/brief'));
 	}
 </script>
 
@@ -27,7 +28,7 @@
 <div class="page-enter mx-auto max-w-[var(--page-width)] pt-8 pb-16 max-[700px]:px-4">
 	<a
 		class="mb-5 inline-block border border-transparent px-[0.7rem] py-[0.35rem] text-[var(--ink-soft)] text-[var(--text-caption)] no-underline hover:bg-[var(--paper-shelf)] hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
-		href="/app/brief">← back to all briefs</a
+		href={resolveRoute('/app/brief')}>← back to all briefs</a
 	>
 
 	{#if data.state === 'found' && data.detail}
@@ -62,7 +63,7 @@
 			<p class="mt-0 mb-3 font-[family-name:var(--font-body)] text-base text-[var(--ink-soft)]">
 				This brief may have been deleted or the link may be invalid.
 			</p>
-			<a class="btn btn-sm" href="/app/brief">Return to all briefs</a>
+			<a class="btn btn-sm" href={resolveRoute('/app/brief')}>Return to all briefs</a>
 		</div>
 	{:else}
 		<div
@@ -76,7 +77,7 @@
 			<p class="mt-0 mb-3 font-[family-name:var(--font-body)] text-base text-[var(--ink-soft)]">
 				An error occurred while loading the brief. Please try again.
 			</p>
-			<a class="btn btn-sm" href="/app/brief">Return to the brief list</a>
+			<a class="btn btn-sm" href={resolveRoute('/app/brief')}>Return to the brief list</a>
 		</div>
 	{/if}
 </div>

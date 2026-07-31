@@ -281,7 +281,9 @@ describe('analyzeCalendar', () => {
 			const result = analyzeCalendar([a, b], [], {}, CLOCK);
 
 			// The gap between a (Jun 15) and b (Jun 25) = 10 days > 7 → study gap
-			const csGaps = result.studyGaps.filter((g) => g.courseCode === 'CS101' && g.lastEventDate !== '—');
+			const csGaps = result.studyGaps.filter(
+				(g) => g.courseCode === 'CS101' && g.lastEventDate !== '—'
+			);
 			expect(csGaps).toHaveLength(1);
 			expect(csGaps[0]).toMatchObject({
 				courseCode: 'CS101',
@@ -438,7 +440,13 @@ describe('analyzeCalendar', () => {
 		});
 
 		it('includes grade stakes section with current grade info when available', () => {
-			const e = evt({ id: 's', date: 20, title: 'Final Exam', courseCode: 'PHYS300', gradeWeight: 40 });
+			const e = evt({
+				id: 's',
+				date: 20,
+				title: 'Final Exam',
+				courseCode: 'PHYS300',
+				gradeWeight: 40
+			});
 
 			const result = analyzeCalendar([e], [], { PHYS300: 92 }, CLOCK);
 
@@ -468,7 +476,13 @@ describe('analyzeCalendar', () => {
 
 		it('includes the upcoming events list with weight annotations', () => {
 			const a = evt({ id: 'a', date: 16, title: 'Homework', courseCode: 'CS101', gradeWeight: 5 });
-			const b = evt({ id: 'b', date: 20, title: 'Reading', courseCode: 'CS101', gradeWeight: null });
+			const b = evt({
+				id: 'b',
+				date: 20,
+				title: 'Reading',
+				courseCode: 'CS101',
+				gradeWeight: null
+			});
 
 			const result = analyzeCalendar([a, b], [], {}, CLOCK);
 
@@ -476,9 +490,7 @@ describe('analyzeCalendar', () => {
 			expect(result.fullContext).toContain('**Homework** — CS101 (5%)');
 			expect(result.fullContext).toContain('**Reading** — CS101');
 			// Reading should not show a weight percentage
-			const readingLine = result.fullContext
-				.split('\n')
-				.find((l) => l.includes('Reading'));
+			const readingLine = result.fullContext.split('\n').find((l) => l.includes('Reading'));
 			expect(readingLine).not.toContain('%)');
 		});
 

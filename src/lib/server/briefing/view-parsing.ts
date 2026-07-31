@@ -3,11 +3,7 @@
  * Extracted from view-model.ts — keep in sync with the facade re-exports.
  */
 
-import type {
-	SourceClass,
-	SourceCurrentness,
-	RenderableSource
-} from './briefing-types';
+import type { SourceClass, SourceCurrentness, RenderableSource } from './briefing-types';
 
 // ── Source classification (view-specific, separate from accuracy-gate) ──
 
@@ -116,9 +112,10 @@ export function parseWouldTakeAgainFromText(text: string): number | null {
 	return Number.isFinite(n) && n >= 0 && n <= 100 ? n : null;
 }
 
-export function parseSentimentFromRmpText(
-	text: string
-): { positives: string[]; concerns: string[] } {
+export function parseSentimentFromRmpText(text: string): {
+	positives: string[];
+	concerns: string[];
+} {
 	if (!text) return { positives: [], concerns: [] };
 	const positives: string[] = [];
 	const concerns: string[] = [];

@@ -7,7 +7,13 @@ import { completePastCalendarEvents } from '$lib/server/calendar/complete-past-e
 
 export async function load(event) {
 	const userId = event.locals.user?.id;
-	if (!userId) return { semesters: [], courses: [], graph: { positions: {}, edges: [] }, dashboardDataAvailable: false };
+	if (!userId)
+		return {
+			semesters: [],
+			courses: [],
+			graph: { positions: {}, edges: [] },
+			dashboardDataAvailable: false
+		};
 	type ReadResult<T> = { value: T; available: boolean };
 	const safe = async <T>(fallback: T, fn: () => Promise<T>): Promise<ReadResult<T>> => {
 		try {

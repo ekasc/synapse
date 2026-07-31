@@ -115,7 +115,10 @@ function asAction(value: unknown): ResearchAction | null {
 		return action as ResearchAction;
 	return null;
 }
-function candidateHasKnownSources(candidate: CandidateBriefing, evidence: Map<string, EvidenceSource>): boolean {
+function candidateHasKnownSources(
+	candidate: CandidateBriefing,
+	evidence: Map<string, EvidenceSource>
+): boolean {
 	const known = new Set(evidence.keys());
 	const cited = [
 		...candidate.claims.flatMap((claim) => claim.sourceIds),

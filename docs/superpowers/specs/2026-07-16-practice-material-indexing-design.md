@@ -94,8 +94,8 @@ A failed batch keeps its last completed checkpoint. Retry resumes from that chec
 
 ```json
 {
-  "courseId": "course-id",
-  "topic": "Linux event logging"
+	"courseId": "course-id",
+	"topic": "Linux event logging"
 }
 ```
 
@@ -123,10 +123,10 @@ Each prompt context block receives a server-generated `chunkId`. The model cites
 
 ```json
 {
-  "materialId": "material-id",
-  "fileName": "book.pdf",
-  "pageStart": 142,
-  "pageEnd": 144
+	"materialId": "material-id",
+	"fileName": "book.pdf",
+	"pageStart": 142,
+	"pageEnd": 144
 }
 ```
 

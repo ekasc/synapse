@@ -14,10 +14,26 @@ export { resolveInstitution, matchInstitutionDomain } from './institution';
 export { normalizeCourseCode, normalizeCanonicalTitle } from './course-code';
 
 export type { AdmissibleSourceType, AdmissibleSource } from './source-classification';
-export { classifySource, isSourceAdmissibleFor, extractTermScope, FACULTY_PAGE_CANNOT_VERIFY, RMP_CANNOT_VERIFY } from './source-classification';
+export {
+	classifySource,
+	isSourceAdmissibleFor,
+	extractTermScope,
+	FACULTY_PAGE_CANNOT_VERIFY,
+	RMP_CANNOT_VERIFY
+} from './source-classification';
 
-export type { CourseIdentityFailureCode, EvidenceValue, ResolvedCourse, CourseIdentityEvaluation } from './course-identity';
-export { extractCanonicalCourseTitle, selectIdentitySource, resolveCourseIdentity, evaluateCourseIdentity } from './course-identity';
+export type {
+	CourseIdentityFailureCode,
+	EvidenceValue,
+	ResolvedCourse,
+	CourseIdentityEvaluation
+} from './course-identity';
+export {
+	extractCanonicalCourseTitle,
+	selectIdentitySource,
+	resolveCourseIdentity,
+	evaluateCourseIdentity
+} from './course-identity';
 
 // ── Local types (kept here because they're used by admitBriefing) ──
 
@@ -64,10 +80,7 @@ export type BriefingAdmissionResult =
 	| { status: 'not_found'; reason: string }
 	| { status: 'rejected'; reasons: ValidationFailure[] };
 
-import type {
-	ResolvedCourse,
-	EvidenceValue
-} from './course-identity';
+import type { ResolvedCourse, EvidenceValue } from './course-identity';
 import {
 	classifySource,
 	isSourceAdmissibleFor,

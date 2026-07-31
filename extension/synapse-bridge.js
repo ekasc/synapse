@@ -50,16 +50,13 @@ window.addEventListener('message', (event) => {
 	if (event.data?.source !== 'synapse-web') return;
 	const allowedTypes = new Set(['START_FOCUS', 'PAUSE_FOCUS', 'END_FOCUS', 'GET_FOCUS_STATE']);
 	if (!allowedTypes.has(event.data.type)) return;
-	sendRuntimeMessage(
-		{ type: event.data.type, payload: event.data.payload },
-		(response) => {
-			if (chrome.runtime.lastError) return;
-			window.postMessage(
-				{ source: 'synapse-extension', requestId: event.data.requestId, ...(response ?? {}) },
-				window.location.origin
-			);
-		}
-	);
+	sendRuntimeMessage({ type: event.data.type, payload: event.data.payload }, (response) => {
+		if (chrome.runtime.lastError) return;
+		window.postMessage(
+			{ source: 'synapse-extension', requestId: event.data.requestId, ...(response ?? {}) },
+			window.location.origin
+		);
+	});
 });
 
 window.setTimeout(() => {
@@ -72,7 +69,12 @@ window.setTimeout(() => {
 	sendRuntimeMessage({ type: 'GET_FOCUS_STATE' }, (response) => {
 		if (chrome.runtime.lastError) return;
 		window.postMessage(
-			{ source: 'synapse-extension', type: 'EXTENSION_READY', ok: Boolean(response?.ok), result: response?.result },
+			{
+				source: 'synapse-extension',
+				type: 'EXTENSION_READY',
+				ok: Boolean(response?.ok),
+				result: response?.result
+			},
 			window.location.origin
 		);
 	});

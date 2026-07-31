@@ -381,7 +381,10 @@ function validateFlashcards(
 }
 
 export function createPracticeSessionRepository(binding: D1Database) {
-	async function list(userId: string, courseId?: string): Promise<SessionResult<PracticeSessionSummary[]>> {
+	async function list(
+		userId: string,
+		courseId?: string
+	): Promise<SessionResult<PracticeSessionSummary[]>> {
 		let rows: SessionRow[];
 		if (courseId) {
 			const id = validateString(courseId, 'courseId');

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolveRoute } from '$app/paths';
 
 	let {
 		courseCode,
@@ -37,11 +38,12 @@
 	}
 
 	async function refreshResearch() {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- transient query-string builder; SvelteURLSearchParams reactivity would be pure overhead here.
 		const params = new URLSearchParams({ code: courseCode });
 		if (courseTitle) params.set('name', courseTitle);
 		if (professorName) params.set('prof', professorName);
 		if (institution) params.set('inst', institution);
-		await goto(`/app/brief?${params.toString()}`);
+		await goto(resolveRoute(`/app/brief?${params.toString()}`));
 	}
 </script>
 

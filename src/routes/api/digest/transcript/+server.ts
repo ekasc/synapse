@@ -15,7 +15,12 @@ function fallbackFileName(value: FormDataEntryValue | null): string {
 	return 'Uploaded transcript';
 }
 
-async function processTranscript(userId: string, jobId: string, transcript: File, fileName: string) {
+async function processTranscript(
+	userId: string,
+	jobId: string,
+	transcript: File,
+	fileName: string
+) {
 	try {
 		await updateAcademicDigestJob(userId, jobId, { status: 'processing' });
 		const analysis = await analyzeTranscriptFile(

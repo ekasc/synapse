@@ -35,7 +35,9 @@ export async function GET({ params, platform, locals }: RequestEvent) {
 	try {
 		const userId = locals.user?.id;
 		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
-		return response(await createPlanningScenarioRepository(platform.env.BRIEF_DB).get(userId, params.id));
+		return response(
+			await createPlanningScenarioRepository(platform.env.BRIEF_DB).get(userId, params.id)
+		);
 	} catch {
 		return json({ error: 'Unable to load scenario' }, { status: 500 });
 	}
@@ -92,7 +94,11 @@ export async function DELETE({ params, request, platform, locals }: RequestEvent
 		}
 		const revision = (body as Record<string, unknown>).revision;
 		return response(
-			await createPlanningScenarioRepository(platform.env.BRIEF_DB).delete(userId, params.id, revision)
+			await createPlanningScenarioRepository(platform.env.BRIEF_DB).delete(
+				userId,
+				params.id,
+				revision
+			)
 		);
 	} catch {
 		return json({ error: 'Unable to delete scenario' }, { status: 500 });

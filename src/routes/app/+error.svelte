@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { AlertTriangle } from '@lucide/svelte';
+	import { resolveRoute } from '$app/paths';
 	import { page } from '$app/stores';
-
-	let { error } = $props<{ error: Error & { status?: number } }>();
 </script>
 
 <svelte:head><title>Something went wrong · Synapse</title></svelte:head>
@@ -19,14 +18,14 @@
 			Your data is safe. Try again, or return to the dashboard if the problem continues.
 		{/if}
 	</p>
-	{#if error?.message && $page.status !== 404}
-		<p class="route-error-detail">{error.message}</p>
+	{#if $page.error && $page.status !== 404}
+		<p class="route-error-detail">{String($page.error)}</p>
 	{/if}
 	<div class="route-error-actions">
 		<button class="btn btn-primary btn-sm" onclick={() => window.location.reload()}
 			>Try again</button
 		>
-		<a class="btn btn-ghost btn-sm" href="/app">Back to dashboard</a>
+		<a class="btn btn-ghost btn-sm" href={resolveRoute('/app')}>Back to dashboard</a>
 	</div>
 </div>
 

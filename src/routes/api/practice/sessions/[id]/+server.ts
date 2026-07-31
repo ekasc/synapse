@@ -25,7 +25,9 @@ export async function GET({ params, platform, locals }: RequestEvent) {
 	try {
 		const userId = locals.user?.id;
 		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
-		return response(await createPracticeSessionRepository(platform.env.BRIEF_DB).get(userId, params.id));
+		return response(
+			await createPracticeSessionRepository(platform.env.BRIEF_DB).get(userId, params.id)
+		);
 	} catch {
 		return json({ error: 'Unable to load session' }, { status: 500 });
 	}
@@ -53,7 +55,9 @@ export async function DELETE({ params, platform, locals }: RequestEvent) {
 	try {
 		const userId = locals.user?.id;
 		if (!userId) return json({ error: 'Unauthorized' }, { status: 401 });
-		return response(await createPracticeSessionRepository(platform.env.BRIEF_DB).delete(userId, params.id));
+		return response(
+			await createPracticeSessionRepository(platform.env.BRIEF_DB).delete(userId, params.id)
+		);
 	} catch {
 		return json({ error: 'Unable to delete session' }, { status: 500 });
 	}

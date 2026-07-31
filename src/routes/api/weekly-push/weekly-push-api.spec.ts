@@ -101,10 +101,7 @@ describe('weekly-push subscribe POST', () => {
 
 	it('returns 400 when keys.p256dh is missing', async () => {
 		const { POST } = await import('./subscribe/+server');
-		const event = mockPostEvent(
-			{ endpoint: 'https://example.com', keys: { auth: 'y' } },
-			true
-		);
+		const event = mockPostEvent({ endpoint: 'https://example.com', keys: { auth: 'y' } }, true);
 
 		const response = await POST(event);
 		expect(response.status).toBe(400);
@@ -112,10 +109,7 @@ describe('weekly-push subscribe POST', () => {
 
 	it('returns 400 when keys.auth is missing', async () => {
 		const { POST } = await import('./subscribe/+server');
-		const event = mockPostEvent(
-			{ endpoint: 'https://example.com', keys: { p256dh: 'x' } },
-			true
-		);
+		const event = mockPostEvent({ endpoint: 'https://example.com', keys: { p256dh: 'x' } }, true);
 
 		const response = await POST(event);
 		expect(response.status).toBe(400);
@@ -123,10 +117,7 @@ describe('weekly-push subscribe POST', () => {
 
 	it('returns 400 when endpoint is an empty string', async () => {
 		const { POST } = await import('./subscribe/+server');
-		const event = mockPostEvent(
-			{ endpoint: '', keys: { p256dh: 'x', auth: 'y' } },
-			true
-		);
+		const event = mockPostEvent({ endpoint: '', keys: { p256dh: 'x', auth: 'y' } }, true);
 
 		const response = await POST(event);
 		expect(response.status).toBe(400);

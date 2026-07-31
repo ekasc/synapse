@@ -101,7 +101,6 @@
 
 	let sessions = $state<SessionSummary[]>([]);
 	let sessionsLoading = $state(false);
-	let sessionsError = $state<string | null>(null);
 	let activeSessionId = $state<string | null>(null);
 	let savingSession = $state(false);
 	let sessionSaveError = $state<string | null>(null);
@@ -252,7 +251,6 @@
 
 	async function loadSessions(courseId: string) {
 		sessionsLoading = true;
-		sessionsError = null;
 		try {
 			const res = await fetch(`/api/practice/sessions?courseId=${encodeURIComponent(courseId)}`);
 			if (res.ok) {
@@ -262,7 +260,6 @@
 				sessions = [];
 			}
 		} catch {
-			sessionsError = 'Failed to load saved sessions';
 			sessions = [];
 		} finally {
 			sessionsLoading = false;

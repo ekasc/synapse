@@ -63,7 +63,7 @@
 
 	function navigate(href: string) {
 		if (!href.startsWith('/app/') || href.startsWith('//')) return;
-		void goto(href);
+		void goto(resolveRoute(href));
 	}
 
 	function fixed(path: '/app/calendar' | '/app/brief' | '/app/courses') {

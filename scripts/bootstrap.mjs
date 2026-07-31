@@ -10,7 +10,6 @@ import {
 	ensureLocalDirectories,
 	inspectCandidate,
 	inspectDirectory,
-	localPaths,
 	querySql,
 	pruneBackups,
 	replaceDatabaseAtomically,
@@ -87,7 +86,10 @@ function reconcileSemesters(path) {
 		.map((row) => {
 			const [id, term, year, order] = row.split('|');
 			const refs = Number(
-				querySql(path, `SELECT COUNT(*) FROM courses WHERE semester_id = '${id.replaceAll("'", "''")}';`)
+				querySql(
+					path,
+					`SELECT COUNT(*) FROM courses WHERE semester_id = '${id.replaceAll("'", "''")}';`
+				)
 			);
 			return { id, term, year: Number(year), order: Number(order), refs };
 		});

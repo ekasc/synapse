@@ -405,7 +405,7 @@ describe('Course Brief extraction boundary', () => {
 		}) as unknown as typeof fetch;
 		const result = await runEvidenceFirstPipeline(request, {
 			apiKey: 'x',
-			fetchImpl,
+			fetchImpl
 		});
 		expect(result.briefing.description.text).toBe('');
 		expect(result.briefing.prerequisites.text).toBe('');

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolveRoute } from '$app/paths';
 	import type { BriefingDetailViewModel } from '$lib/server/briefing/view-model';
 
 	let { brief }: { brief: BriefingDetailViewModel } = $props();
@@ -49,7 +50,7 @@
 
 <a
 	class="group flex gap-0 border-0 border-b border-[var(--rule)] bg-[var(--paper)] p-0 text-inherit no-underline transition-[background] duration-150 ease-[var(--ease-out-quart)] hover:bg-[var(--paper-shelf)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--ink)]"
-	href={`/app/brief/${encodeURIComponent(brief.courseCode)}`}
+	href={resolveRoute(`/app/brief/${encodeURIComponent(brief.courseCode)}`)}
 >
 	<div
 		class="grid min-w-0 flex-auto gap-[0.35rem] px-6 py-5 max-[700px]:py-4 max-[700px]:pr-4 max-[700px]:pl-[1.1rem]"

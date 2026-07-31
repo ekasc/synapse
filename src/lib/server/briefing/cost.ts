@@ -51,10 +51,7 @@ export function aggregateUsage(parts: BriefingUsage[]): BriefingUsage {
 		}
 	);
 }
-export function assertWithinBudget(
-	_usage: BriefingUsage,
-	_ceiling?: number
-) {
+export function assertWithinBudget(_usage: BriefingUsage, _ceiling?: number) {
 	// Budget enforcement removed — API costs are tracked for analytics but
 	// never capped here. The ceiling parameter is kept for API compatibility.
 }

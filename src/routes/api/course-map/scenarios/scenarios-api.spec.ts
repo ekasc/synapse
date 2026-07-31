@@ -82,7 +82,9 @@ describe('course map scenario API', () => {
 		});
 		repository.delete.mockResolvedValue({ outcome: 'ok', value: null });
 
-		expect((await GET({ platform, locals, params: { id: 'scenario-1' } } as never)).status).toBe(200);
+		expect((await GET({ platform, locals, params: { id: 'scenario-1' } } as never)).status).toBe(
+			200
+		);
 		expect(
 			(
 				await PATCH({

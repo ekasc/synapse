@@ -26,7 +26,8 @@ document
 	.addEventListener('click', () => (history.length > 1 ? history.back() : window.close()));
 document.getElementById('override').addEventListener('click', async () => {
 	await chrome.runtime.sendMessage({ type: 'BEGIN_OVERRIDE' });
-	history.length > 1 ? history.back() : window.close();
+	if (history.length > 1) history.back();
+	else window.close();
 });
 
 refresh();

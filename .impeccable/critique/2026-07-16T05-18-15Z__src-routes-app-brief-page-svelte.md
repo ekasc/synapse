@@ -6,21 +6,22 @@ p1_count: 2
 timestamp: 2026-07-16T05-18-15Z
 slug: src-routes-app-brief-page-svelte
 ---
+
 ## Design Health Score
 
-| # | Heuristic | Score | Key Issue |
-|---|-----------|------:|-----------|
-| 1 | Visibility of system status | 3 | Research age and refresh are visible, but “Current evidence” overstates completeness. |
-| 2 | Match with the real world | 2 | Requirements are treated as metrics; RMP language is internally contradictory. |
-| 3 | User control and freedom | 3 | Back, refresh, and delete are available; source detail cannot be collapsed. |
-| 4 | Consistency and standards | 1 | “Unrated” conflicts with “overall quality rating of 65%”; typography violates DESIGN.md. |
-| 5 | Error prevention | 1 | Unsupported or misclassified RMP data is promoted visually instead of suppressed. |
-| 6 | Recognition rather than recall | 3 | Course facts are co-located and labeled. |
-| 7 | Flexibility and efficiency | 2 | The page is readable but has no compact/expert path or source disclosure control. |
-| 8 | Aesthetic and minimalist design | 2 | Repeated cards, mono labels, expanded diagnostics, and source chips add noise. |
-| 9 | Error recovery | 2 | Missing evidence is named, but the page offers no targeted recovery besides full refresh. |
-| 10 | Help and documentation | 1 | Evidence classes and RMP limitations are not explained in student language. |
-| **Total** | | **20/40** | **Acceptable, significant revision needed** |
+| #         | Heuristic                       |     Score | Key Issue                                                                                 |
+| --------- | ------------------------------- | --------: | ----------------------------------------------------------------------------------------- |
+| 1         | Visibility of system status     |         3 | Research age and refresh are visible, but “Current evidence” overstates completeness.     |
+| 2         | Match with the real world       |         2 | Requirements are treated as metrics; RMP language is internally contradictory.            |
+| 3         | User control and freedom        |         3 | Back, refresh, and delete are available; source detail cannot be collapsed.               |
+| 4         | Consistency and standards       |         1 | “Unrated” conflicts with “overall quality rating of 65%”; typography violates DESIGN.md.  |
+| 5         | Error prevention                |         1 | Unsupported or misclassified RMP data is promoted visually instead of suppressed.         |
+| 6         | Recognition rather than recall  |         3 | Course facts are co-located and labeled.                                                  |
+| 7         | Flexibility and efficiency      |         2 | The page is readable but has no compact/expert path or source disclosure control.         |
+| 8         | Aesthetic and minimalist design |         2 | Repeated cards, mono labels, expanded diagnostics, and source chips add noise.            |
+| 9         | Error recovery                  |         2 | Missing evidence is named, but the page offers no targeted recovery besides full refresh. |
+| 10        | Help and documentation          |         1 | Evidence classes and RMP limitations are not explained in student language.               |
+| **Total** |                                 | **20/40** | **Acceptable, significant revision needed**                                               |
 
 ## Anti-Patterns Verdict
 

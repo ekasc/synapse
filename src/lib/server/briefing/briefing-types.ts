@@ -3,7 +3,7 @@
  * Extracted from view-model.ts — keep in sync with the facade re-exports.
  */
 
-import type { AssessmentCategory, AssessmentComponent, PassingRequirement, Currentness } from './schema';
+import type { AssessmentCategory, Currentness } from './schema';
 
 // ── Source classification ──
 

@@ -29,13 +29,19 @@ export type AuthSession = {
 
 async function d1First<T>(sql: string, ...bind: unknown[]): Promise<T | null> {
 	if (!_d1) return null;
-	const row = await _d1.prepare(sql).bind(...bind).first<T>();
+	const row = await _d1
+		.prepare(sql)
+		.bind(...bind)
+		.first<T>();
 	return row ?? null;
 }
 
 async function d1Run(sql: string, ...bind: unknown[]): Promise<void> {
 	if (!_d1) return;
-	await _d1.prepare(sql).bind(...bind).run();
+	await _d1
+		.prepare(sql)
+		.bind(...bind)
+		.run();
 }
 
 // ── Local JSON fallback ──
@@ -80,7 +86,10 @@ export async function findOrCreateUser(workosUser: {
 			email: string;
 			name: string | null;
 			created_at: string;
-		}>('SELECT id, workos_id, email, name, created_at FROM users WHERE workos_id = ?', workosUser.id);
+		}>(
+			'SELECT id, workos_id, email, name, created_at FROM users WHERE workos_id = ?',
+			workosUser.id
+		);
 
 		if (existing) {
 			// Update email/name in case they changed in WorkOS
@@ -122,7 +131,13 @@ export async function findOrCreateUser(workosUser: {
 		writeLocal('users', users);
 		return existing;
 	}
-	const newUser: AuthUser = { id: crypto.randomUUID(), workosId: workosUser.id, email: workosUser.email, name, createdAt: now };
+	const newUser: AuthUser = {
+		id: crypto.randomUUID(),
+		workosId: workosUser.id,
+		email: workosUser.email,
+		name,
+		createdAt: now
+	};
 	users.push(newUser);
 	writeLocal('users', users);
 	return newUser;
@@ -138,7 +153,13 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
 			created_at: string;
 		}>('SELECT id, workos_id, email, name, created_at FROM users WHERE id = ?', id);
 		if (!row) return null;
-		return { id: row.id, workosId: row.workos_id, email: row.email, name: row.name, createdAt: row.created_at };
+		return {
+			id: row.id,
+			workosId: row.workos_id,
+			email: row.email,
+			name: row.name,
+			createdAt: row.created_at
+		};
 	}
 	const users = readLocal<AuthUser>('users');
 	return users.find((u) => u.id === id) ?? null;
@@ -146,7 +167,10 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
 
 // ── Session operations ──
 
-export async function createSession(userId: string, workosSessionId?: string): Promise<{ id: string; expiresAt: string }> {
+export async function createSession(
+	userId: string,
+	workosSessionId?: string
+): Promise<{ id: string; expiresAt: string }> {
 	const id = crypto.randomUUID();
 	const now = new Date().toISOString();
 	const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -211,7 +235,11 @@ export async function revokeSession(sessionId: string): Promise<void> {
 export async function revokeAllSessionsForUser(userId: string): Promise<void> {
 	const now = new Date().toISOString();
 	if (_d1) {
-		await d1Run('UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL', now, userId);
+		await d1Run(
+			'UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL',
+			now,
+			userId
+		);
 		return;
 	}
 	const sessions = readLocal<AuthSession>('sessions');

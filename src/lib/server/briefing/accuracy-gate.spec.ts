@@ -74,20 +74,6 @@ function rmpSource(): EvidenceSource {
 	});
 }
 
-function failedSearch(): EvidenceSource {
-	return source({
-		id: 'failed_01',
-		category: 'schedule',
-		title: '',
-		url: '',
-		domain: '',
-		excerpt: '',
-		sourceType: 'other',
-		retrievalStatus: 'unavailable',
-		currentness: 'unknown'
-	});
-}
-
 function request(overrides: Partial<BriefingRequest> = {}): BriefingRequest {
 	return {
 		courseCode: 'CSIS 4495',

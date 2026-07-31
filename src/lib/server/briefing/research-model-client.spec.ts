@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createOpenRouterResearchModelClient, parseJsonAction, parseToolAction } from './research-model-client';
+import {
+	createOpenRouterResearchModelClient,
+	parseJsonAction,
+	parseToolAction
+} from './research-model-client';
 import { MODEL_POLICY } from './policy';
 
 const state = {
@@ -19,7 +23,7 @@ const state = {
 describe('OpenRouter ResearchModelClient', () => {
 	it('constructs an explicit model request and parses exactly one action', async () => {
 		const fetchImpl = vi.fn(
-			async (_url, init) =>
+			async (_url) =>
 				new Response(
 					JSON.stringify({
 						choices: [
@@ -50,7 +54,9 @@ describe('OpenRouter ResearchModelClient', () => {
 			provider: { allow_fallbacks: true, require_parameters: true }
 		});
 		expect(JSON.parse(String(init.body))).not.toHaveProperty('response_format');
-		expect(JSON.parse(String(init.body))).toMatchObject({ tool_choice: { function: { name: 'research_action' } } });
+		expect(JSON.parse(String(init.body))).toMatchObject({
+			tool_choice: { function: { name: 'research_action' } }
+		});
 	});
 	it('falls back to a bounded official-catalog search for a malformed planner action', async () => {
 		const fetchImpl = vi.fn(
@@ -74,29 +80,44 @@ describe('OpenRouter ResearchModelClient', () => {
 		const fetchImpl = vi.fn(
 			async () =>
 				new Response(
-					JSON.stringify({ choices: [{ message: { content: '{"type":"search","query":"CSIS 4495"}' } }] }),
+					JSON.stringify({
+						choices: [{ message: { content: '{"type":"search","query":"CSIS 4495"}' } }]
+					}),
 					{ status: 200 }
 				)
 		) as unknown as typeof fetch;
 		await expect(
-			createOpenRouterResearchModelClient({ apiKey: 'x', policy: MODEL_POLICY, fetchImpl }).next(state)
+			createOpenRouterResearchModelClient({ apiKey: 'x', policy: MODEL_POLICY, fetchImpl }).next(
+				state
+			)
 		).resolves.toMatchObject({ action: { type: 'search', query: 'CSIS 4495' } });
 	});
 	it('recovers a JSON action from an ignored markdown fence', () => {
-		expect(parseJsonAction('```json\n{"action":{"type":"search","query":"CSIS 4495"}}\n```')).toEqual({
+		expect(
+			parseJsonAction('```json\n{"action":{"type":"search","query":"CSIS 4495"}}\n```')
+		).toEqual({
 			type: 'search',
 			query: 'CSIS 4495'
 		});
 	});
 	it('accepts multipart text content', () => {
-		expect(parseJsonAction([{ type: 'text', text: '{"type":"search","query":"CSIS 4495"}' }])).toEqual({
+		expect(
+			parseJsonAction([{ type: 'text', text: '{"type":"search","query":"CSIS 4495"}' }])
+		).toEqual({
 			type: 'search',
 			query: 'CSIS 4495'
 		});
 	});
 	it('parses an OpenAI-compatible tool call', () => {
 		expect(
-			parseToolAction([{ function: { name: 'research_action', arguments: '{"action":{"type":"search","query":"CSIS 4495"}}' } }])
+			parseToolAction([
+				{
+					function: {
+						name: 'research_action',
+						arguments: '{"action":{"type":"search","query":"CSIS 4495"}}'
+					}
+				}
+			])
 		).toEqual({ type: 'search', query: 'CSIS 4495' });
 	});
 	it('parses a provider tool call with object arguments', () => {
