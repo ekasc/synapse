@@ -179,7 +179,10 @@
 
 	function sendExtensionCommand(type: string, payload?: Record<string, unknown>) {
 		return new Promise<boolean>((resolve) => {
-			const requestId = crypto.randomUUID();
+			const requestId =
+				typeof crypto.randomUUID === 'function'
+					? crypto.randomUUID()
+					: `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 			const timeout = window.setTimeout(() => {
 				window.removeEventListener('message', receive);
 				extensionConnected = false;
@@ -195,6 +198,7 @@
 					return;
 				window.clearTimeout(timeout);
 				window.removeEventListener('message', receive);
+				extensionBridgeLoaded = true;
 				extensionConnected = Boolean(event.data.ok);
 				extensionError = extensionConnected
 					? ''
@@ -242,13 +246,18 @@
 		blockedSites = data.preferences?.blockedSites ?? [];
 		recentSessions = data.sessions ?? [];
 		selectedCourseId = courses[0]?.id ?? '';
-		extensionBridgeLoaded = document.documentElement.dataset.synapseFocusGuard === 'bridge-loaded';
+		const detectExtensionBridge = () => {
+			extensionBridgeLoaded =
+				document.documentElement.dataset.synapseFocusGuard === 'bridge-loaded';
+		};
+		detectExtensionBridge();
 		const receiveExtensionReady = (event: MessageEvent) => {
 			if (
 				event.source === window &&
 				event.data?.source === 'synapse-extension' &&
 				event.data?.type === 'EXTENSION_READY'
 			) {
+				extensionBridgeLoaded = true;
 				extensionConnected = Boolean(event.data.ok);
 				void sendExtensionCommand('GET_FOCUS_STATE');
 			}
@@ -259,6 +268,12 @@
 			() => void sendExtensionCommand('GET_FOCUS_STATE'),
 			1500
 		);
+		const bridgePoll = window.setInterval(detectExtensionBridge, 500);
+		const connectionPoll = window.setInterval(() => {
+			if (extensionBridgeLoaded && !extensionConnected) {
+				void sendExtensionCommand('GET_FOCUS_STATE');
+			}
+		}, 3000);
 		const interval = window.setInterval(() => {
 			if (sessionState !== 'running' || endsAt === null) return;
 			remainingSeconds = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
@@ -273,6 +288,8 @@
 
 		return () => {
 			window.clearInterval(interval);
+			window.clearInterval(bridgePoll);
+			window.clearInterval(connectionPoll);
 			window.clearTimeout(connectionRetry);
 			window.removeEventListener('message', receiveExtensionReady);
 		};
@@ -455,7 +472,7 @@
 							onclick={() => removeSite('allowed', site)}
 							aria-label={`Remove ${site}`}
 						>
-							<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+							<span aria-hidden="true">×</span>
 						</button>
 					</li>{/each}
 			</ul>
@@ -483,7 +500,7 @@
 							onclick={() => removeSite('blocked', site)}
 							aria-label={`Remove ${site}`}
 						>
-							<Trash2 class="size-[var(--icon-sm)]" aria-hidden="true" />
+							<span aria-hidden="true">×</span>
 						</button>
 					</li>{/each}
 			</ul>

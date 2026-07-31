@@ -259,8 +259,8 @@
 		margin-bottom: 2.25rem;
 	}
 	.page-title {
-		font-family: var(--font-hand);
-		font-weight: 400;
+		font-family: var(--font-body);
+		font-weight: 700;
 		font-size: 2.25rem;
 		line-height: 1.1;
 		margin: 0;

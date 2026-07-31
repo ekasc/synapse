@@ -5,5 +5,5 @@ allowBuilds:
   workerd: true
   sharp: true
   esbuild: true
-  '@mongodb-js/zstd': set this to true or false
-  node-liblzma: set this to true or false
+  '@mongodb-js/zstd': false
+  node-liblzma: false

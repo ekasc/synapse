@@ -329,7 +329,7 @@
 	}
 	.glance summary {
 		cursor: pointer;
-		font-family: var(--hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		color: var(--ink);
 	}

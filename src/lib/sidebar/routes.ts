@@ -36,7 +36,6 @@ export const routes: SidebarRoute[] = [
 	{ href: '/app/calendar', label: 'Calendar' },
 	{ href: '/app/weekly', label: 'Weekly plan' },
 	{ href: '/app/timer', label: 'Study timer' },
-	{ href: '/app/chat', label: 'Assistant' },
 	{ href: '/app/digest', label: 'Grades & GPA' },
 	{ href: '/app/brief', label: 'Briefs' },
 	{ href: '/app/activity', label: 'Activity' },

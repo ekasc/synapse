@@ -10,6 +10,7 @@
 	import Topbar from '$lib/components/layout/Topbar.svelte';
 	import DigestBanner from '$lib/components/layout/DigestBanner.svelte';
 	import AddSemesterDialog from '$lib/components/layout/AddSemesterDialog.svelte';
+	import AssistantDrawer from '$lib/components/layout/AssistantDrawer.svelte';
 	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 
 	let { data, children } = $props();
@@ -387,6 +388,8 @@
 		</main>
 	</div>
 </div>
+
+<AssistantDrawer {courses} />
 
 <AddSemesterDialog
 	bind:open={addSemesterOpen}

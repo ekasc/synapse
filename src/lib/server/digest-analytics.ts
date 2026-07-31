@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
-import { extractTextFromPdf } from './syllabus-parser';
 import type {
 	AcademicDigestAnalysis,
 	AcademicDigestTrend,
@@ -251,6 +250,7 @@ function fallbackAnalysis(
 
 async function textFromFile(file: File) {
 	if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+		const { extractTextFromPdf } = await import('./syllabus-parser');
 		return extractTextFromPdf(file);
 	}
 
@@ -351,20 +351,10 @@ async function extractWithOpenRouter(file: File): Promise<ExtractedTranscript> {
 
 	const primaryModel = env.OPENROUTER_MODEL || 'deepseek/deepseek-v4-flash';
 	const visionModel = env.OPENROUTER_VISION_MODEL || 'openai/gpt-4o-mini';
-	let completion: OpenAI.Chat.Completions.ChatCompletion;
-	try {
-		completion = await client.chat.completions.create({
-			model: primaryModel,
-			...request
-		});
-	} catch (error) {
-		const message = error instanceof Error ? error.message : '';
-		if (!isImage || primaryModel === visionModel || !message.includes('image input')) throw error;
-		completion = await client.chat.completions.create({
-			model: visionModel,
-			...request
-		});
-	}
+	const completion = await client.chat.completions.create({
+		model: isImage ? visionModel : primaryModel,
+		...request
+	});
 
 	const contentResult = completion.choices[0]?.message.content;
 	if (!contentResult) throw new Error('AI transcript extraction returned no content');
