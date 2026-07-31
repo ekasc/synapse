@@ -686,7 +686,10 @@ export async function getGraphState(userId: string): Promise<GraphState> {
 		};
 	}
 	const all = read<GraphState>('graph');
-	return all.find((g) => g.userId === userId) ?? { positions: {}, edges: [] };
+	const found = all.find((g) => g.userId === userId);
+	if (!found) return { positions: {}, edges: [] };
+	const { userId: _userId, ...rest } = found;
+	return rest;
 }
 
 export async function saveGraphState(userId: string, state: GraphState): Promise<void> {

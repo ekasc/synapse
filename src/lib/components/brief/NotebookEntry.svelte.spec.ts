@@ -32,7 +32,7 @@ test('renders code, title, and RMP chip', async () => {
 
 test('links to the detail route', async () => {
 	const screen = render(NotebookEntry, { brief: baseBrief });
-	const link = screen.container.querySelector('a.entry');
+	const link = screen.container.querySelector('a');
 	expect(link?.getAttribute('href')).toBe('/app/brief/CSIS%203375');
 });
 
@@ -48,6 +48,7 @@ test('uses a crit color variant when RMP is below 3', async () => {
 		studentReviews: { rating: 2.1, ratingCount: 10, wouldTakeAgainPercent: 30, present: true }
 	} as unknown as BriefingDetailViewModel;
 	const screen = render(NotebookEntry, { brief: lowRmp });
-	const chip = screen.container.querySelector('.rmp.rmp-crit');
-	expect(chip?.textContent?.trim()).toBe('2.1 / 5');
+	const chip = screen.getByText('2.1 / 5').element();
+	expect(chip.textContent?.trim()).toBe('2.1 / 5');
+	expect(chip.className).toContain('--pen-red');
 });

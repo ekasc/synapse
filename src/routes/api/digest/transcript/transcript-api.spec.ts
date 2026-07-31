@@ -58,22 +58,23 @@ describe('POST /api/digest/transcript', () => {
 
 		const response = await POST({
 			request,
-			platform: { ctx: { waitUntil: (promise: Promise<unknown>) => (background = promise) } }
+			platform: { ctx: { waitUntil: (promise: Promise<unknown>) => (background = promise) } },
+			locals: { user: { id: 'test-user' } }
 		} as unknown as Parameters<typeof POST>[0]);
 
 		expect(response.status).toBe(202);
 		expect(await response.json()).toEqual({ ok: true, job });
 		expect(background).toBeDefined();
 		await background;
-		expect(updateAcademicDigestJob).toHaveBeenNthCalledWith(1, job.id, {
+		expect(updateAcademicDigestJob).toHaveBeenNthCalledWith(1, 'test-user', job.id, {
 			status: 'processing'
 		});
-		expect(saveAcademicDigest).toHaveBeenCalledWith({
+		expect(saveAcademicDigest).toHaveBeenCalledWith('test-user', {
 			fileName: 'transcript.pdf',
 			source: 'transcript-upload',
 			analysis: { courses: [], trend: [] }
 		});
-		expect(updateAcademicDigestJob).toHaveBeenNthCalledWith(2, job.id, {
+		expect(updateAcademicDigestJob).toHaveBeenNthCalledWith(2, 'test-user', job.id, {
 			status: 'completed'
 		});
 	});

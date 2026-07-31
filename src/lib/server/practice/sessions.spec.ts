@@ -366,7 +366,7 @@ describe('practice session validation', () => {
 	])('rejects invalid progress input %#', async (input, message) => {
 		const mock = mockBinding({ firstResults: [existingRow] });
 		const repo = createPracticeSessionRepository(mock.binding);
-		const result = await repo.updateProgress('session-1', input);
+		const result = await repo.updateProgress('test-user', 'session-1', input);
 		expect(result).toMatchObject({ outcome: 'validation' });
 		if (result.outcome === 'validation') expect(result.message).toContain(message);
 	});
@@ -554,9 +554,10 @@ describe('practice session persistence contracts', () => {
 		expect(mock.statements[0].sql).toContain('INSERT INTO practice_sessions');
 		const insertValues = mock.statements[0].values;
 		expect(insertValues[0]).toMatch(/^[0-9a-f-]{36}$/i);
-		expect(insertValues[1]).toBe('course-1');
-		expect(insertValues[2]).toBe('CSIS-2200');
-		expect(insertValues[3]).toBe(JSON.stringify([validSource]));
+		expect(insertValues[1]).toBe('test-user');
+		expect(insertValues[2]).toBe('course-1');
+		expect(insertValues[3]).toBe('CSIS-2200');
+		expect(insertValues[4]).toBe(JSON.stringify([validSource]));
 	});
 
 	it('lists sessions newest first with summaries', async () => {
@@ -600,7 +601,7 @@ describe('practice session persistence contracts', () => {
 			updatedAt: 'later'
 		});
 		expect(mock.prepare).toHaveBeenCalledOnce();
-		expect(mock.statements[0].sql).not.toContain('WHERE');
+		expect(mock.statements[0].sql).toContain('WHERE user_id = ?');
 	});
 
 	it('filters list by courseId', async () => {

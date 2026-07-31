@@ -43,7 +43,8 @@ describe('syllabus calendar batch import', () => {
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ courseId: 'course-1', idempotencyKey: 'request-1' })
 			}),
-			platform: { env: { BRIEF_DB: db } }
+			platform: { env: { BRIEF_DB: db } },
+			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(response.status).toBe(200);
 		expect(await response.json()).toMatchObject({ ok: true, inserted: 1, unchanged: 0 });
@@ -72,7 +73,8 @@ describe('syllabus calendar batch import', () => {
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ courseId: 'course-1', idempotencyKey: 'request-1' })
 			}),
-			platform: { env: { BRIEF_DB: db } }
+			platform: { env: { BRIEF_DB: db } },
+			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(await response.json()).toMatchObject({ importId: 'prior-import', replayed: true });
 		expect(db.prepare.mock.calls.some(([sql]) => String(sql).includes('calendar_events'))).toBe(

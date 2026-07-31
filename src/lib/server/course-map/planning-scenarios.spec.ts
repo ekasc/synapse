@@ -63,7 +63,7 @@ describe('planning scenario validation', () => {
 		[{ name: 'Plan', moves: validMoves, extra: true }, 'unsupported']
 	])('rejects invalid create input %#', async (input, message) => {
 		const mock = mockBinding();
-		const result = await createPlanningScenarioRepository(mock.binding).create(input);
+		const result = await createPlanningScenarioRepository(mock.binding).create('test-user', input);
 		expect(result).toMatchObject({ outcome: 'validation' });
 		if (result.outcome === 'validation') expect(result.message).toContain(message);
 		expect(mock.prepare).not.toHaveBeenCalled();
@@ -73,11 +73,15 @@ describe('planning scenario validation', () => {
 		'rejects invalid revision %s before update SQL',
 		async (revision) => {
 			const mock = mockBinding();
-			const result = await createPlanningScenarioRepository(mock.binding).update('scenario', {
-				name: 'Plan',
-				moves: validMoves,
-				revision
-			});
+			const result = await createPlanningScenarioRepository(mock.binding).update(
+				'test-user',
+				'scenario',
+				{
+					name: 'Plan',
+					moves: validMoves,
+					revision
+				}
+			);
 			expect(result).toMatchObject({ outcome: 'validation' });
 			expect(mock.prepare).not.toHaveBeenCalled();
 		}
@@ -87,7 +91,7 @@ describe('planning scenario validation', () => {
 describe('planning scenario persistence contracts', () => {
 	it('trims input, assigns server fields, and batches ordered moves', async () => {
 		const mock = mockBinding();
-		const result = await createPlanningScenarioRepository(mock.binding).create({
+		const result = await createPlanningScenarioRepository(mock.binding).create('test-user', {
 			name: '  Graduation plan  ',
 			moves: [...validMoves, { courseId: 'CSIS-3300', targetSemesterId: 'spring-2027' }]
 		});
@@ -111,14 +115,18 @@ describe('planning scenario persistence contracts', () => {
 		const mock = mockBinding({
 			firstResults: [{ created_at: '2026-01-01T00:00:00.000Z' }]
 		});
-		const result = await createPlanningScenarioRepository(mock.binding).update(' scenario-1 ', {
-			name: ' Revised ',
-			moves: [
-				{ courseId: 'course-1', targetSemesterId: 'term-1' },
-				{ courseId: 'course-2', targetSemesterId: 'term-2' }
-			],
-			revision: 3
-		});
+		const result = await createPlanningScenarioRepository(mock.binding).update(
+			'test-user',
+			' scenario-1 ',
+			{
+				name: ' Revised ',
+				moves: [
+					{ courseId: 'course-1', targetSemesterId: 'term-1' },
+					{ courseId: 'course-2', targetSemesterId: 'term-2' }
+				],
+				revision: 3
+			}
+		);
 
 		expect(result).toMatchObject({ outcome: 'ok', value: { id: 'scenario-1', revision: 4 } });
 		expect(mock.batch).toHaveBeenCalledOnce();
@@ -128,8 +136,8 @@ describe('planning scenario persistence contracts', () => {
 			expect(statement.sql).toContain('revision = ?');
 			expect(statement.values.at(-1)).toBe(3);
 		}
-		expect(batched.at(-1)?.sql).toContain('WHERE id = ? AND revision = ?');
-		expect(batched.at(-1)?.values.slice(-2)).toEqual(['scenario-1', 3]);
+		expect(batched.at(-1)?.sql).toContain('WHERE id = ? AND user_id = ? AND revision = ?');
+		expect(batched.at(-1)?.values.slice(-3)).toEqual(['scenario-1', 'test-user', 3]);
 	});
 
 	it('distinguishes update conflicts from missing scenarios', async () => {
@@ -137,10 +145,14 @@ describe('planning scenario persistence contracts', () => {
 		const missing = mockBinding({ batchChanges: 0, firstResults: [null] });
 		const input = { name: 'Plan', moves: validMoves, revision: 2 };
 
-		expect(await createPlanningScenarioRepository(conflict.binding).update('id', input)).toEqual({
+		expect(
+			await createPlanningScenarioRepository(conflict.binding).update('test-user', 'id', input)
+		).toEqual({
 			outcome: 'conflict'
 		});
-		expect(await createPlanningScenarioRepository(missing.binding).update('id', input)).toEqual({
+		expect(
+			await createPlanningScenarioRepository(missing.binding).update('test-user', 'id', input)
+		).toEqual({
 			outcome: 'not-found'
 		});
 	});
@@ -167,7 +179,7 @@ describe('planning scenario persistence contracts', () => {
 				]
 			]
 		});
-		const result = await createPlanningScenarioRepository(mock.binding).list();
+		const result = await createPlanningScenarioRepository(mock.binding).list('test-user');
 		expect(result).toEqual({
 			outcome: 'ok',
 			value: [

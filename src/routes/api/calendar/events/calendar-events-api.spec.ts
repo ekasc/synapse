@@ -40,7 +40,8 @@ describe('calendar event API', () => {
 		});
 		const response = await POST({
 			request,
-			platform: { env: { BRIEF_DB: { prepare: vi.fn(() => statement) } } }
+			platform: { env: { BRIEF_DB: { prepare: vi.fn(() => statement) } } },
+			locals: { user: { id: 'test-user' } }
 		} as never);
 
 		expect(response.status).toBe(200);
@@ -74,7 +75,11 @@ describe('calendar event API', () => {
 				date: 16
 			})
 		});
-		const response = await POST({ request, platform: { env: { BRIEF_DB: { prepare } } } } as never);
+		const response = await POST({
+			request,
+			platform: { env: { BRIEF_DB: { prepare } } },
+			locals: { user: { id: 'test-user' } }
+		} as never);
 		expect(response.status).toBe(201);
 		expect((await response.json()).created).toBe(true);
 	});
@@ -96,7 +101,8 @@ describe('calendar event API', () => {
 		});
 		const response = await POST({
 			request,
-			platform: { env: { BRIEF_DB: {} } }
+			platform: { env: { BRIEF_DB: {} } },
+			locals: { user: { id: 'test-user' } }
 		} as never);
 
 		expect(response.status).toBe(422);

@@ -121,7 +121,7 @@ describe('material index repository', () => {
 		expect(mock.batch).toHaveBeenCalledOnce();
 		expect(mock.statements.map((statement) => statement.sql)).toEqual([
 			'DELETE FROM practice_material_chunks WHERE material_id = ?',
-			'DELETE FROM practice_material_indexes WHERE material_id = ?'
+			'DELETE FROM practice_material_indexes WHERE material_id = ? AND user_id = ?'
 		]);
 	});
 });

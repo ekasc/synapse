@@ -33,8 +33,12 @@ describe('graph import API', () => {
 			method: 'POST',
 			body: '{bad'
 		});
-		expect((await POST({ request: malformed } as never)).status).toBe(400);
-		expect((await POST({ request: request([]) } as never)).status).toBe(400);
+		expect(
+			(await POST({ request: malformed, locals: { user: { id: 'test-user' } } } as never)).status
+		).toBe(400);
+		expect(
+			(await POST({ request: request([]), locals: { user: { id: 'test-user' } } } as never)).status
+		).toBe(400);
 		expect(store.applyGraphImport).not.toHaveBeenCalled();
 	});
 
@@ -44,19 +48,24 @@ describe('graph import API', () => {
 			headers: { 'content-length': '1000001' },
 			body: '{}'
 		});
-		expect((await POST({ request: oversizedRequest } as never)).status).toBe(413);
+		expect(
+			(await POST({ request: oversizedRequest, locals: { user: { id: 'test-user' } } } as never))
+				.status
+		).toBe(413);
 
 		const strings = await POST({
 			request: request({
 				nodes: [{ id: 'x'.repeat(129), code: 'A'.repeat(65), name: 'N'.repeat(201) }]
-			})
+			}),
+			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(strings.status).toBe(400);
 
 		const edges = await POST({
 			request: request({
 				edges: Array.from({ length: 2001 }, () => ({ source: 'a', target: 'b' }))
-			})
+			}),
+			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(edges.status).toBe(400);
 		expect(store.applyGraphImport).not.toHaveBeenCalled();
@@ -97,7 +106,10 @@ describe('graph import API', () => {
 			'type is unsupported'
 		]
 	])('rejects the complete payload before writing: %j', async (body, message) => {
-		const response = await POST({ request: request(body) } as never);
+		const response = await POST({
+			request: request(body),
+			locals: { user: { id: 'test-user' } }
+		} as never);
 		expect(response.status).toBe(400);
 		expect((await response.json()).issues.join(' ')).toContain(message);
 		expect(store.applyGraphImport).not.toHaveBeenCalled();
@@ -115,7 +127,8 @@ describe('graph import API', () => {
 					{ source: 'A', target: 'C1', type: 'related' },
 					{ source: 'A', target: 'C1', type: 'related' }
 				]
-			})
+			}),
+			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(response.status).toBe(400);
 		const result = await response.json();
@@ -143,11 +156,12 @@ describe('graph import API', () => {
 					{ id: 'new', code: 'NEW', name: 'New', x: 10, y: 20, width: 176, height: 70 }
 				],
 				edges: [{ source: 'OLD', target: 'new', type: 'prereq' }]
-			})
+			}),
+			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(response.status).toBe(200);
 		expect(store.applyGraphImport).toHaveBeenCalledTimes(1);
-		const [mutations, graph] = store.applyGraphImport.mock.calls[0];
+		const [, mutations, graph] = store.applyGraphImport.mock.calls[0];
 		expect(mutations).toHaveLength(2);
 		expect(graph.positions.new).toEqual({ x: 10, y: 20 });
 		expect(graph.edges.at(-1)).toMatchObject({ source: 'existing', target: 'new', type: 'prereq' });

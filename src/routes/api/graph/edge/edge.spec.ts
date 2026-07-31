@@ -31,7 +31,10 @@ describe('graph edge API', () => {
 	describe('POST', () => {
 		it('creates an edge and returns it with 201', async () => {
 			const body = { source: 'course-a', target: 'course-b', type: 'prereq' };
-			const response = await POST({ request: apiRequest(body) } as never);
+			const response = await POST({
+				request: apiRequest(body),
+				locals: { user: { id: 'test-user' } }
+			} as never);
 
 			expect(response.status).toBe(201);
 			const edge = await response.json();
@@ -46,13 +49,14 @@ describe('graph edge API', () => {
 			});
 			expect(edge.id).toEqual(expect.any(String));
 			expect(store.saveGraphState).toHaveBeenCalledOnce();
-			const saved = store.saveGraphState.mock.calls[0][0];
+			const saved = store.saveGraphState.mock.calls[0][1];
 			expect(saved.edges).toHaveLength(1);
 		});
 
 		it('rejects non-existent source course', async () => {
 			const response = await POST({
-				request: apiRequest({ source: 'missing', target: 'course-b', type: 'prereq' })
+				request: apiRequest({ source: 'missing', target: 'course-b', type: 'prereq' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);
@@ -62,7 +66,8 @@ describe('graph edge API', () => {
 
 		it('rejects non-existent target course', async () => {
 			const response = await POST({
-				request: apiRequest({ source: 'course-a', target: 'missing', type: 'prereq' })
+				request: apiRequest({ source: 'course-a', target: 'missing', type: 'prereq' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);
@@ -76,7 +81,8 @@ describe('graph edge API', () => {
 			});
 
 			const response = await POST({
-				request: apiRequest({ source: 'course-a', target: 'course-b', type: 'prereq' })
+				request: apiRequest({ source: 'course-a', target: 'course-b', type: 'prereq' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(409);
@@ -85,7 +91,8 @@ describe('graph edge API', () => {
 
 		it('rejects self-edge', async () => {
 			const response = await POST({
-				request: apiRequest({ source: 'course-a', target: 'course-a', type: 'prereq' })
+				request: apiRequest({ source: 'course-a', target: 'course-a', type: 'prereq' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);
@@ -94,7 +101,8 @@ describe('graph edge API', () => {
 
 		it('rejects invalid edge type', async () => {
 			const response = await POST({
-				request: apiRequest({ source: 'course-a', target: 'course-b', type: 'invalid-type' })
+				request: apiRequest({ source: 'course-a', target: 'course-b', type: 'invalid-type' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);
@@ -103,7 +111,8 @@ describe('graph edge API', () => {
 
 		it('rejects unsupported body keys', async () => {
 			const response = await POST({
-				request: apiRequest({ source: 'course-a', target: 'course-b', type: 'prereq', foo: 'bar' })
+				request: apiRequest({ source: 'course-a', target: 'course-b', type: 'prereq', foo: 'bar' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);
@@ -132,7 +141,8 @@ describe('graph edge API', () => {
 					type: 'coreq',
 					directed: true,
 					reviewStatus: 'accepted'
-				})
+				}),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(200);
@@ -146,7 +156,8 @@ describe('graph edge API', () => {
 
 		it('returns 404 for non-existent edge', async () => {
 			const response = await PATCH({
-				request: apiRequest({ id: 'no-such-edge', label: 'anything' })
+				request: apiRequest({ id: 'no-such-edge', label: 'anything' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(404);
@@ -163,7 +174,8 @@ describe('graph edge API', () => {
 			});
 
 			const response = await PATCH({
-				request: apiRequest({ id: 'edge-2', type: 'prereq' })
+				request: apiRequest({ id: 'edge-2', type: 'prereq' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(409);
@@ -172,7 +184,8 @@ describe('graph edge API', () => {
 
 		it('rejects unknown body keys', async () => {
 			const response = await PATCH({
-				request: apiRequest({ id: 'edge-1', confidence: 0.9 })
+				request: apiRequest({ id: 'edge-1', confidence: 0.9 }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);
@@ -184,7 +197,8 @@ describe('graph edge API', () => {
 			store.getGraphState.mockResolvedValue({ positions: {}, edges: [existing] });
 
 			const response = await PATCH({
-				request: apiRequest({ id: 'edge-1', type: 'bad-type' })
+				request: apiRequest({ id: 'edge-1', type: 'bad-type' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);
@@ -197,19 +211,21 @@ describe('graph edge API', () => {
 			store.getGraphState.mockResolvedValue({ positions: {}, edges: [existing] });
 
 			const response = await DELETE({
-				request: apiRequest({ id: 'edge-1' })
+				request: apiRequest({ id: 'edge-1' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(200);
 			expect(await response.json()).toEqual({ ok: true });
 			expect(store.saveGraphState).toHaveBeenCalledOnce();
-			const saved = store.saveGraphState.mock.calls[0][0];
+			const saved = store.saveGraphState.mock.calls[0][1];
 			expect(saved.edges).toHaveLength(0);
 		});
 
 		it('returns 404 for non-existent edge', async () => {
 			const response = await DELETE({
-				request: apiRequest({ id: 'no-such-edge' })
+				request: apiRequest({ id: 'no-such-edge' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(404);
@@ -218,7 +234,8 @@ describe('graph edge API', () => {
 
 		it('rejects unsupported body keys', async () => {
 			const response = await DELETE({
-				request: apiRequest({ id: 'edge-1', type: 'prereq' })
+				request: apiRequest({ id: 'edge-1', type: 'prereq' }),
+				locals: { user: { id: 'test-user' } }
 			} as never);
 
 			expect(response.status).toBe(400);

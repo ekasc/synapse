@@ -80,7 +80,8 @@ describe('weekly-push subscribe POST', () => {
 				headers: { 'content-type': 'application/json' },
 				body: 'not-json'
 			}),
-			platform: { env: { BRIEF_DB: {} } }
+			platform: { env: { BRIEF_DB: {} } },
+			locals: { user: { id: 'test-user' } }
 		} as never;
 
 		const response = await POST(event);
