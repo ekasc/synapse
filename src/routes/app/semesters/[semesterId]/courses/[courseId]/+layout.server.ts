@@ -1,9 +1,9 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { getCourses, getSemesters } from '$lib/server/store';
 
 export async function load({ params, locals }) {
 	const userId = locals.user?.id;
-	if (!userId) return { course: null, semester: null };
+	if (!userId) redirect(303, '/auth/error?reason=unauthenticated');
 	const [courses, semesters] = await Promise.all([getCourses(userId), getSemesters(userId)]);
 	const course = courses.find(
 		(item) => item.id === params.courseId && item.semesterId === params.semesterId

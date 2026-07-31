@@ -36,7 +36,7 @@ describe('transcribePageImage', () => {
 		});
 
 		expect(fetchImpl).toHaveBeenCalledOnce();
-		const [url, init] = fetchImpl.mock.calls[0];
+		const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit | undefined];
 		expect(String(url)).toContain('openrouter.ai');
 		const headers = (init as RequestInit).headers as Record<string, string>;
 		expect(headers.Authorization).toBe('Bearer key-123');

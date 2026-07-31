@@ -75,7 +75,14 @@ describe('evidence-first briefing invariants', () => {
 				'professor-course': source('professor-course'),
 				'rate-my-professors': rmp
 			},
-			{ inputTokens: 1, outputTokens: 1, searchRequests: 1, costMicrodollars: 1 }
+			{
+				inputTokens: 1,
+				outputTokens: 1,
+				reasoningTokens: 0,
+				cachedTokens: 0,
+				searchRequests: 1,
+				costMicrodollars: 1
+			}
 		);
 		expect(bundle.sources.map((entry) => entry.category)).toEqual([
 			'catalog',
@@ -110,7 +117,14 @@ describe('evidence-first briefing invariants', () => {
 		const bundle = buildEvidenceBundle(
 			request,
 			{ catalog: sources },
-			{ inputTokens: 1, outputTokens: 1, searchRequests: 1, costMicrodollars: 1 }
+			{
+				inputTokens: 1,
+				outputTokens: 1,
+				reasoningTokens: 0,
+				cachedTokens: 0,
+				searchRequests: 1,
+				costMicrodollars: 1
+			}
 		);
 		expect(bundle.sources).toHaveLength(1);
 		expect(bundle.sources[0].id).toBe('src_01');

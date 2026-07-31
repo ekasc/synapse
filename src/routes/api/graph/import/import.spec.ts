@@ -111,7 +111,7 @@ describe('graph import API', () => {
 			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(response.status).toBe(400);
-		expect((await response.json()).issues.join(' ')).toContain(message);
+		expect(((await response.json()) as { issues: string[] }).issues.join(' ')).toContain(message);
 		expect(store.applyGraphImport).not.toHaveBeenCalled();
 	});
 
@@ -131,7 +131,7 @@ describe('graph import API', () => {
 			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(response.status).toBe(400);
-		const result = await response.json();
+		const result = (await response.json()) as { issues: string[] };
 		expect(result.issues).toEqual(
 			expect.arrayContaining([
 				expect.stringContaining('at most 500'),

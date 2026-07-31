@@ -11,6 +11,7 @@ export async function POST({ request, platform, locals }: RequestEvent) {
 		if (input.courseId !== 'all' && !courses.some((course) => course.id === input.courseId))
 			return json({ ok: false, error: 'Course not found' }, { status: 404 });
 		const result = await answerChat(input, {
+			userId,
 			db: platform?.env?.BRIEF_DB,
 			materials: platform?.env?.MATERIALS,
 			apiKey: platform?.env?.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY,

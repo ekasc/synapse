@@ -372,6 +372,7 @@
 					</div>
 					<div class="min-w-0">
 						{#if renamingId === material.id}
+							<!-- svelte-ignore a11y_autofocus -->
 							<input
 								type="text"
 								class="w-full border border-[var(--ink)] bg-[var(--paper)] p-[0.4rem] [font-family:var(--font-body)] text-[length:var(--text-small)] leading-[1.4]"

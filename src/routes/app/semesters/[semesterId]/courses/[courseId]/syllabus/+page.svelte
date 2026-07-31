@@ -97,7 +97,8 @@
 	);
 
 	let syllabus = $state<SyllabusImport | null>(null);
-	let selectedCourseId = $state(data.course.id);
+	// Initialized from data.course.id by the mount effect below (line ~117).
+	let selectedCourseId = $state('');
 	let loadedCourseId = '';
 	let selectedSyllabusFileName = $state('');
 	let selectedSyllabusFile = $state<File | null>(null);

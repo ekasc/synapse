@@ -63,7 +63,10 @@
 
 	function navigate(href: string) {
 		if (!href.startsWith('/app/') || href.startsWith('//')) return;
-		void goto(resolveRoute(href));
+		// href comes from validated priority items (all /app/* routes); the route
+		// union can't express arbitrary strings, so resolveRoute is bypassed.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		void goto(href);
 	}
 
 	function fixed(path: '/app/calendar' | '/app/brief' | '/app/courses') {

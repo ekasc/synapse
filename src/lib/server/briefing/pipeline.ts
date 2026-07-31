@@ -1,4 +1,4 @@
-import { aggregateUsage, dollarsToMicrodollars } from './cost';
+import { aggregateUsage, dollarsToMicrodollars, estimateCostMicrodollars } from './cost';
 import { buildEvidenceBundle, makeEvidenceSources } from './evidence';
 import { filterRelevantEvidence, targetForCategory } from './relevance';
 import { createOpenRouterSearchAdapter, SearchProviderError } from './search-provider';

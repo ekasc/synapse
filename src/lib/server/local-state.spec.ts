@@ -12,7 +12,10 @@ import {
 function candidate(path: string, overrides = {}) {
 	return {
 		path,
+		name: path.split('/').pop() ?? '',
+		size: 100,
 		integrity: true,
+		tables: ['briefings', 'semesters', 'd1_migrations'],
 		requiredTableCount: 3,
 		migrationCount: 9,
 		briefingCount: 3,
@@ -114,9 +117,10 @@ describe('backup retention planning', () => {
 		const entries = Array.from({ length: 12 }, (_, index) => ({
 			name: `backup-${index}`,
 			timestamp: index,
-			valid: index !== 2
+			valid: index !== 2,
+			path: `/backups/backup-${index}`
 		}));
-		const plan = planBackupRetention(entries, 10);
+		const plan = planBackupRetention(entries, 10, null);
 		expect(plan.pruned).toEqual(['backup-0']);
 		expect(plan.invalid).toEqual(['backup-2']);
 		expect(plan.retained).toContain('backup-11');

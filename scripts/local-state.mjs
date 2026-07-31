@@ -20,12 +20,20 @@ export const EXPECTED_BRIEFINGS = {
 	'CSIS 4495': 4
 };
 
+/**
+ * @param {string} code
+ * @param {number} version
+ */
 function meetsExpectedVersion(code, version) {
-	const expected = EXPECTED_BRIEFINGS[code];
+	const expected = EXPECTED_BRIEFINGS[/** @type {keyof typeof EXPECTED_BRIEFINGS} */ (code)];
 	if (expected == null) return false;
 	return version >= expected;
 }
 
+/**
+ * @param {string} path
+ * @param {string} statement
+ */
 export function querySql(path, statement) {
 	const database = new DatabaseSync(path);
 	try {
@@ -43,19 +51,31 @@ export function querySql(path, statement) {
 	}
 }
 
+/**
+ * Clones a SQLite database to a new file via VACUUM INTO (node:sqlite has no
+ * serialize()).
+ * @param {string} source
+ * @param {string} destination
+ */
 function snapshot(source, destination) {
 	const database = new DatabaseSync(source, { readOnly: true });
 	try {
-		writeFileSync(destination, database.serialize());
+		database.exec(`VACUUM INTO '${destination.replace(/'/g, "''")}'`);
 	} finally {
 		database.close();
 	}
 }
 
+/**
+ * @param {string | null | undefined} value
+ */
 function lines(value) {
 	return value ? value.split('\n').filter(Boolean) : [];
 }
 
+/**
+ * @param {string} root
+ */
 export function localPaths(root) {
 	const local = resolve(root, '.synapse-local');
 	return {
@@ -68,6 +88,9 @@ export function localPaths(root) {
 	};
 }
 
+/**
+ * @param {string} root
+ */
 export function ensureLocalDirectories(root) {
 	const paths = localPaths(root);
 	for (const path of [
@@ -82,7 +105,32 @@ export function ensureLocalDirectories(root) {
 	return paths;
 }
 
+/**
+ * @typedef {{
+ *   path: string;
+ *   name: string;
+ *   size: number;
+ *   integrity: boolean;
+ *   tables: string[];
+ *   requiredTableCount: number;
+ *   migrationCount: number;
+ *   briefingCount: number;
+ *   semesterCount: number;
+ *   briefings: Record<string, number>;
+ *   duplicateSemesters: number;
+ *   fingerprint: string | null;
+ *   valid: boolean;
+ *   reason: string | null;
+ * }} SqliteReport
+ */
+
+/**
+ * @param {string} path
+ * @param {number} migrationCount
+ * @returns {SqliteReport}
+ */
 export function inspectCandidate(path, migrationCount) {
+	/** @type {SqliteReport} */
 	const report = {
 		path,
 		name: basename(path),
@@ -127,7 +175,7 @@ export function inspectCandidate(path, migrationCount) {
 			)
 		)) {
 			const [code, version] = row.split('|');
-			report.briefings[code] = Number(version);
+			if (code) report.briefings[code] = Number(version);
 		}
 		report.duplicateSemesters = Number(
 			querySql(
@@ -142,12 +190,7 @@ export function inspectCandidate(path, migrationCount) {
 		report.valid = expectedBriefingsPresent && completeMigrations;
 		report.reason = report.valid ? null : 'missing expected migrations or briefing rows';
 		if (report.valid) {
-			const database = new DatabaseSync(path, { readOnly: true });
-			try {
-				report.fingerprint = createHash('sha256').update(database.serialize()).digest('hex');
-			} finally {
-				database.close();
-			}
+			report.fingerprint = createHash('sha256').update(readFileSync(path)).digest('hex');
 		}
 	} catch (error) {
 		report.reason = error instanceof Error ? error.message.split('\n')[0] : String(error);
@@ -155,6 +198,11 @@ export function inspectCandidate(path, migrationCount) {
 	return report;
 }
 
+/**
+ * @param {string} directory
+ * @param {number} migrationCount
+ * @returns {SqliteReport[]}
+ */
 export function inspectDirectory(directory, migrationCount) {
 	if (!existsSync(directory)) return [];
 	return readdirSync(directory, { withFileTypes: true })
@@ -162,6 +210,9 @@ export function inspectDirectory(directory, migrationCount) {
 		.map((entry) => inspectCandidate(join(directory, entry.name), migrationCount));
 }
 
+/**
+ * @param {SqliteReport} report
+ */
 function score(report) {
 	return [
 		report.integrity ? 1 : 0,
@@ -173,6 +224,10 @@ function score(report) {
 	];
 }
 
+/**
+ * @param {SqliteReport} left
+ * @param {SqliteReport} right
+ */
 function compareLogicalScore(left, right) {
 	const a = score(left);
 	const b = score(right);
@@ -182,6 +237,10 @@ function compareLogicalScore(left, right) {
 	return 0;
 }
 
+/**
+ * @param {SqliteReport[]} reports
+ * @returns {SqliteReport}
+ */
 export function selectCanonicalCandidate(reports) {
 	const valid = reports
 		.filter((report) => report.valid)
@@ -202,6 +261,11 @@ export function selectCanonicalCandidate(reports) {
 	return best;
 }
 
+/**
+ * @param {string} root
+ * @param {number} migrationCount
+ * @param {Array<'local' | 'legacy'>} [locations]
+ */
 export function discoverCanonicalDatabase(root, migrationCount, locations = ['local', 'legacy']) {
 	const paths = localPaths(root);
 	const reports = locations.flatMap((location) =>
@@ -210,10 +274,18 @@ export function discoverCanonicalDatabase(root, migrationCount, locations = ['lo
 	return { candidate: selectCanonicalCandidate(reports), reports };
 }
 
+/**
+ * @param {Date} [now]
+ * @param {string} [token]
+ */
 export function backupName(now = new Date(), token = randomUUID()) {
 	return `${now.toISOString().replace(/[:.]/g, '-')}__synapse-briefs-${token}.sqlite`;
 }
 
+/**
+ * @param {string} name
+ * @returns {{ name: string; timestamp: number } | null}
+ */
 export function parseBackupName(name) {
 	const match =
 		/^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})(?:-(\d{3})Z)?(?:__synapse-briefs-[0-9a-f-]+|_synapse-briefs)\.sqlite$/.exec(
@@ -226,6 +298,10 @@ export function parseBackupName(name) {
 	return Number.isNaN(timestamp) ? null : { name, timestamp };
 }
 
+/**
+ * @param {string} source
+ * @param {string} backupDirectory
+ */
 export function backupDatabase(source, backupDirectory) {
 	mkdirSync(backupDirectory, { recursive: true });
 	const path = join(backupDirectory, backupName());
@@ -233,6 +309,9 @@ export function backupDatabase(source, backupDirectory) {
 	return path;
 }
 
+/**
+ * @param {string | undefined} value
+ */
 export function readBackupRetention(value = process.env.SYNAPSE_BACKUP_KEEP) {
 	if (value === undefined) return 10;
 	if (!/^[1-9]\d*$/.test(value)) throw new Error('SYNAPSE_BACKUP_KEEP must be a positive integer');
@@ -241,10 +320,26 @@ export function readBackupRetention(value = process.env.SYNAPSE_BACKUP_KEEP) {
 	return keep;
 }
 
+/**
+ * @typedef {{
+ *   name: string;
+ *   timestamp: number;
+ *   path: string;
+ *   valid: boolean;
+ * }} BackupEntry
+ */
+
+/**
+ * @param {BackupEntry[]} entries
+ * @param {number} keep
+ * @param {string | null} currentBackup
+ */
 export function planBackupRetention(entries, keep, currentBackup) {
 	const valid = entries.filter((entry) => entry.valid).sort((a, b) => b.timestamp - a.timestamp);
 	const protectedNames = new Set(
-		[currentBackup ? basename(currentBackup) : null, valid[0]?.name].filter(Boolean)
+		[currentBackup ? basename(currentBackup) : null, valid[0]?.name].filter(
+			(name) => typeof name === 'string'
+		)
 	);
 	const retained = valid.slice(0, keep).map((entry) => entry.name);
 	for (const name of protectedNames) if (!retained.includes(name)) retained.push(name);
@@ -255,14 +350,21 @@ export function planBackupRetention(entries, keep, currentBackup) {
 	};
 }
 
+/**
+ * @param {string} backupDirectory
+ * @param {number} migrationCount
+ * @param {string | null} currentBackup
+ */
 export function pruneBackups(backupDirectory, migrationCount, currentBackup) {
 	const keep = readBackupRetention();
+	/** @type {BackupEntry[]} */
 	const entries = readdirSync(backupDirectory, { withFileTypes: true })
 		.filter((entry) => entry.isFile())
 		.map((entry) => ({ entry, parsed: parseBackupName(entry.name) }))
 		.filter(({ parsed }) => parsed)
 		.map(({ entry, parsed }) => ({
-			...parsed,
+			name: /** @type {{ name: string; timestamp: number }} */ (parsed).name,
+			timestamp: /** @type {{ name: string; timestamp: number }} */ (parsed).timestamp,
 			path: join(backupDirectory, entry.name),
 			valid: inspectCandidate(join(backupDirectory, entry.name), migrationCount).valid
 		}));
@@ -282,19 +384,28 @@ function safeHostname() {
 	return hostname().replace(/[^A-Za-z0-9._-]/g, '_');
 }
 
+/**
+ * @param {number} pid
+ */
 function isAlive(pid) {
 	try {
 		process.kill(pid, 0);
 		return true;
-	} catch (error) {
-		return error?.code === 'EPERM';
+	} catch (/** @type {unknown} */ error) {
+		return /** @type {{ code?: string } | null} */ (error)?.code === 'EPERM';
 	}
 }
 
+/**
+ * @param {string} root
+ */
 export function lockPath(root) {
 	return join(localPaths(root).runtime, 'locks', safeHostname(), 'local-state.lock');
 }
 
+/**
+ * @param {string} root
+ */
 export function stateLockStatus(root) {
 	const path = lockPath(root);
 	if (!existsSync(path)) return { path, exists: false, stale: false, owner: null };
@@ -308,6 +419,10 @@ export function stateLockStatus(root) {
 	}
 }
 
+/**
+ * @param {string} root
+ * @param {string} operation
+ */
 export function acquireStateLock(root, operation) {
 	const path = lockPath(root);
 	mkdirSync(dirname(path), { recursive: true });
@@ -325,8 +440,8 @@ export function acquireStateLock(root, operation) {
 		mkdirSync(path);
 		created = true;
 		writeFileSync(join(path, 'owner.json'), JSON.stringify(owner, null, 2));
-	} catch (error) {
-		if (error?.code !== 'EEXIST') {
+	} catch (/** @type {unknown} */ error) {
+		if (/** @type {{ code?: string } | null} */ (error)?.code !== 'EEXIST') {
 			if (created) rmSync(path, { recursive: true, force: true });
 			throw error;
 		}
@@ -370,11 +485,19 @@ export function acquireStateLock(root, operation) {
 	};
 }
 
+/**
+ * @param {string} source
+ * @param {string} stagePath
+ */
 export function stageSnapshot(source, stagePath) {
 	snapshot(source, stagePath);
 	querySql(stagePath, 'PRAGMA wal_checkpoint(TRUNCATE);');
 }
 
+/**
+ * @param {string} source
+ * @param {string} destination
+ */
 export function replaceDatabaseAtomically(source, destination) {
 	mkdirSync(dirname(destination), { recursive: true });
 	const temp = join(dirname(destination), `.${basename(destination)}.${randomUUID()}.staging`);

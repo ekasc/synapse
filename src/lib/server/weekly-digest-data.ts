@@ -63,7 +63,7 @@ export async function getOrAssembleWeeklyDigest(input: {
 	if (shouldUseCache) {
 		try {
 			const db = createDb(input.binding!);
-			const cached = await db.getWeeklyDigestCache(weekStart);
+			const cached = await db.getWeeklyDigestCache(input.userId, weekStart);
 			if (cached) {
 				const payload = JSON.parse(cached) as CachePayload;
 				return {
@@ -92,7 +92,7 @@ export async function getOrAssembleWeeklyDigest(input: {
 		try {
 			const db = createDb(input.binding);
 			const payload: CachePayload = { bundle };
-			await db.setWeeklyDigestCache(weekStart, JSON.stringify(payload));
+			await db.setWeeklyDigestCache(input.userId, weekStart, JSON.stringify(payload));
 		} catch {
 			// Cache write failed — non-fatal, just serve fresh.
 		}
@@ -106,6 +106,7 @@ export async function getOrAssembleWeeklyDigest(input: {
  * unavailable. Failures are silently ignored (prose is optional).
  */
 export async function updateDigestCacheProse(input: {
+	userId: string;
 	weekStart: string;
 	binding?: D1Database;
 	prose: string | null;
@@ -114,12 +115,12 @@ export async function updateDigestCacheProse(input: {
 	if (!input.binding) return;
 	try {
 		const db = createDb(input.binding);
-		const cached = await db.getWeeklyDigestCache(input.weekStart);
+		const cached = await db.getWeeklyDigestCache(input.userId, input.weekStart);
 		if (!cached) return;
 		const payload = JSON.parse(cached) as CachePayload;
 		payload.prose = input.prose;
 		payload.proseModel = input.proseModel;
-		await db.setWeeklyDigestCache(input.weekStart, JSON.stringify(payload));
+		await db.setWeeklyDigestCache(input.userId, input.weekStart, JSON.stringify(payload));
 	} catch {
 		// Non-fatal.
 	}

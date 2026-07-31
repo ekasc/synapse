@@ -162,7 +162,7 @@ export type StudySession = {
 	completedAt: string;
 };
 
-const DEFAULT_FOCUS_PREFERENCES: FocusPreferences = {
+const DEFAULT_FOCUS_PREFERENCES: Omit<FocusPreferences, 'userId'> = {
 	allowedSites: ['notebooklm.google.com', 'blackboard.douglascollege.ca'],
 	blockedSites: ['instagram.com', 'tiktok.com', 'reddit.com'],
 	updatedAt: ''
@@ -834,6 +834,7 @@ export function buildAcademicDigest(input?: {
 
 	return {
 		id: 'academic-progress',
+		userId: '',
 		source,
 		fileName,
 		summary,
@@ -1014,6 +1015,7 @@ export async function getLatestAcademicDigestJob(
 function rowToAcademicDigestJob(row: Record<string, unknown>): AcademicDigestJob {
 	return {
 		id: String(row.id),
+		userId: String(row.user_id),
 		fileName: String(row.file_name),
 		status: String(row.status) as AcademicDigestJob['status'],
 		error: row.error ? String(row.error) : null,
@@ -1026,6 +1028,7 @@ function rowToAcademicDigestJob(row: Record<string, unknown>): AcademicDigestJob
 function rowToDigest(row: Record<string, unknown>): AcademicDigest {
 	return {
 		id: String(row.id),
+		userId: String(row.user_id),
 		source: String(row.source) as AcademicDigest['source'],
 		fileName: row.file_name ? String(row.file_name) : undefined,
 		summary: String(row.summary),
@@ -1313,6 +1316,7 @@ export async function updateSyllabusTextbook(
 function rowToSyllabusImport(row: Record<string, unknown>): SyllabusImport {
 	return {
 		id: String(row.id),
+		userId: String(row.user_id),
 		courseId: String(row.course_id),
 		fileName: String(row.file_name),
 		rawText: String(row.raw_text),
@@ -1339,6 +1343,7 @@ function parseSiteList(value: unknown): string[] {
 function rowToStudySession(row: Record<string, unknown>): StudySession {
 	return {
 		id: String(row.id),
+		userId: String(row.user_id),
 		courseId: row.course_id ? String(row.course_id) : null,
 		intention: String(row.intention ?? ''),
 		plannedSeconds: Number(row.planned_seconds),
@@ -1411,7 +1416,7 @@ export async function getStudySessions(userId: string, limit = 20): Promise<Stud
 
 export async function addStudySession(
 	userId: string,
-	input: Omit<StudySession, 'id' | 'completedAt'> & { id?: string; completedAt?: string }
+	input: Omit<StudySession, 'id' | 'completedAt' | 'userId'> & { id?: string; completedAt?: string }
 ): Promise<StudySession> {
 	const record: StudySession = {
 		...input,

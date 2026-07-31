@@ -63,6 +63,7 @@ export function createWeeklyPushRepository(binding: D1Database) {
 			}
 			const record: WeeklyPushSubscription = {
 				id: crypto.randomUUID(),
+				userId,
 				endpoint: input.endpoint,
 				p256dh: input.p256dh,
 				auth: input.auth,

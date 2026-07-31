@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createOpenRouterSearchAdapter, SearchProviderError } from './search-provider';
+import {
+	createOpenRouterSearchAdapter,
+	SearchProviderError,
+	type SearchTransport
+} from './search-provider';
 import { MODEL_POLICY } from './policy';
 const input = (signal = new AbortController().signal) => ({
 	request: { courseCode: 'CSIS 4495', institution: 'Douglas College' },
@@ -31,13 +35,15 @@ describe('OpenRouter search adapter', () => {
 				}
 			])
 		}));
-		const result = await createOpenRouterSearchAdapter(transport)(input());
+		const result = await createOpenRouterSearchAdapter(transport as unknown as SearchTransport)(
+			input()
+		);
 		expect(result).toMatchObject({
 			status: 'results',
 			usage: { inputTokens: 2, searchRequests: 1 }
 		});
 		expect(result.sources).toHaveLength(1);
-		expect(transport.mock.calls[0][0]).toMatchObject({
+		expect((transport.mock.calls[0] as unknown as [Record<string, unknown>])[0]).toMatchObject({
 			model: MODEL_POLICY.search,
 			provider: { allow_fallbacks: true, require_parameters: true }
 		});
@@ -99,9 +105,13 @@ describe('OpenRouter search adapter', () => {
 					signal.addEventListener('abort', () => reject(new Error('aborted')))
 				)
 		);
-		const pending = createOpenRouterSearchAdapter(transport)(input(controller.signal));
+		const pending = createOpenRouterSearchAdapter(transport as unknown as SearchTransport)(
+			input(controller.signal)
+		);
 		controller.abort();
 		await expect(pending).rejects.toThrow('aborted');
-		expect(transport.mock.calls[0][1].aborted).toBe(true);
+		expect((transport.mock.calls[0] as unknown as [unknown, { aborted: boolean }])[1].aborted).toBe(
+			true
+		);
 	});
 });

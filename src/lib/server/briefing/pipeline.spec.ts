@@ -280,13 +280,13 @@ describe('Course Brief extraction boundary', () => {
 				}),
 				{ headers: { 'content-type': 'application/json' } }
 			);
-		}) as unknown as typeof fetch;
+		});
 		const getCachedEvidence = vi.fn(async () => [
 			source({ excerpt: 'Stale empty briefing evidence.' })
 		]);
 		const result = await runEvidenceFirstPipeline(request, {
 			apiKey: 'x',
-			fetchImpl,
+			fetchImpl: fetchImpl as unknown as typeof fetch,
 			forceRefresh: true,
 			categoryCache: { get: getCachedEvidence, set: async () => {} }
 		});
@@ -343,10 +343,10 @@ describe('Course Brief extraction boundary', () => {
 				}),
 				{ headers: { 'content-type': 'application/json' } }
 			);
-		}) as unknown as typeof fetch;
+		});
 		const result = await runEvidenceFirstPipeline(request, {
 			apiKey: 'x',
-			fetchImpl,
+			fetchImpl: fetchImpl as unknown as typeof fetch,
 			forceRefresh: true,
 			categoryCache: {
 				get: async (category) => (category === 'catalog' ? [cached] : null),
@@ -402,10 +402,10 @@ describe('Course Brief extraction boundary', () => {
 				}),
 				{ status: 200, headers: { 'content-type': 'application/json' } }
 			);
-		}) as unknown as typeof fetch;
+		});
 		const result = await runEvidenceFirstPipeline(request, {
 			apiKey: 'x',
-			fetchImpl
+			fetchImpl: fetchImpl as unknown as typeof fetch
 		});
 		expect(result.briefing.description.text).toBe('');
 		expect(result.briefing.prerequisites.text).toBe('');

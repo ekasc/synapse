@@ -21,6 +21,7 @@ import {
 	createOpenRouterSearchTransport
 } from '$lib/server/briefing/search-provider';
 import { admitCandidateBriefing } from '$lib/server/briefing/candidate-admission';
+import type { BriefingRequest } from '$lib/server/briefing/schema';
 import { env } from '$env/dynamic/private';
 import { normalizeBriefingRequest, BriefingRequestError } from '$lib/server/briefing/normalize';
 import { rejectClientModelFields, resolveResearchModelPolicy } from '$lib/server/briefing/policy';
@@ -84,14 +85,18 @@ export async function _processJob(binding: D1Database, jobId: string) {
 			return;
 		}
 
-		const searchParams: CreateBriefingJobParams = {
+		const request: BriefingRequest = {
 			courseCode: frozen.courseCode,
 			courseName: frozen.courseName ?? undefined,
 			professorName: frozen.professorName ?? undefined,
 			institution: frozen.institution ?? undefined,
 			additionalNotes: frozen.additionalNotes ?? undefined,
 			identityChoice: frozen.identityChoice ?? undefined,
-			activeTerm: frozen.activeTerm ?? undefined,
+			activeTerm: frozen.activeTerm ?? undefined
+		};
+
+		const searchParams: CreateBriefingJobParams = {
+			...request,
 			model: JSON.stringify(modelPolicy())
 		};
 		const searchContext = buildSearchContext(searchParams);
@@ -151,7 +156,7 @@ export async function _processJob(binding: D1Database, jobId: string) {
 						const result = await createOpenRouterSearchAdapter(
 							createOpenRouterSearchTransport(apiKey)
 						)({
-							request: frozen,
+							request,
 							category: category ?? 'catalog',
 							query,
 							policy: modelPolicy(),
@@ -192,10 +197,12 @@ export async function _processJob(binding: D1Database, jobId: string) {
 				}
 			);
 			if (admission.status === 'conflict') {
+				const candidates =
+					admission.admission.status === 'conflict' ? admission.admission.course.candidates : [];
 				await runner.setIdentityCandidates(
 					jobId,
 					leaseToken,
-					admission.admission.course.candidates.map((candidate) => ({
+					candidates.map((candidate) => ({
 						code: frozen.courseCode,
 						name: candidate.title,
 						institution: frozen.institution ?? '',
@@ -259,12 +266,13 @@ export async function _processJob(binding: D1Database, jobId: string) {
 				apiKey,
 				modelPolicy: modelPolicy(),
 				hooks: {
-					onStage: (stage) =>
-						runner.updateStage(
+					onStage: (stage) => {
+						void runner.updateStage(
 							jobId,
 							leaseToken!,
 							stage as Parameters<typeof runner.updateStage>[2]
-						),
+						);
+					},
 					onAttempt: (attempt) => runner.persistAttempt(jobId, attempt),
 					onEvidence: async (_category, sources) => {
 						for (const source of sources) await runner.persistEvidence(jobId, source);

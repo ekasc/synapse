@@ -1,4 +1,5 @@
 import type { ResearchAction, ResearchModelClient } from './research-run';
+import type { EvidenceSource } from './schema';
 import type { ResearchModelPolicy } from './policy';
 
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -55,7 +56,7 @@ function parseAction(value: unknown): ResearchAction {
 		return {
 			type: 'search',
 			query: input.query,
-			category: input.category as string | undefined,
+			category: input.category as EvidenceSource['category'],
 			domain: input.domain as string | undefined,
 			term: input.term as string | undefined
 		};

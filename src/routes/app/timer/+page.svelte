@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { Trash2 } from '@lucide/svelte';
 
 	type SessionState = 'ready' | 'running' | 'paused' | 'complete';
 	type SiteKind = 'allowed' | 'blocked';

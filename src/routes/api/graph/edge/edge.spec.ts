@@ -37,7 +37,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(201);
-			const edge = await response.json();
+			const edge = (await response.json()) as { id: string };
 			expect(edge).toMatchObject({
 				source: 'course-a',
 				target: 'course-b',
@@ -60,7 +60,9 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(400);
-			expect((await response.json()).error).toContain('source course not found');
+			expect(((await response.json()) as { error?: string }).error).toContain(
+				'source course not found'
+			);
 			expect(store.saveGraphState).not.toHaveBeenCalled();
 		});
 
@@ -71,7 +73,9 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(400);
-			expect((await response.json()).error).toContain('target course not found');
+			expect(((await response.json()) as { error?: string }).error).toContain(
+				'target course not found'
+			);
 		});
 
 		it('rejects duplicate source+target+type', async () => {
@@ -96,7 +100,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(400);
-			expect((await response.json()).error).toContain('must be different');
+			expect(((await response.json()) as { error?: string }).error).toContain('must be different');
 		});
 
 		it('rejects invalid edge type', async () => {
@@ -106,7 +110,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(400);
-			expect((await response.json()).error).toContain('Invalid edge type');
+			expect(((await response.json()) as { error?: string }).error).toContain('Invalid edge type');
 		});
 
 		it('rejects unsupported body keys', async () => {
@@ -116,7 +120,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(400);
-			expect((await response.json()).error).toContain('Unsupported fields');
+			expect(((await response.json()) as { error?: string }).error).toContain('Unsupported fields');
 		});
 	});
 
@@ -146,7 +150,12 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(200);
-			const updated = await response.json();
+			const updated = (await response.json()) as {
+				label: string;
+				type: string;
+				directed: boolean;
+				reviewStatus: string;
+			};
 			expect(updated.label).toBe('updated label');
 			expect(updated.type).toBe('coreq');
 			expect(updated.directed).toBe(true);
@@ -161,7 +170,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(404);
-			expect((await response.json()).error).toBe('Edge not found');
+			expect(((await response.json()) as { error?: string }).error).toBe('Edge not found');
 		});
 
 		it('rejects an update that would duplicate another edge', async () => {
@@ -189,7 +198,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(400);
-			expect((await response.json()).error).toContain('Unsupported fields');
+			expect(((await response.json()) as { error?: string }).error).toContain('Unsupported fields');
 		});
 
 		it('rejects invalid type in update', async () => {
@@ -229,7 +238,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(404);
-			expect((await response.json()).error).toBe('Edge not found');
+			expect(((await response.json()) as { error?: string }).error).toBe('Edge not found');
 		});
 
 		it('rejects unsupported body keys', async () => {
@@ -239,7 +248,7 @@ describe('graph edge API', () => {
 			} as never);
 
 			expect(response.status).toBe(400);
-			expect((await response.json()).error).toContain('Unsupported fields');
+			expect(((await response.json()) as { error?: string }).error).toContain('Unsupported fields');
 		});
 	});
 });

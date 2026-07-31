@@ -251,6 +251,7 @@ export async function POST({ request, locals }: RequestEvent) {
 				}
 			: {
 					id: node.id ?? referenceMap.get(code)!,
+					userId,
 					semesterId: node.semesterId ?? fallbackSemester!.id,
 					code,
 					name: node.name.trim(),

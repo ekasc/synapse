@@ -12,7 +12,16 @@ export async function load(event) {
 			semesters: [],
 			courses: [],
 			graph: { positions: {}, edges: [] },
-			dashboardDataAvailable: false
+			dashboardDataAvailable: false,
+			...buildPriorityDashboard({
+				now: new Date(),
+				semesters: [],
+				courses: [],
+				events: [],
+				practice: [],
+				briefs: [],
+				materials: []
+			})
 		};
 	type ReadResult<T> = { value: T; available: boolean };
 	const safe = async <T>(fallback: T, fn: () => Promise<T>): Promise<ReadResult<T>> => {
@@ -40,7 +49,7 @@ export async function load(event) {
 		safe({ positions: {}, edges: [] }, () => getGraphState(userId)),
 		binding
 			? safe([], async () => {
-					await completePastCalendarEvents(binding, userId);
+					await completePastCalendarEvents(binding);
 					return createDb(binding).getCalendarEvents(userId);
 				})
 			: Promise.resolve({ value: [], available: false }),

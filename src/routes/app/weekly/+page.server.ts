@@ -11,10 +11,15 @@ import { createMaterialIndexRepository } from '$lib/server/practice/material-ind
 import { runBackgroundIndexing } from '$lib/server/practice/background-index';
 import { createSemanticPipeline } from '$lib/server/practice/embeddings';
 
-async function getWeeklyPlan(event: { platform?: App.Platform; forceRegenerate?: boolean }) {
+async function getWeeklyPlan(event: {
+	platform?: App.Platform;
+	forceRegenerate?: boolean;
+	userId?: string;
+}) {
 	const binding = event.platform?.env?.BRIEF_DB as D1Database | undefined;
 	const bucket = event.platform?.env?.MATERIALS as R2Bucket | undefined;
 	const bundle = await getOrAssembleWeeklyDigest({
+		userId: event.userId ?? '',
 		now: new Date(),
 		binding,
 		bucket,
@@ -37,6 +42,7 @@ async function getWeeklyPlan(event: { platform?: App.Platform; forceRegenerate?:
 	}
 
 	await updateDigestCacheProse({
+		userId: event.userId ?? '',
 		weekStart: bundle.weekStart,
 		binding,
 		prose: proseResult?.prose ?? null,
@@ -51,12 +57,14 @@ async function getWeeklyPlan(event: { platform?: App.Platform; forceRegenerate?:
 }
 
 export async function load(event) {
-	return getWeeklyPlan(event);
+	const userId = event.locals.user?.id ?? '';
+	return getWeeklyPlan({ ...event, userId });
 }
 
 export const actions = {
 	regenerate: async (event) => {
-		await getWeeklyPlan({ platform: event.platform, forceRegenerate: true });
+		const userId = event.locals.user?.id ?? '';
+		await getWeeklyPlan({ platform: event.platform, forceRegenerate: true, userId });
 		redirect(303, '/app/weekly');
 	},
 	indexMaterials: async (event) => {

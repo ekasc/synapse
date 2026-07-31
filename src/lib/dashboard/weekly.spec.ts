@@ -28,6 +28,7 @@ function base(overrides: Partial<WeeklyDigestInput> = {}): WeeklyDigestInput {
 function course(overrides: Partial<Course> = {}): Course {
 	return {
 		id: 'c1',
+		userId: 'test-user',
 		semesterId: 's1',
 		code: 'CSIS 4495',
 		name: 'Applied Research Project',
@@ -38,6 +39,7 @@ function course(overrides: Partial<Course> = {}): Course {
 function event(overrides: Partial<CalendarEventRow> = {}): CalendarEventRow {
 	return {
 		id: 'e1',
+		userId: 'test-user',
 		courseId: 'c1',
 		courseCode: 'CSIS 4495',
 		title: 'Milestone 1',
@@ -58,6 +60,7 @@ function event(overrides: Partial<CalendarEventRow> = {}): CalendarEventRow {
 function studySession(overrides: Partial<StudySession> = {}): StudySession {
 	return {
 		id: 'st1',
+		userId: 'test-user',
 		courseId: 'c1',
 		intention: 'review milestone',
 		plannedSeconds: 1500,
@@ -116,7 +119,7 @@ function materialIndex(overrides: Partial<MaterialIndexRecord> = {}): MaterialIn
 }
 
 function semester(overrides: Partial<Semester> = {}): Semester {
-	return { id: 's1', term: 'Fall', year: 2026, order: 1, ...overrides };
+	return { id: 's1', userId: 'test-user', term: 'Fall', year: 2026, order: 1, ...overrides };
 }
 
 function briefing(overrides: Partial<Briefing> = {}): Briefing {

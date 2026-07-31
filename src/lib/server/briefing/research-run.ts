@@ -10,7 +10,14 @@ export const RESEARCH_RUN_DEFAULT_LIMITS = {
 	maxCostUsd: Infinity
 } as const;
 
-export type ResearchRunLimits = typeof RESEARCH_RUN_DEFAULT_LIMITS;
+export type ResearchRunLimits = {
+	maxDurationMs: number;
+	maxToolCalls: number;
+	maxProviderCalls: number;
+	maxSearchCalls: number;
+	maxFetchCalls: number;
+	maxCostUsd: number;
+};
 export type ResearchRunMetadata = {
 	runId: string;
 	jobId: string;

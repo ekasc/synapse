@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runResearchRun, type CandidateBriefing, type ResearchAction } from './research-run';
+import {
+	runResearchRun,
+	type CandidateBriefing,
+	type PageFetchTool,
+	type ResearchAction,
+	type ResearchModelClient,
+	type SearchTool
+} from './research-run';
 import type { EvidenceSource } from './schema';
 
 const source = (id: string): EvidenceSource => ({
@@ -81,14 +88,17 @@ describe('ResearchRun', () => {
 	it('cancellation aborts one in-flight provider without affecting another', async () => {
 		const controller = new AbortController();
 		const blocked = {
-			next: vi.fn(
+			next: vi.fn<ResearchModelClient['next']>(
 				({ signal }: { signal: AbortSignal }) =>
 					new Promise((_, reject) =>
 						signal.addEventListener('abort', () => reject(new Error('aborted')))
 					)
 			)
 		};
-		const one = runResearchRun(req('one', controller.signal), { model: blocked, search: vi.fn() });
+		const one = runResearchRun(req('one', controller.signal), {
+			model: blocked as unknown as ResearchModelClient,
+			search: vi.fn()
+		});
 		const two = runResearchRun(req('two'), {
 			model: sequence({ type: 'submit_candidate', candidate: candidate('two') }),
 			search: vi.fn()
@@ -101,7 +111,7 @@ describe('ResearchRun', () => {
 	});
 	it('passes the run signal to in-flight search and fetch tools', async () => {
 		const controller = new AbortController();
-		const search = vi.fn(
+		const search = vi.fn<SearchTool>(
 			({ signal }: { signal: AbortSignal }) =>
 				new Promise((_, reject) =>
 					signal.addEventListener('abort', () => reject(new Error('abort')))
@@ -109,14 +119,14 @@ describe('ResearchRun', () => {
 		);
 		const running = runResearchRun(req('search', controller.signal), {
 			model: sequence({ type: 'search', query: 'x' }),
-			search
+			search: search as unknown as SearchTool
 		});
 		await vi.waitFor(() => expect(search).toHaveBeenCalledOnce());
 		controller.abort();
 		expect(await running).toMatchObject({ status: 'cancelled' });
 		expect(search.mock.calls[0][0].signal.aborted).toBe(true);
 		const fetchController = new AbortController();
-		const fetchPage = vi.fn(
+		const fetchPage = vi.fn<PageFetchTool>(
 			(_url: string, signal: AbortSignal) =>
 				new Promise((_, reject) =>
 					signal.addEventListener('abort', () => reject(new Error('abort')))
@@ -125,7 +135,7 @@ describe('ResearchRun', () => {
 		const fetching = runResearchRun(req('fetch', fetchController.signal), {
 			model: sequence({ type: 'fetch_page', url: 'https://example.test' }),
 			search: vi.fn(),
-			fetchPage
+			fetchPage: fetchPage as unknown as PageFetchTool
 		});
 		await vi.waitFor(() => expect(fetchPage).toHaveBeenCalledOnce());
 		fetchController.abort();
@@ -178,7 +188,7 @@ describe('ResearchRun', () => {
 				retrievalStatus: 'retrieved',
 				contentType: 'text/html',
 				excerpt: fetched.excerpt
-			}))
+			})) as unknown as PageFetchTool
 		});
 		expect(result).toMatchObject({
 			status: 'completed',

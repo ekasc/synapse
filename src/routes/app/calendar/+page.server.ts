@@ -10,7 +10,7 @@ async function loadManualEvents(event: RequestEvent, userId: string): Promise<Ca
 	if (!event.platform) return [];
 	try {
 		const binding = event.platform.env.BRIEF_DB;
-		await completePastCalendarEvents(binding, userId);
+		await completePastCalendarEvents(binding);
 		return await createDb(binding).getCalendarEvents(userId);
 	} catch (err) {
 		console.error('Failed to load manual events:', err);

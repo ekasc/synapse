@@ -81,7 +81,7 @@ describe('calendar event API', () => {
 			locals: { user: { id: 'test-user' } }
 		} as never);
 		expect(response.status).toBe(201);
-		expect((await response.json()).created).toBe(true);
+		expect(((await response.json()) as { created: boolean }).created).toBe(true);
 	});
 
 	it('rejects an event year outside the selected course semester', async () => {

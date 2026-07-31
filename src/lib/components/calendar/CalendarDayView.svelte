@@ -182,10 +182,6 @@
 		gap: 0.5rem;
 		margin-bottom: 0.25rem;
 	}
-	.cal-day-view-item-time {
-		font-size: var(--text-caption);
-		color: var(--ink-soft);
-	}
 	.cal-day-view-item-course {
 		font-size: var(--text-caption);
 		color: var(--ink-faint);

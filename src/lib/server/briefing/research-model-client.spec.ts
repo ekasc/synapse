@@ -37,24 +37,24 @@ describe('OpenRouter ResearchModelClient', () => {
 					}),
 					{ status: 200 }
 				)
-		) as unknown as typeof fetch;
+		);
 		const client = createOpenRouterResearchModelClient({
 			apiKey: 'secret',
 			policy: MODEL_POLICY,
-			fetchImpl
+			fetchImpl: fetchImpl as unknown as typeof fetch
 		});
 		await expect(client.next(state)).resolves.toMatchObject({
 			action: { type: 'search', query: 'CSIS 4495' },
 			usage: { inputTokens: 3, outputTokens: 2, costUsd: 0.01 }
 		});
-		const init = fetchImpl.mock.calls[0][1] as RequestInit;
-		expect(init.signal).toBe(state.signal);
-		expect(JSON.parse(String(init.body))).toMatchObject({
+		const [, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit | undefined];
+		expect(init?.signal).toBe(state.signal);
+		expect(JSON.parse(String(init?.body))).toMatchObject({
 			model: MODEL_POLICY.search,
 			provider: { allow_fallbacks: true, require_parameters: true }
 		});
-		expect(JSON.parse(String(init.body))).not.toHaveProperty('response_format');
-		expect(JSON.parse(String(init.body))).toMatchObject({
+		expect(JSON.parse(String(init?.body))).not.toHaveProperty('response_format');
+		expect(JSON.parse(String(init?.body))).toMatchObject({
 			tool_choice: { function: { name: 'research_action' } }
 		});
 	});
@@ -69,11 +69,13 @@ describe('OpenRouter ResearchModelClient', () => {
 					}),
 					{ status: 200 }
 				)
-		) as unknown as typeof fetch;
+		);
 		await expect(
-			createOpenRouterResearchModelClient({ apiKey: 'x', policy: MODEL_POLICY, fetchImpl }).next(
-				state
-			)
+			createOpenRouterResearchModelClient({
+				apiKey: 'x',
+				policy: MODEL_POLICY,
+				fetchImpl: fetchImpl as unknown as typeof fetch
+			}).next(state)
 		).resolves.toMatchObject({ action: { type: 'search', category: 'catalog' } });
 	});
 	it('accepts a direct action object from a JSON-mode provider', async () => {
@@ -85,11 +87,13 @@ describe('OpenRouter ResearchModelClient', () => {
 					}),
 					{ status: 200 }
 				)
-		) as unknown as typeof fetch;
+		);
 		await expect(
-			createOpenRouterResearchModelClient({ apiKey: 'x', policy: MODEL_POLICY, fetchImpl }).next(
-				state
-			)
+			createOpenRouterResearchModelClient({
+				apiKey: 'x',
+				policy: MODEL_POLICY,
+				fetchImpl: fetchImpl as unknown as typeof fetch
+			}).next(state)
 		).resolves.toMatchObject({ action: { type: 'search', query: 'CSIS 4495' } });
 	});
 	it('recovers a JSON action from an ignored markdown fence', () => {

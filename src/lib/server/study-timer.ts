@@ -32,7 +32,9 @@ export function parseFocusPreferences(value: unknown) {
 	return { allowedSites, blockedSites };
 }
 
-export function parseStudySession(value: unknown): Omit<StudySession, 'id' | 'completedAt'> | null {
+export function parseStudySession(
+	value: unknown
+): Omit<StudySession, 'id' | 'completedAt' | 'userId'> | null {
 	if (!value || typeof value !== 'object') return null;
 	const body = value as Record<string, unknown>;
 	const plannedSeconds = Number(body.plannedSeconds);

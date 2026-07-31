@@ -30,6 +30,7 @@ const digest = buildWeeklyDigest(
 		calendarEvents: [
 			{
 				id: 'e1',
+				userId: 'test-user',
 				courseId: null,
 				courseCode: 'CSIS 4495',
 				title: 'Milestone 1',

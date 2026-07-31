@@ -88,7 +88,7 @@ export async function POST({ request, locals }: RequestEvent) {
 		label: label ?? type,
 		directed: directed ?? type === 'prereq',
 		createdBy: 'user' as const,
-		reviewStatus: reviewStatus ?? 'accepted'
+		reviewStatus: (reviewStatus as 'accepted' | 'pending' | 'rejected' | undefined) ?? 'accepted'
 	};
 
 	graph.edges.push(edge);

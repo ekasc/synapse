@@ -5,7 +5,7 @@ import {
 	validateStructuredBriefing,
 	ValidationError
 } from './validation';
-import type { EvidenceSource } from './schema';
+import type { BriefingV4, EvidenceSource } from './schema';
 const usage = {
 	inputTokens: 0,
 	outputTokens: 0,
@@ -34,7 +34,8 @@ const source = (overrides: Partial<EvidenceSource> = {}): EvidenceSource => ({
 	...overrides
 });
 const section = () => ({ text: 'Supported', sourceIds: ['src_01'], claimIds: ['c1'] });
-const value = () => ({
+const value = (): BriefingV4 => ({
+	schemaVersion: 5,
 	identity: {
 		code: 'CSIS 3375',
 		name: 'Software Engineering',
@@ -71,7 +72,13 @@ const value = () => ({
 			asOf: '2026-07-01',
 			explanation: null
 		}
-	]
+	],
+	sources: [],
+	researchedAt: '2026-07-01',
+	modelUsed: 'pro',
+	searchModel: 'flash',
+	synthesisModel: 'pro',
+	usage
 });
 const metadata = {
 	researchedAt: '2026-07-01',
@@ -137,7 +144,7 @@ describe('structured briefing validation', () => {
 		candidate.instructor = {
 			requestedName: 'Ada',
 			name: 'Ada Lovelace',
-			status: 'official',
+			status: 'verified_current_official',
 			sourceIds: ['schedule']
 		};
 		const sources = [

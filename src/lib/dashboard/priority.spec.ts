@@ -3,7 +3,7 @@ import { buildPriorityDashboard, resolveCurrentTerm, resolveTermContext } from '
 
 const base = (overrides = {}) => ({
 	now: new Date(2026, 2, 10, 12),
-	semesters: [{ id: 's', term: 'Spring', year: 2026, order: 1 }],
+	semesters: [{ id: 's', userId: 'test-user', term: 'Spring', year: 2026, order: 1 }],
 	courses: [],
 	events: [],
 	practice: [],
@@ -31,10 +31,10 @@ const event = (id: string, date: number, extra = {}) => ({
 describe('priority dashboard', () => {
 	it('resolves Winter, Spring, Summer, Fall, and Autumn by their month windows', () => {
 		const semesters = [
-			{ id: 'w', term: 'Winter', year: 2026, order: 0 },
-			{ id: 's', term: 'Spring', year: 2026, order: 1 },
-			{ id: 'u', term: 'Summer', year: 2026, order: 2 },
-			{ id: 'f', term: 'Fall', year: 2026, order: 3 }
+			{ id: 'w', userId: 'test-user', term: 'Winter', year: 2026, order: 0 },
+			{ id: 's', userId: 'test-user', term: 'Spring', year: 2026, order: 1 },
+			{ id: 'u', userId: 'test-user', term: 'Summer', year: 2026, order: 2 },
+			{ id: 'f', userId: 'test-user', term: 'Fall', year: 2026, order: 3 }
 		];
 		expect(resolveCurrentTerm(new Date(2026, 2, 1), semesters)?.id).toBe('w');
 		expect(resolveCurrentTerm(new Date(2026, 4, 1), semesters)?.id).toBe('s');
@@ -43,17 +43,20 @@ describe('priority dashboard', () => {
 		expect(resolveCurrentTerm(new Date(2026, 7, 1), semesters)?.id).toBe('u');
 		expect(resolveCurrentTerm(new Date(2026, 8, 1), semesters)?.id).toBe('f');
 		expect(
-			resolveCurrentTerm(new Date(2026, 9, 1), [{ id: 'a', term: 'Autumn', year: 2026, order: 3 }])
-				?.id
+			resolveCurrentTerm(new Date(2026, 9, 1), [
+				{ id: 'a', userId: 'test-user', term: 'Autumn', year: 2026, order: 3 }
+			])?.id
 		).toBe('a');
 		expect(
-			resolveCurrentTerm(new Date(2026, 2, 1), [{ id: 'x', term: 'Odd', year: 2026, order: 1 }])?.id
+			resolveCurrentTerm(new Date(2026, 2, 1), [
+				{ id: 'x', userId: 'test-user', term: 'Odd', year: 2026, order: 1 }
+			])?.id
 		).toBe('x');
 	});
 	it('distinguishes the current term from the next available term', () => {
 		const semesters = [
-			{ id: 'fall', term: 'Fall', year: 2026, order: 20263 },
-			{ id: 'winter', term: 'Winter', year: 2027, order: 20270 }
+			{ id: 'fall', userId: 'test-user', term: 'Fall', year: 2026, order: 20263 },
+			{ id: 'winter', userId: 'test-user', term: 'Winter', year: 2027, order: 20270 }
 		];
 		expect(resolveTermContext(new Date(2026, 6, 16), semesters)).toEqual({
 			semester: semesters[0],

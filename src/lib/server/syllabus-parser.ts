@@ -1,5 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { WorkerMessageHandler } from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
+import type { TextItem } from 'pdfjs-dist/types/src/display/api';
 import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 import type { SyllabusExtractedData } from './store';
@@ -130,7 +131,7 @@ export async function extractTextFromPdf(file: File): Promise<string> {
 	for (let i = 1; i <= doc.numPages; i++) {
 		const page = await doc.getPage(i);
 		const content = await page.getTextContent();
-		const items = content.items.filter((item): item is { str: string } => 'str' in item);
+		const items = content.items.filter((item): item is TextItem => 'str' in item);
 		text += items.map((item) => item.str).join(' ') + '\n';
 	}
 	return text.trim();
