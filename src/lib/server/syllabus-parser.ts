@@ -1,16 +1,7 @@
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { WorkerMessageHandler } from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
-import type { TextItem } from 'pdfjs-dist/types/src/display/api';
+import { extractText } from 'unpdf';
 import OpenAI from 'openai';
 import { env } from '$env/dynamic/private';
 import type { SyllabusExtractedData } from './store';
-
-// Cloudflare Workers cannot spawn PDF.js browser workers. Register the worker handler
-// in-process so PDF.js uses its loopback "fake worker" without loading workerSrc.
-const pdfjsGlobal = globalThis as typeof globalThis & {
-	pdfjsWorker?: { WorkerMessageHandler: typeof WorkerMessageHandler };
-};
-pdfjsGlobal.pdfjsWorker ??= { WorkerMessageHandler };
 
 const FALLBACK_EXTRACTION: SyllabusExtractedData = {
 	professor: {
@@ -126,15 +117,8 @@ const syllabusSchema = {
 
 export async function extractTextFromPdf(file: File): Promise<string> {
 	const buffer = new Uint8Array(await file.arrayBuffer());
-	const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
-	let text = '';
-	for (let i = 1; i <= doc.numPages; i++) {
-		const page = await doc.getPage(i);
-		const content = await page.getTextContent();
-		const items = content.items.filter((item): item is TextItem => 'str' in item);
-		text += items.map((item) => item.str).join(' ') + '\n';
-	}
-	return text.trim();
+	const { text } = await extractText(buffer);
+	return text.join('\n').trim();
 }
 
 export async function extractSyllabusWithAI(rawText: string): Promise<SyllabusExtractedData> {
