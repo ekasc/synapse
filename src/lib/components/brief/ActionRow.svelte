@@ -52,7 +52,9 @@
 		<span class="mr-auto text-[var(--pen-red)] text-[var(--text-caption)]">{deleteError}</span>
 	{/if}
 	{#if confirming}
-		<span class="mr-auto text-[var(--pen-red)] text-[var(--text-caption)]">Delete this brief?</span>
+		<span class="mr-auto text-[var(--pen-red)] text-[var(--text-caption)]">
+			Delete this brief? This can't be undone.
+		</span>
 		<button class="btn btn-sm btn-ghost" type="button" onclick={() => (confirming = false)}>
 			cancel
 		</button>

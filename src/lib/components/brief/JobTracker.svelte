@@ -30,13 +30,13 @@
 	} = $props();
 
 	const STAGE_LABELS: Record<string, string> = {
-		resolving_identity: 'Resolving official course identity…',
+		resolving_identity: 'Finding the official course record…',
 		searching_catalog: 'Checking official catalog evidence…',
 		searching_schedule: 'Checking current schedule evidence…',
 		searching_outline: 'Checking course outlines and prerequisites…',
 		searching_instructor: 'Checking instructor assignment evidence…',
 		searching_reputation: 'Checking student-reported professor evidence…',
-		ranking_evidence: 'Ranking and deduplicating evidence…',
+		ranking_evidence: 'Sorting and merging the evidence…',
 		synthesizing: 'Synthesizing the validated evidence…',
 		validating: 'Validating every claim and citation…',
 		publishing: 'Publishing the validated brief…',
@@ -77,7 +77,7 @@
 		job.stage
 			? stageLabel(job.stage)
 			: job.status === 'queued'
-				? 'Queued — waiting for worker…'
+				? 'Queued — waiting to start…'
 				: 'Researching course…'
 	);
 
@@ -95,11 +95,11 @@
 		if (job.errorMessage) return job.errorMessage;
 		switch (job.status) {
 			case 'failed':
-				return 'The brief failed.';
+				return 'Research failed. Try again.';
 			case 'conflict':
 				return 'Official course evidence conflicts. Try a different code or professor.';
 			case 'expired':
-				return 'The brief expired. Try again.';
+				return 'Research timed out. Try again.';
 			case 'canceled':
 				return 'Research canceled. You can retry when ready.';
 			default:
@@ -151,7 +151,7 @@
 	</div>
 	{#if job.cacheHit}
 		<p class="m-0 text-[var(--ink-soft)] text-[var(--text-caption)]">
-			Loaded from the saved research cache.
+			Showing a saved result from earlier research.
 		</p>
 	{/if}
 	{#if isActive}

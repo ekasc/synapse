@@ -15,9 +15,8 @@ describe('ResearchSlip form', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('renders the research request label and code input', async () => {
+	it('renders the code input', async () => {
 		const screen = render(ResearchSlip);
-		await expect.element(screen.getByText('research request')).toBeInTheDocument();
 		await expect
 			.element(screen.getByPlaceholder('Course code (e.g. CSIS 3375, MATH 1130)'))
 			.toBeInTheDocument();
@@ -33,7 +32,8 @@ describe('ResearchSlip form', () => {
 		const screen = render(ResearchSlip);
 		await expect.element(screen.getByText(/more options/i)).toBeInTheDocument();
 		await screen.getByText(/more options/i).click();
-		await expect.element(screen.getByPlaceholder('optional').first()).toBeInTheDocument();
+		await expect.element(screen.getByText('Course name')).toBeInTheDocument();
+		await expect.element(screen.getByText('Professor name')).toBeInTheDocument();
 	});
 
 	it('shows a validation hint when submitting with an empty code', async () => {

@@ -73,17 +73,6 @@
 		}
 	});
 
-	let today = $derived.by(() => {
-		const d = new Date();
-		return d
-			.toLocaleString('en-US', {
-				month: 'short',
-				day: '2-digit',
-				year: 'numeric'
-			})
-			.toUpperCase();
-	});
-
 	let canSubmit = $derived(courseCode.trim().length > 0 && activeJobId === null);
 
 	function stopPolling() {
@@ -182,11 +171,11 @@
 			});
 			const data = (await res.json()) as JobResponse;
 			if (!res.ok) {
-				researchError = data.error ?? `Server error (${res.status})`;
+				researchError = data.error ?? `Something went wrong (${res.status}). Try again.`;
 				return;
 			}
 			if (!data.job) {
-				researchError = 'No job returned';
+				researchError = "Research didn't start. Try again.";
 				return;
 			}
 			job = data.job;
@@ -220,7 +209,7 @@
 			}
 			startPolling(data.job.id);
 		} catch {
-			researchError = 'Failed to research course. Is the server running?';
+			researchError = 'Research failed. Check your connection and try again.';
 		}
 	}
 
@@ -260,19 +249,7 @@
 	onDestroy(stopPolling);
 </script>
 
-<div
-	class="border border-[var(--rule)] bg-[var(--paper-shelf)] px-6 pt-4 pb-5 max-[700px]:px-4 max-[700px]:pt-3 max-[700px]:pb-4"
->
-	<div class="flex items-center justify-between gap-2">
-		<span
-			class="border border-[var(--rule)] px-[0.4rem] py-[0.1rem] leading-[1.2] text-[var(--ink-faint)] text-[var(--text-caption)]"
-			>research request</span
-		>
-		<span class=" tracking-[0.1em] text-[var(--ink-faint)] text-[var(--text-caption)]">{today}</span
-		>
-	</div>
-	<div class="mt-[0.6rem] mb-3 h-px bg-[var(--rule-soft)]"></div>
-
+<div class="grid gap-[0.6rem]">
 	{#if succeededCode}
 		<div
 			class="flex items-center gap-[0.6rem] py-[0.4rem] font-[family-name:var(--font-body)] text-[var(--ink)] text-[var(--text-small)]"
@@ -289,101 +266,85 @@
 			</span>
 		</div>
 	{:else if job && (job.status === 'running' || job.status === 'queued' || job.status === 'failed' || job.status === 'conflict' || job.status === 'expired' || job.status === 'canceled' || timedOut)}
-		<div class="grid gap-[0.6rem]">
-			<div class="mb-2 flex items-center justify-between">
-				<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
-					>researching · {courseCode.trim().toUpperCase()}</span
-				>
-			</div>
-			<JobTracker {job} {timedOut} onCancel={cancelJob} onRetry={retry} />
-		</div>
-	{:else}
-		<div class="grid gap-[0.6rem]">
-			<div class="flex items-stretch gap-2 max-[700px]:flex-col">
-				<label class="sr-only" for="brief-course-code">Course code</label>
-				<input
-					id="brief-course-code"
-					type="text"
-					class={[
-						'min-h-11 min-w-0 flex-auto rounded-none border border-[var(--rule)] bg-[var(--paper)] px-[0.85rem] py-[0.6rem] font-[family-name:var(--font-body)] text-[1.1rem] font-medium text-[var(--ink)] transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out-quart)] placeholder:font-normal placeholder:text-[var(--ink-faint)] focus:border-[var(--ink)]',
-						submitAttempted && !courseCode.trim() && 'border-[var(--pen-red)]'
-					]}
-					placeholder="Course code (e.g. CSIS 3375, MATH 1130)"
-					bind:value={courseCode}
-					onkeydown={onKeydown}
-				/>
-				<button
-					class="btn btn-primary min-h-11 min-w-36 flex-none max-[700px]:w-full"
-					type="button"
-					onclick={submit}
-					disabled={!canSubmit}
-				>
-					research →
-				</button>
-			</div>
-			<button
-				class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent py-[0.1rem] text-left tracking-normal text-[var(--ink-soft)] text-[var(--text-caption)] lowercase hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
-				type="button"
-				onclick={() => (moreOptionsOpen = !moreOptionsOpen)}
-				aria-expanded={moreOptionsOpen}
-				aria-controls="brief-more-options"
+		<div class="flex items-center justify-between">
+			<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]"
+				>researching · {courseCode.trim().toUpperCase()}</span
 			>
-				{moreOptionsOpen ? '▾' : '▸'}
-				{moreOptionsOpen ? 'less' : 'more'} options
-			</button>
-			{#if moreOptionsOpen}
-				<div
-					class="more-panel mt-1 grid grid-cols-2 gap-x-3 gap-y-[0.6rem] border-t border-dashed border-[var(--rule-soft)] pt-2 pb-1 max-[700px]:grid-cols-1"
-					id="brief-more-options"
-				>
-					<label class="grid gap-[0.3rem]">
-						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Course name</span>
-						<input
-							type="text"
-							class="field-input"
-							placeholder="helps narrow the search"
-							bind:value={courseName}
-							onkeydown={onKeydown}
-						/>
-					</label>
-					<label class="grid gap-[0.3rem]">
-						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Professor name</span>
-						<input
-							type="text"
-							class="field-input"
-							placeholder="optional"
-							bind:value={professorName}
-							onkeydown={onKeydown}
-						/>
-					</label>
-					<label class="grid gap-[0.3rem]">
-						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Institution</span>
-						<input
-							type="text"
-							class="field-input"
-							placeholder="optional"
-							bind:value={institution}
-							onkeydown={onKeydown}
-						/>
-					</label>
-					<label class="col-span-full grid gap-[0.3rem]">
-						<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Notes</span>
-						<textarea
-							class="field-input min-h-16 resize-y leading-[1.45]"
-							placeholder="term, section, modality, or anything that might narrow the search"
-							maxlength="1200"
-							bind:value={additionalNotes}
-							onkeydown={onKeydown}
-						></textarea>
-					</label>
-				</div>
-			{/if}
-			{#if researchError && !job}
-				<p class="mt-[0.1rem] mb-0 text-[var(--pen-red)] text-[var(--text-caption)]">
-					{researchError}
-				</p>
-			{/if}
 		</div>
+		<JobTracker {job} {timedOut} onCancel={cancelJob} onRetry={retry} />
+	{:else}
+		<div class="flex items-stretch gap-2 max-[700px]:flex-col">
+			<label class="sr-only" for="brief-course-code">Course code</label>
+			<input
+				id="brief-course-code"
+				type="text"
+				class={[
+					'min-h-11 min-w-0 flex-auto rounded-none border border-[var(--rule)] bg-[var(--paper)] px-[0.85rem] py-[0.6rem] font-[family-name:var(--font-body)] text-[1.1rem] font-medium text-[var(--ink)] transition-[border-color,box-shadow] duration-150 ease-[var(--ease-out-quart)] placeholder:font-normal placeholder:text-[var(--ink-faint)] focus:border-[var(--ink)]',
+					submitAttempted && !courseCode.trim() && 'border-[var(--pen-red)]'
+				]}
+				placeholder="Course code (e.g. CSIS 3375, MATH 1130)"
+				bind:value={courseCode}
+				onkeydown={onKeydown}
+			/>
+			<button
+				class="btn btn-primary min-h-11 min-w-36 flex-none max-[700px]:w-full"
+				type="button"
+				onclick={submit}
+				disabled={!canSubmit}
+			>
+				research →
+			</button>
+		</div>
+		<button
+			class="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent py-[0.1rem] text-left tracking-normal text-[var(--ink-soft)] text-[var(--text-caption)] lowercase hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+			type="button"
+			onclick={() => (moreOptionsOpen = !moreOptionsOpen)}
+			aria-expanded={moreOptionsOpen}
+			aria-controls="brief-more-options"
+		>
+			{moreOptionsOpen ? '▾' : '▸'}
+			{moreOptionsOpen ? 'less' : 'more'} options
+		</button>
+		{#if moreOptionsOpen}
+			<div
+				class="more-panel mt-1 grid grid-cols-2 gap-x-3 gap-y-[0.6rem] pt-1 pb-1 max-[700px]:grid-cols-1"
+				id="brief-more-options"
+			>
+				<label class="grid gap-[0.3rem]">
+					<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Course name</span>
+					<input
+						type="text"
+						class="field-input"
+						placeholder="helps narrow the search"
+						bind:value={courseName}
+						onkeydown={onKeydown}
+					/>
+				</label>
+				<label class="grid gap-[0.3rem]">
+					<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Professor name</span>
+					<input type="text" class="field-input" bind:value={professorName} onkeydown={onKeydown} />
+				</label>
+				<label class="grid gap-[0.3rem]">
+					<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Institution</span>
+					<input type="text" class="field-input" bind:value={institution} onkeydown={onKeydown} />
+				</label>
+				<label class="col-span-full grid gap-[0.3rem]">
+					<span class=" text-[var(--ink-faint)] text-[var(--text-caption)]">Notes</span>
+					<textarea
+						class="field-input min-h-16 resize-y leading-[1.45]"
+						placeholder="term, section, modality, or anything that might narrow the search"
+						maxlength="1200"
+						bind:value={additionalNotes}
+						onkeydown={onKeydown}
+					></textarea>
+				</label>
+			</div>
+		{/if}
+		{#if researchError && !job}
+			<p class="mt-[0.1rem] mb-0 text-[var(--pen-red)] text-[var(--text-caption)]">
+				{researchError}
+			</p>
+		{/if}
 	{/if}
 </div>
 

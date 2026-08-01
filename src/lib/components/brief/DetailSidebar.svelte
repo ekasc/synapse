@@ -100,7 +100,7 @@
 
 	{#if brief.studentReviews}
 		<section class={sectionClass}>
-			<h2 class={headingClass}>rmp rating</h2>
+			<h2 class={headingClass}>Professor rating</h2>
 			<div class="grid gap-[0.4rem]">
 				{#if rmpRating != null}
 					<div
