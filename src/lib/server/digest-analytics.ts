@@ -235,14 +235,14 @@ function fallbackAnalysis(
 		reason === 'OPENROUTER_API_KEY is not set'
 			? 'AI transcript extraction needs OPENROUTER_API_KEY in .env.'
 			: reason
-				? `AI transcript extraction was unavailable: ${reason}.`
+				? reason.charAt(0).toUpperCase() + reason.slice(1)
 				: 'AI transcript extraction was unavailable.';
 	return buildAnalysis(
 		transcriptCourses,
 		[
 			transcriptCourses.length > 0
 				? `${fallbackReason} Showing backend analytics from setup courses.`
-				: 'No academic history has been imported yet.'
+				: fallbackReason
 		],
 		'fallback'
 	);
@@ -373,7 +373,8 @@ export async function analyzeTranscriptFile(
 			.filter((course) => course.code && course.term);
 
 		if (!extractedCourses?.length) {
-			return fallbackAnalysis(courses, semesters, 'no transcript courses were returned');
+			const hint = extracted.insights?.find(Boolean);
+			return fallbackAnalysis(courses, semesters, hint ?? 'no transcript courses were returned');
 		}
 		return buildAnalysis(
 			extractedCourses,

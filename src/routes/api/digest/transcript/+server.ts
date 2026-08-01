@@ -29,8 +29,11 @@ async function processTranscript(
 			await getSemesters(userId)
 		);
 		if (analysis.courses.length === 0) {
+			const detail = analysis.insights?.find(Boolean);
 			throw new Error(
-				'No courses were detected. Upload a clear transcript image, PDF, CSV, or text file and try again.'
+				detail
+					? `No courses were detected. ${detail}`
+					: 'No courses were detected. Upload a clear transcript image, PDF, CSV, or text file and try again.'
 			);
 		}
 		await saveAcademicDigest(userId, { fileName, source: 'transcript-upload', analysis });
