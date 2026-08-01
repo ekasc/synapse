@@ -19,11 +19,14 @@ function getWorkOS(apiKey: string, clientId: string): WorkOS {
 }
 
 export function getAuthorizationUrl(event: RequestEvent, state: string): string {
-	const { WORKOS_API_KEY, WORKOS_CLIENT_ID, WORKOS_REDIRECT_URI } = getEnv(event);
+	const { WORKOS_API_KEY, WORKOS_CLIENT_ID } = getEnv(event);
 	const workos = getWorkOS(WORKOS_API_KEY, WORKOS_CLIENT_ID);
+	// The callback is always same-origin: derive it from the request so local dev
+	// (localhost) and deployed (workers.dev / custom domain) never disagree.
+	const redirectUri = `${new URL(event.request.url).origin}/auth/callback`;
 	return workos.userManagement.getAuthorizationUrl({
 		clientId: WORKOS_CLIENT_ID,
-		redirectUri: WORKOS_REDIRECT_URI,
+		redirectUri,
 		state,
 		provider: 'authkit'
 	});
@@ -79,16 +82,14 @@ function extractSidFromJWT(token: string): string {
 function getEnv(event: RequestEvent): {
 	WORKOS_API_KEY: string;
 	WORKOS_CLIENT_ID: string;
-	WORKOS_REDIRECT_URI: string;
 } {
 	const platformEnv = event.platform?.env as Record<string, string> | undefined;
 	const apiKey = platformEnv?.WORKOS_API_KEY ?? process.env.WORKOS_API_KEY ?? '';
 	const clientId = platformEnv?.WORKOS_CLIENT_ID ?? process.env.WORKOS_CLIENT_ID ?? '';
-	const redirectUri = platformEnv?.WORKOS_REDIRECT_URI ?? process.env.WORKOS_REDIRECT_URI ?? '';
 
-	if (!apiKey || !clientId || !redirectUri) {
-		throw new Error('WORKOS_API_KEY, WORKOS_CLIENT_ID, and WORKOS_REDIRECT_URI must be set');
+	if (!apiKey || !clientId) {
+		throw new Error('WORKOS_API_KEY and WORKOS_CLIENT_ID must be set');
 	}
 
-	return { WORKOS_API_KEY: apiKey, WORKOS_CLIENT_ID: clientId, WORKOS_REDIRECT_URI: redirectUri };
+	return { WORKOS_API_KEY: apiKey, WORKOS_CLIENT_ID: clientId };
 }
