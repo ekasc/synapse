@@ -779,7 +779,8 @@
 	}
 
 	async function importTranscriptFile(event: Event) {
-		const file = (event.currentTarget as HTMLInputElement).files?.[0];
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
 		if (!file) return;
 		transcriptUploading = true;
 		transcriptUploadError = '';
@@ -813,7 +814,7 @@
 				error instanceof Error ? error.message : 'Could not digest transcript';
 		} finally {
 			transcriptUploading = false;
-			(event.currentTarget as HTMLInputElement).value = '';
+			input.value = '';
 		}
 	}
 
