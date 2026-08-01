@@ -130,6 +130,17 @@ body {
 	flex: 1;
 }
 
+/* Weekly plan: rotate the regenerate icon while a new plan is being generated. */
+.spinning {
+	animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 .icon-btn {
 	display: grid;
 	width: var(--control-sm);
