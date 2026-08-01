@@ -18,6 +18,7 @@ const deadline = (overrides: Partial<WeeklyDigest['deadlines'][number]> = {}) =>
 	id: 'd1',
 	courseCode: 'CSIS 4280',
 	courseId: 'course-1',
+	displayTitle: 'Assignment 3',
 	title: 'Assignment 3',
 	type: 'assignment',
 	typeLabel: 'Assignment',
@@ -56,15 +57,12 @@ describe('buildWeeklyViewModel', () => {
 		);
 		expect(model.overdue).toEqual([overdue]);
 		expect(model.days.flatMap((day) => day.deadlines)).not.toContain(overdue);
-		expect(model.nextUp?.kind).toBe('deadline');
-		if (model.nextUp?.kind === 'deadline') expect(model.nextUp.deadline.id).toBe('late');
 	});
 
 	it('recalculates urgency when a cached plan is viewed later', () => {
 		const stale = deadline({ daysUntil: 2, overdue: false });
 		const model = buildWeeklyViewModel({ ...base, deadlines: [stale] }, new Date(2026, 6, 22, 12));
 		expect(model.overdue).toEqual([stale]);
-		expect(model.nextUp).toMatchObject({ kind: 'deadline', status: 'Overdue by 1 day' });
 	});
 
 	it('does not present unknown grade weight as zero', () => {
@@ -75,6 +73,19 @@ describe('buildWeeklyViewModel', () => {
 		expect(model.metrics[1]).toMatchObject({ value: '—', detail: 'Not provided' });
 	});
 
+	it('reads weights from the title when the event has no explicit weight', () => {
+		const model = buildWeeklyViewModel({
+			...base,
+			deadlines: [
+				deadline({
+					gradeWeight: null,
+					title: 'Project Defense (20%) and Final report & implementation (40%) due'
+				})
+			]
+		});
+		expect(model.metrics[1]).toMatchObject({ value: '60%', detail: 'Across listed work' });
+	});
+
 	it('deduplicates courses in focus', () => {
 		const model = buildWeeklyViewModel({
 			...base,
@@ -83,20 +94,16 @@ describe('buildWeeklyViewModel', () => {
 		expect(model.metrics[2].value).toBe('1');
 	});
 
-	it('falls back to the first priority when there are no deadlines', () => {
-		const priority: WeeklyDigest['priorities'][number] = {
-			id: 'p1',
-			kind: 'practice',
-			rank: 1,
-			score: 25,
-			factors: ['session is paused'],
-			reason: 'Resume practice.',
-			courseCode: 'CSIS 3560',
-			title: 'Practice session',
-			dueDate: null,
-			link: { href: '/app/practice', label: 'Open practice' }
-		};
-		const model = buildWeeklyViewModel({ ...base, priorities: [priority] });
-		expect(model.nextUp).toMatchObject({ kind: 'priority', priority });
+	it('heals digests stored before displayTitle existed (generic titles)', () => {
+		const stale = deadline({
+			dueDate: '2026-07-21',
+			title: 'Class',
+			typeLabel: 'Midterm',
+			// simulate an old stored digest: displayTitle missing
+			displayTitle: undefined as unknown as string
+		});
+		const model = buildWeeklyViewModel({ ...base, deadlines: [stale] }, new Date(2026, 6, 19, 12));
+		const healed = model.days.flatMap((day) => day.deadlines).find((d) => d.id === stale.id);
+		expect(healed?.displayTitle).toBe('Midterm');
 	});
 });

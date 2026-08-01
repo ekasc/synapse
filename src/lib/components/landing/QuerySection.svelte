@@ -43,12 +43,11 @@
 
 <section class="section section--query" aria-labelledby="query-heading">
 	<header class="query-head">
-		<span class="stamp" style="transform: rotate(-0.6deg);">ask</span>
 		<h2 id="query-heading" class="query-title font-hand">
 			your degree, <span class="highlighter">queryable</span>.
 		</h2>
 		<p class="query-sub font-body">
-			Ask the academic assistant, or jump straight into the course map, calendar, and grade tools.
+			Ask a real planning question, then follow the answer into the course map, calendar, or grade tools.
 		</p>
 	</header>
 
@@ -105,7 +104,11 @@
 
 <style>
 	.section--query {
-		padding-top: clamp(4rem, 7vw, 6rem);
+		padding-top: clamp(3.5rem, 5vw, 4.75rem);
+		padding-bottom: clamp(3.5rem, 5vw, 4.75rem);
+		padding-inline: clamp(1.5rem, 4vw, 4rem);
+		max-width: 84rem;
+		margin-inline: auto;
 		position: relative;
 	}
 
@@ -125,10 +128,10 @@
 	}
 
 	.query-sub {
-		font-size: clamp(1.05rem, 1.3vw, 1.2rem);
-		line-height: 1.5;
+		font-size: clamp(1.12rem, 1.4vw, 1.28rem);
+		line-height: 1.55;
 		margin: 0;
-		color: var(--ink-soft);
+		color: var(--ink);
 	}
 
 	.query-card {

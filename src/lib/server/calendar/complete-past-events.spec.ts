@@ -9,13 +9,15 @@ describe('completePastCalendarEvents', () => {
 		const binding = { prepare } as unknown as D1Database;
 		const now = new Date('2026-07-26T14:35:20.000Z');
 
-		await expect(completePastCalendarEvents(binding, now)).resolves.toBe(3);
+		await expect(completePastCalendarEvents(binding, 'user-1', now)).resolves.toBe(3);
 		expect(prepare).toHaveBeenCalledWith(expect.stringContaining("SET status = 'completed'"));
+		expect(prepare).toHaveBeenCalledWith(expect.stringContaining('WHERE user_id = ?'));
 		expect(prepare).toHaveBeenCalledWith(
 			expect.stringContaining("COALESCE(status, 'pending') <> 'completed'")
 		);
 		expect(bind).toHaveBeenCalledWith(
 			'2026-07-26T14:35:20.000Z',
+			'user-1',
 			2026,
 			2026,
 			6,

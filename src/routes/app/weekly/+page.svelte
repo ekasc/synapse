@@ -2,9 +2,9 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/stores';
+	import { FileSearch, RefreshCw } from '@lucide/svelte';
 	import LoadingDots from '$lib/components/ui/LoadingDots.svelte';
 	import WeeklyMetrics from '$lib/components/weekly/WeeklyMetrics.svelte';
-	import NextUpCard from '$lib/components/weekly/NextUpCard.svelte';
 	import WeeklyTimeline from '$lib/components/weekly/WeeklyTimeline.svelte';
 	import WeeklyPriorityList from '$lib/components/weekly/WeeklyPriorityList.svelte';
 	import CollapsibleSection from '$lib/components/weekly/CollapsibleSection.svelte';
@@ -64,11 +64,9 @@
 <div class="weekly">
 	<header class="weekly-head">
 		<div>
-			<span class="kicker">The next seven days</span>
 			<h1>Weekly Plan</h1>
 			<p class="range">
-				<span>{rangeLabel}</span> generated {generatedLabel}{#if data.cached}<b>cached</b
-					>{/if}{#if data.isSunday}<b>new week</b>{/if}
+				<span>{rangeLabel}</span> Updated {generatedLabel}{#if data.isSunday}<b>new week</b>{/if}
 			</p>
 		</div>
 		<div class="weekly-actions">
@@ -87,7 +85,8 @@
 				}}
 			>
 				<button class="btn btn-ghost btn-sm" disabled={regenerating}
-					>{regenerating ? 'Regenerating…' : 'Regenerate'}</button
+					><RefreshCw size={14} class={regenerating ? 'spinning' : ''} aria-hidden="true" />
+					{regenerating ? 'Regenerating…' : 'Regenerate'}</button
 				>
 			</form>
 			<form
@@ -108,7 +107,8 @@
 					class="btn btn-ghost btn-sm"
 					disabled={indexing}
 					title="Resume any pending PDF indexing so practice questions can quote from your materials"
-					>{indexing ? 'Indexing…' : 'Index materials'}</button
+					><FileSearch size={14} aria-hidden="true" />
+					{indexing ? 'Indexing…' : 'Index materials'}</button
 				>
 			</form>
 		</div>
@@ -151,19 +151,18 @@
 	{:else}
 		{#if data.prose}
 			<details class="glance">
-				<summary>Week at a glance</summary>
+				<summary>Overview</summary>
 				<p>{data.prose}</p>
 				<small>AI summary · {data.proseModel}</small>
 			</details>
 		{/if}
 
-		<WeeklyMetrics metrics={model.metrics} />
-		{#if model.nextUp}<NextUpCard item={model.nextUp} onnavigate={navigate} />{/if}
-		<WeeklyTimeline days={model.days} overdue={model.overdue} onnavigate={navigate} />
 		{#if model.priorities.length}<WeeklyPriorityList
 				priorities={model.priorities}
 				onnavigate={navigate}
 			/>{/if}
+		<WeeklyTimeline days={model.days} overdue={model.overdue} onnavigate={navigate} />
+		<WeeklyMetrics metrics={model.metrics} />
 
 		<div class="secondary">
 			{#if digest.continuationItems.length}
@@ -172,7 +171,7 @@
 					count={digest.continuationItems.length}
 					hint={`${digest.continuationItems.length} session${digest.continuationItems.length === 1 ? '' : 's'}`}
 				>
-					<ul>
+					<ul class="cont-list">
 						{#each digest.continuationItems as item (item.id)}<li>
 								<div><strong>{item.courseCode}</strong><span>{item.reason}</span></div>
 								<button class="btn btn-ghost btn-sm" onclick={() => navigate(item.link.href)}
@@ -188,7 +187,7 @@
 					count={digest.studyGaps.length}
 					hint={`${digest.studyGaps.length} course${digest.studyGaps.length === 1 ? '' : 's'}`}
 				>
-					<ul>
+					<ul class="gap-list">
 						{#each digest.studyGaps as gap (gap.courseId)}<li>
 								<div><strong>{gap.courseCode}</strong><span>{gap.reason}</span></div>
 								<button class="btn btn-ghost btn-sm" onclick={() => navigate(gap.link.href)}
@@ -208,7 +207,7 @@
 						{#if data.degraded.length}<p>
 								<strong>Unavailable sources</strong><span>{data.degraded.join(', ')}</span>
 							</p>{/if}
-						{#each model.materialWarnings as warning (warning.materialId)}<p>
+						{#each model.materialWarnings as warning (warning.materialId)}<p class="health-warn">
 								<strong>Material indexing · {warning.courseCode ?? 'Unknown course'}</strong><span
 									>{warning.message}</span
 								><button class="btn btn-ghost btn-sm" onclick={() => navigate(warning.link.href)}
@@ -216,6 +215,7 @@
 								>
 							</p>{/each}
 						{#each model.briefingWarnings as warning, index (`briefing:${warning.courseCode}:${index}:${warning.message}`)}<p
+								class="health-warn"
 							>
 								<strong>Course brief · {warning.courseCode}</strong><span>{warning.message}</span
 								><button class="btn btn-ghost btn-sm" onclick={() => navigate(warning.link.href)}
@@ -223,6 +223,7 @@
 								>
 							</p>{/each}
 						{#each model.prerequisiteWarnings as warning, index (`prerequisite:${warning.courseCode}:${index}:${warning.message}`)}<p
+								class="health-warn"
 							>
 								<strong>Sequencing · {warning.courseCode}</strong><span>{warning.message}</span
 								><button class="btn btn-ghost btn-sm" onclick={() => navigate(warning.link.href)}
@@ -230,6 +231,7 @@
 								>
 							</p>{/each}
 						{#each model.invalidDateWarnings as warning, index (`invalid-date:${warning.courseCode ?? 'none'}:${index}:${warning.message}`)}<p
+								class="health-err"
 							>
 								<strong>Invalid date</strong><span>{warning.message}</span>
 							</p>{/each}
@@ -246,7 +248,7 @@
 		margin: 0 auto;
 		padding-block: 1.5rem 4rem;
 		display: grid;
-		gap: 1.5rem;
+		gap: 2rem;
 	}
 	.loading {
 		max-width: 72rem;
@@ -279,13 +281,6 @@
 		font-size: var(--text-body-sm, 0.875rem);
 		color: var(--ink);
 	}
-	.kicker {
-		font-family: var(--font-body);
-		font-size: var(--text-caption);
-		letter-spacing: normal;
-		text-transform: none;
-		color: var(--ink-faint);
-	}
 	h1 {
 		margin: 0;
 		font-family: var(--font-body);
@@ -301,11 +296,11 @@
 		gap: 0.35rem;
 		font-family: var(--font-body);
 		font-size: var(--text-caption);
-		color: var(--ink-faint);
+		color: var(--ink-soft);
 	}
 	.range > span {
 		padding: 0.05rem 0.35rem;
-		background: var(--highlight);
+		background: var(--paper-shelf);
 		color: var(--ink);
 	}
 	.range b {
@@ -324,12 +319,11 @@
 		font-size: var(--text-caption);
 	}
 	.glance {
-		border: 1px solid var(--rule);
-		padding: 0.65rem 0.8rem;
+		padding: 0.65rem 0;
 	}
 	.glance summary {
 		cursor: pointer;
-		font-family: var(--hand);
+		font-family: var(--font-body);
 		font-weight: 700;
 		color: var(--ink);
 	}
@@ -363,7 +357,10 @@
 		align-items: center;
 		gap: 1rem;
 		padding: 0.55rem 0.65rem;
-		background: var(--paper-shelf);
+		border-bottom: 1px solid var(--rule-soft);
+	}
+	li:last-child {
+		border-bottom: none;
 	}
 	li > div,
 	.health p {
@@ -373,15 +370,30 @@
 	li strong,
 	.health strong {
 		font-family: var(--font-body);
-		font-size: var(--text-caption);
+		font-size: var(--text-small);
+		font-weight: 600;
 		text-transform: none;
 		color: var(--ink);
 	}
 	li span,
 	.health span {
-		font-size: var(--text-caption);
+		font-size: var(--text-small);
 		line-height: 1.4;
 		color: var(--ink-soft);
+	}
+	/* Section-level color semantics: continue = on track, gaps/health = attention,
+	   invalid dates = error. Spans stay ink-soft for legibility. */
+	.cont-list strong {
+		color: var(--ok);
+	}
+	.gap-list strong {
+		color: var(--warn);
+	}
+	.health-warn strong {
+		color: var(--warn);
+	}
+	.health-err strong {
+		color: var(--accent);
 	}
 	.health {
 		display: grid;
@@ -389,9 +401,47 @@
 	}
 	.health p {
 		margin: 0;
-		padding: 0.6rem 0.7rem;
-		border: 1px solid var(--rule-soft);
+		padding: 0.6rem 0;
 		justify-items: start;
+		border-bottom: 1px solid var(--rule-soft);
+	}
+	.health p:last-child {
+		border-bottom: none;
+	}
+	/* Numbered rows for Study gaps and Plan health — same style as Top priorities
+	   ranks (bare, bold, left-aligned) so all three lists share one numbering language. */
+	.gap-list {
+		counter-reset: gap;
+	}
+	.gap-list li {
+		counter-increment: gap;
+	}
+	.health {
+		counter-reset: health;
+	}
+	.health p {
+		counter-increment: health;
+	}
+	.gap-list li,
+	.health p {
+		position: relative;
+		padding-left: 1.5rem;
+	}
+	.gap-list li::before,
+	.health p::before {
+		position: absolute;
+		left: 0;
+		top: 0.9rem;
+		font-family: var(--font-numeric);
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		color: var(--ink-soft);
+	}
+	.gap-list li::before {
+		content: counter(gap);
+	}
+	.health p::before {
+		content: counter(health);
 	}
 	.empty {
 		min-height: 20rem;
@@ -415,7 +465,7 @@
 	@media (max-width: 40rem) {
 		.weekly {
 			padding-block: 1rem 3rem;
-			gap: 1.2rem;
+			gap: 1.5rem;
 		}
 		.weekly-head {
 			align-items: start;

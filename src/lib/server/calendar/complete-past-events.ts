@@ -1,6 +1,7 @@
 const COMPLETE_PAST_EVENTS_SQL = `UPDATE calendar_events
 SET status = 'completed', updated_at = ?
-WHERE COALESCE(status, 'pending') <> 'completed'
+WHERE user_id = ?
+  AND COALESCE(status, 'pending') <> 'completed'
   AND (
     year < ?
     OR (year = ? AND month < ?)
@@ -13,6 +14,7 @@ WHERE COALESCE(status, 'pending') <> 'completed'
 
 export async function completePastCalendarEvents(
 	binding: D1Database,
+	userId: string,
 	now = new Date()
 ): Promise<number> {
 	const year = now.getUTCFullYear();
@@ -23,7 +25,7 @@ export async function completePastCalendarEvents(
 
 	const result = await binding
 		.prepare(COMPLETE_PAST_EVENTS_SQL)
-		.bind(updatedAt, year, year, month, year, month, date, year, month, date, time)
+		.bind(updatedAt, userId, year, year, month, year, month, date, year, month, date, time)
 		.run();
 
 	return result.meta.changes ?? 0;

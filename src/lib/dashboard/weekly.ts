@@ -41,6 +41,7 @@ export type DigestLink = { href: string; label: string };
 export type DigestPriority = {
 	id: string;
 	kind: 'deadline' | 'practice' | 'material';
+	displayTitle: string;
 	rank: number;
 	score: number;
 	factors: string[];
@@ -55,6 +56,7 @@ export type DigestDeadline = {
 	id: string;
 	courseCode: string;
 	courseId: string | null;
+	displayTitle: string;
 	title: string;
 	type: string;
 	typeLabel: string;
@@ -228,6 +230,17 @@ const parseTimestamp = (value: unknown): Date | null => {
 const readableEventType = (type: string) =>
 	type.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase());
 
+// Deadlines can be titled with a generic word ("Class", "Lecture") even when the
+// event itself is specific (a midterm). Prefer the specific type for display so the
+// word that matters most gets the primary type weight.
+const GENERIC_TITLES = new Set(['class', 'lecture', 'meeting', 'tutorial', 'lab', 'none']);
+
+export function deadlineDisplayTitle(title: string, typeLabel: string): string {
+	const trimmed = title.trim();
+	if (trimmed && !GENERIC_TITLES.has(trimmed.toLowerCase())) return title;
+	return typeLabel;
+}
+
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
 const truncate = (text: string, limit: number) =>
@@ -400,13 +413,15 @@ export function buildWeeklyDigest(input: WeeklyDigestInput): WeeklyDigest {
 	// --- Deadlines (chronological; overdue naturally sort first) ----------------
 	const deadlines: DigestDeadline[] = inPlan.map(({ event, date, courseId }) => {
 		const daysUntil = diffDays(date, today) * -1;
+		const typeLabel = readableEventType(event.type);
 		return {
 			id: event.id,
 			courseCode: event.courseCode,
 			courseId,
+			displayTitle: deadlineDisplayTitle(event.title, typeLabel),
 			title: event.title,
 			type: event.type,
-			typeLabel: readableEventType(event.type),
+			typeLabel,
 			dueDate: dateKey(date),
 			time: event.time,
 			gradeWeight: event.gradeWeight,
@@ -421,6 +436,7 @@ export function buildWeeklyDigest(input: WeeklyDigestInput): WeeklyDigest {
 	type Candidate = {
 		id: string;
 		kind: DigestPriority['kind'];
+		displayTitle: string;
 		score: number;
 		factors: string[];
 		reason: string;
@@ -490,11 +506,14 @@ export function buildWeeklyDigest(input: WeeklyDigestInput): WeeklyDigest {
 			courseId && !hasRecentStudy(courseId)
 				? ', and no study session has been recorded this week'
 				: '';
-		const reason = `Review ${event.courseCode} because ${event.title} ${duePhrase}${weightPhrase}${studyPhrase}.`;
+		const typeLabel = readableEventType(event.type);
+		const displayTitle = deadlineDisplayTitle(event.title, typeLabel);
+		const reason = `Review ${event.courseCode} because ${displayTitle} ${duePhrase}${weightPhrase}${studyPhrase}.`;
 
 		candidates.push({
 			id: `event:${event.id}`,
 			kind: 'deadline',
+			displayTitle,
 			score,
 			factors,
 			reason,
@@ -528,6 +547,7 @@ export function buildWeeklyDigest(input: WeeklyDigestInput): WeeklyDigest {
 		candidates.push({
 			id: `practice:${session.id}`,
 			kind: 'practice',
+			displayTitle: `${session.courseCode} practice session`,
 			score,
 			factors,
 			reason,
@@ -556,6 +576,7 @@ export function buildWeeklyDigest(input: WeeklyDigestInput): WeeklyDigest {
 			candidates.push({
 				id: `material:${material.id}`,
 				kind: 'material',
+				displayTitle: material.fileName,
 				score,
 				factors,
 				reason,

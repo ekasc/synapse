@@ -49,7 +49,7 @@ export async function load(event) {
 		safe({ positions: {}, edges: [] }, () => getGraphState(userId)),
 		binding
 			? safe([], async () => {
-					await completePastCalendarEvents(binding);
+					await completePastCalendarEvents(binding, userId);
 					return createDb(binding).getCalendarEvents(userId);
 				})
 			: Promise.resolve({ value: [], available: false }),

@@ -1,12 +1,11 @@
 <section
-	class="section section--problem relative mx-auto max-w-[84rem] px-[clamp(1.5rem,4vw,4rem)] pt-[clamp(4rem,7vw,6rem)] pb-[clamp(3.5rem,7vw,6rem)]"
+	class="section section--problem relative mx-auto max-w-[84rem] px-[clamp(1.5rem,4vw,4rem)] pt-[clamp(3.5rem,5vw,4.75rem)] pb-[clamp(3rem,5vw,4.5rem)]"
 	aria-labelledby="problem-heading"
 >
 	<div
 		class="problem-top mx-auto mb-12 grid max-w-[78rem] grid-cols-[minmax(0,42rem)_minmax(18rem,28rem)] items-end gap-[clamp(2rem,5vw,5rem)] max-md:grid-cols-1 max-md:items-start max-md:gap-8"
 	>
 		<header class="problem-head flex h-full max-w-[44rem] flex-col gap-5">
-			<span class="stamp" style="transform: rotate(-0.6deg);">the mess</span>
 			<h2
 				id="problem-heading"
 				class="problem-title font-hand m-0 text-[clamp(2rem,3.4vw,2.8rem)] leading-[1.1] text-[var(--ink)]"
@@ -52,7 +51,7 @@
 							><span class="d py-0.5 text-center font-semibold">T</span><span
 								class="d py-0.5 text-center font-semibold">F</span
 							><span class="d py-0.5 text-center font-semibold">S</span>
-							{#each ['', '', 'cross', '', 'red', '', '', '', '', '', 'cross', 'red', '', '', '', '', 'cross', '', '', '', ''] as state (state)}
+							{#each ['', '', 'cross', '', 'red', '', '', '', '', '', 'cross', 'red', '', '', '', '', 'cross', '', '', '', ''] as state, index (index)}
 								<span
 									class="cell aspect-square rounded-[1px] border border-[var(--border-faint)]"
 									class:bg-[rgba(26,26,23,0.18)]={state === 'cross'}

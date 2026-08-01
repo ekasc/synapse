@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import SectionHead from '$lib/components/catalog/SectionHead.svelte';
 	import { Dialog } from '$lib/components/ui';
+	import { Select } from 'bits-ui';
 
 	type GradeItem = {
 		id: string;
@@ -98,12 +100,33 @@
 		updatedAt: string;
 	};
 
-	type GpaScale = 'douglas-4.33' | 'standard-4.0';
+	type GpaScale = 'percent-100' | 'scale-4.0' | 'scale-4.4';
+
+	type TranscriptImportPreview = {
+		semesterCount: number;
+		courseCount: number;
+		terms: string[];
+	};
+
+	type SyllabusGrading = {
+		courseId: string;
+		grading: Array<{
+			label: string;
+			weight: number;
+		}>;
+	};
 
 	let {
 		data
-	}: { data: { courses: SetupCourse[]; digest: AcademicDigest; semesters: SetupSemester[] } } =
-		$props();
+	}: {
+		data: {
+			courses: SetupCourse[];
+			digest: AcademicDigest;
+			semesters: SetupSemester[];
+			syllabusGrading: SyllabusGrading[];
+			transcriptImportPreview: TranscriptImportPreview | null;
+		};
+	} = $props();
 
 	const defaultWeights: WeightItem[] = [
 		{ category: 'Assignments', weight: 30, source: 'course import' },
@@ -300,7 +323,10 @@
 	let gradeMax = $state('100');
 	let targetGrade = $state(85);
 	let targetGpa = $state(3.5);
-	let gpaScale = $state<GpaScale>('douglas-4.33');
+	let gpaScale = $state<GpaScale>('scale-4.4');
+	let courseSearch = $state('');
+	let courseStatusFilter = $state<'all' | 'current' | 'finished'>('all');
+	let courseSort = $state<'term' | 'gpa-desc' | 'gpa-asc'>('term');
 	let activeDigestTab = $state<'gpa' | 'term'>('gpa');
 	let selectedPerformanceTerm = $state('');
 	let performanceTermTouched = $state(false);
@@ -309,10 +335,45 @@
 	let transcriptUploading = $state(false);
 	let digestResetting = $state(false);
 	let transcriptUploadError = $state('');
+	let transcriptImportPromptOpen = $state(false);
+	let transcriptImporting = $state(false);
+	let transcriptImportMessage = $state('');
+	let promptedTranscriptKey = '';
+
+	function gradeColor(percent: number) {
+		if (percent >= 90) return 'var(--ok)';
+		if (percent >= 80) return 'var(--pen-blue)';
+		if (percent >= 70) return 'var(--warn)';
+		return 'var(--accent)';
+	}
+
+	$effect(() => {
+		const preview = data.transcriptImportPreview;
+		const promptKey = preview ? `${data.digest.updatedAt}:${preview.courseCount}` : '';
+		if (preview && promptKey !== promptedTranscriptKey) {
+			promptedTranscriptKey = promptKey;
+			transcriptImportPromptOpen = true;
+		}
+	});
 
 	const importedCourseDigests = $derived.by(() =>
 		data.courses.map((course, index) => {
 			const semester = data.semesters.find((item) => item.id === course.semesterId);
+			const extractedWeights =
+				data.syllabusGrading
+					.find((syllabus) => syllabus.courseId === course.id)
+					?.grading.filter(
+						(item) =>
+							item.label.trim().length > 0 &&
+							Number.isFinite(item.weight) &&
+							item.weight > 0 &&
+							item.weight <= 100
+					)
+					.map((item) => ({
+						category: item.label.trim(),
+						weight: item.weight,
+						source: 'extracted syllabus'
+					})) ?? [];
 			const currentPercent = course.signals?.currentGrade ?? 86 + (index % 5);
 			const projectedPercent = course.signals?.projectedGrade ?? Math.min(96, currentPercent + 1);
 
@@ -332,7 +393,7 @@
 					semesterId: course.semesterId,
 					courseId: course.id
 				}),
-				weights: defaultWeights,
+				weights: extractedWeights.length > 0 ? extractedWeights : defaultWeights,
 				initialGrades: [],
 				transcript: {
 					currentPercent,
@@ -343,30 +404,7 @@
 	);
 
 	const courses = $derived(importedCourseDigests);
-	const hasSetupCourseImport = $derived(importedCourseDigests.length > 0);
 	const activeBackendDigest = $derived(backendDigest ?? data.digest);
-	const digestInsight = $derived(
-		activeBackendDigest.insights?.[0] &&
-			activeBackendDigest.insights[0] !== activeBackendDigest.summary
-			? activeBackendDigest.insights[0]
-			: ''
-	);
-	const transcriptSourceLabel = $derived(
-		activeBackendDigest.fileName
-			? activeBackendDigest.fileName
-			: activeBackendDigest.source === 'setup-import' || hasSetupCourseImport
-				? 'Setup course import'
-				: 'No transcript imported'
-	);
-	const digestSourceBadge = $derived(
-		activeBackendDigest.source === 'transcript-upload'
-			? activeBackendDigest.extractionSource === 'openrouter'
-				? 'AI analytics'
-				: 'fallback analytics'
-			: hasSetupCourseImport
-				? `${importedCourseDigests.length} setup courses`
-				: 'empty'
-	);
 	const backendPerformanceTrend = $derived(activeBackendDigest.trend ?? []);
 	const latestPerformanceTerm = $derived(
 		backendPerformanceTrend[backendPerformanceTrend.length - 1]?.term ?? ''
@@ -425,10 +463,6 @@
 		}, 0)
 	);
 	const projectedFinal = $derived(currentContribution + unresolvedProjectionContribution);
-	const courseProjectionDelta = $derived(projectedFinal - currentAverage);
-	const courseProjectionDirection = $derived(
-		courseProjectionDelta > 0 ? 'up' : courseProjectionDelta < 0 ? 'down' : 'same'
-	);
 	const finalCategory = $derived(categoryAnalytics.find((item) => item.category === 'Final'));
 	const finalNeeded = $derived.by(() => {
 		if (!hasGradeEntries) return 0;
@@ -473,14 +507,39 @@
 		...dashboardCurrentTranscriptCourses,
 		...dashboardFinishedCourses
 	]);
+	const filteredDashboardCourses = $derived.by(() => {
+		const query = courseSearch.trim().toLowerCase();
+		const filtered = dashboardTranscriptCourses.filter((course) => {
+			const matchesStatus = courseStatusFilter === 'all' || course.status === courseStatusFilter;
+			const matchesSearch =
+				!query || `${course.code} ${course.name} ${course.term}`.toLowerCase().includes(query);
+			return matchesStatus && matchesSearch;
+		});
+
+		if (courseSort === 'gpa-desc') {
+			return [...filtered].sort((a, b) => b.currentPercent - a.currentPercent);
+		}
+		if (courseSort === 'gpa-asc') {
+			return [...filtered].sort((a, b) => a.currentPercent - b.currentPercent);
+		}
+		return filtered;
+	});
+	const filteredCurrentCourses = $derived(
+		filteredDashboardCourses.filter((course) => course.status === 'current')
+	);
+	const filteredFinishedCourses = $derived(
+		filteredDashboardCourses.filter((course) => course.status === 'finished')
+	);
 	const hasAcademicProgressData = $derived(dashboardTranscriptCourses.length > 0);
-	const projectedGpa = $derived(weightedGpa(transcriptCourses, 'projectedPercent'));
-	const gpaScaleMaximum = $derived(gpaScale === 'douglas-4.33' ? 4.33 : 4);
+	const gpaScaleMaximum = $derived(
+		gpaScale === 'percent-100' ? 100 : gpaScale === 'scale-4.4' ? 4.4 : 4
+	);
+	const gpaScaleMinimum = $derived(gpaScale === 'percent-100' ? 50 : 2);
 	const calculatedDashboardTotalGpa = $derived(
 		weightedGpa(dashboardTranscriptCourses, 'currentPercent')
 	);
 	const dashboardTotalGpa = $derived(
-		gpaScale === 'douglas-4.33' && activeBackendDigest.source === 'transcript-upload'
+		gpaScale === 'scale-4.4' && activeBackendDigest.source === 'transcript-upload'
 			? activeBackendDigest.totalGpa
 			: calculatedDashboardTotalGpa
 	);
@@ -498,30 +557,12 @@
 			return {
 				...item,
 				gpa:
-					isLatest && gpaScale === 'douglas-4.33'
+					isLatest && gpaScale === 'scale-4.4'
 						? dashboardTotalGpa
 						: weightedGpa(cumulativeCourses, 'currentPercent')
 			};
 		});
 	});
-	const currentGpaBeforeSelectedProjection = $derived.by(() => {
-		const baselineCourses = transcriptCourses.map((course) =>
-			course.id === selectedCourseId
-				? {
-						...course,
-						currentPercent: currentAverage,
-						projectedPercent: currentAverage
-					}
-				: course
-		);
-
-		return weightedGpa(baselineCourses, 'projectedPercent');
-	});
-	const projectedGpaDelta = $derived(projectedGpa - currentGpaBeforeSelectedProjection);
-	const projectedGpaDirection = $derived(
-		projectedGpaDelta > 0 ? 'up' : projectedGpaDelta < 0 ? 'down' : 'same'
-	);
-	const targetGpaDelta = $derived(targetGpa - projectedGpa);
 	const selectedHistoryCourse = $derived(
 		dashboardFinishedCourses.find((course) => course.id === selectedHistoryCourseId) ?? null
 	);
@@ -550,6 +591,47 @@
 	const firstYearGpa = $derived(performanceTrendSource[0]?.gpa ?? 0);
 	const latestGpa = $derived(performanceTrendSource[performanceTrendSource.length - 1]?.gpa ?? 0);
 	const performanceDelta = $derived(latestGpa - firstYearGpa);
+	const latestTermDelta = $derived(
+		performanceTrendWithDelta[performanceTrendWithDelta.length - 1]?.delta ?? 0
+	);
+	const strongestDashboardCourse = $derived.by(() =>
+		dashboardTranscriptCourses.reduce<TranscriptCourse | null>(
+			(strongest, course) =>
+				!strongest || course.currentPercent > strongest.currentPercent ? course : strongest,
+			null
+		)
+	);
+	const lowestCurrentCourse = $derived.by(() =>
+		dashboardCurrentTranscriptCourses.reduce<TranscriptCourse | null>(
+			(lowest, course) =>
+				!lowest || course.currentPercent < lowest.currentPercent ? course : lowest,
+			null
+		)
+	);
+	const dashboardGoalDelta = $derived(targetGpa - dashboardTotalGpa);
+	const dashboardGoalProgress = $derived(
+		Math.min(100, Math.max(0, (dashboardTotalGpa / Math.max(targetGpa, 0.1)) * 100))
+	);
+	const dashboardInsights = $derived.by(() => {
+		const insights: string[] = [...(activeBackendDigest.insights ?? []).slice(0, 2)];
+		insights.push(
+			`${performanceDelta >= 0 ? 'GPA increased' : 'GPA decreased'} by ${Math.abs(performanceDelta).toFixed(2)} compared with your first tracked term.`
+		);
+		if (strongestDashboardCourse) {
+			insights.push(
+				`Strongest course: ${strongestDashboardCourse.code} at ${strongestDashboardCourse.currentPercent.toFixed(0)}%.`
+			);
+		}
+		if (lowestCurrentCourse) {
+			insights.push(
+				lowestCurrentCourse.currentPercent < 75
+					? `Needs attention: ${lowestCurrentCourse.code} is currently at ${lowestCurrentCourse.currentPercent.toFixed(0)}%.`
+					: `Current courses are steady; the lowest standing is ${lowestCurrentCourse.code} at ${lowestCurrentCourse.currentPercent.toFixed(0)}%.`
+			);
+		}
+		insights.push(`Projected GPA at the current pace: ${dashboardProjectedGpa.toFixed(2)}.`);
+		return insights.slice(0, 4);
+	});
 
 	$effect(() => {
 		if (courses.some((course) => course.id === selectedCourseId)) return;
@@ -564,6 +646,7 @@
 	});
 
 	$effect(() => {
+		if (gpaScale === 'percent-100' && targetGpa < gpaScaleMinimum) targetGpa = 85;
 		if (targetGpa > gpaScaleMaximum) targetGpa = gpaScaleMaximum;
 	});
 
@@ -601,9 +684,9 @@
 			D: 1,
 			F: 0
 		};
-		const douglas: Record<string, number> = {
+		const scale44: Record<string, number> = {
 			...standard,
-			'A+': 4.33,
+			'A+': 4.4,
 			'A-': 3.67,
 			'B+': 3.33,
 			'B-': 2.67,
@@ -611,10 +694,11 @@
 			'C-': 1.67,
 			'D+': 1.33
 		};
-		return (gpaScale === 'douglas-4.33' ? douglas : standard)[letter.toUpperCase()] ?? null;
+		return (gpaScale === 'scale-4.4' ? scale44 : standard)[letter.toUpperCase()] ?? null;
 	}
 
 	function percentToGpa(percent: number) {
+		if (gpaScale === 'percent-100') return percent;
 		return letterToGpa(percentToLetter(percent)) ?? 0;
 	}
 
@@ -765,6 +849,34 @@
 		}
 	}
 
+	async function importTranscriptIntoSemesters() {
+		transcriptImporting = true;
+		transcriptUploadError = '';
+		try {
+			const response = await fetch('/api/digest/transcript/import', { method: 'POST' });
+			const result = (await response.json()) as {
+				ok?: boolean;
+				imported?: TranscriptImportPreview;
+				error?: string;
+			};
+			if (!response.ok || !result.ok || !result.imported) {
+				throw new Error(result.error ?? 'Could not import transcript courses');
+			}
+			transcriptImportMessage = `Imported ${result.imported.courseCount} course${
+				result.imported.courseCount === 1 ? '' : 's'
+			} across ${result.imported.terms.length} semester${
+				result.imported.terms.length === 1 ? '' : 's'
+			}.`;
+			transcriptImportPromptOpen = false;
+			await invalidateAll();
+		} catch (error) {
+			transcriptUploadError =
+				error instanceof Error ? error.message : 'Could not import transcript courses';
+		} finally {
+			transcriptImporting = false;
+		}
+	}
+
 	function removeGrade(id: string) {
 		updateGradeItems(gradeItems.filter((item) => item.id !== id));
 	}
@@ -784,60 +896,39 @@
 	<div class="page-cover">
 		<div class="page-cover-row">
 			<div>
-				<div class="page-cover-stamps">
-					<span class="page-subtitle-label">from syllabus</span>
-					<span class="page-subtitle-label">grade analytics</span>
-				</div>
-				<h1 class="page-title">Grades &amp; GPA</h1>
+				<h1 class="page-title">Academic Progress</h1>
 				<p class="page-tagline">
-					Grade weights are pulled from the Syllabus Intelligence extraction. Add your scores here
-					to project where the course is heading.
+					See your cumulative GPA, credit progress, and course history in one place.
 				</p>
 			</div>
 		</div>
 	</div>
 
-	<div class="digest-tabs" aria-label="Digest views">
+	<div class="digest-tabs" role="tablist" aria-label="Grade dashboard views">
 		<button
 			type="button"
 			class:active={activeDigestTab === 'gpa'}
-			aria-pressed={activeDigestTab === 'gpa'}
+			role="tab"
+			aria-selected={activeDigestTab === 'gpa'}
 			onclick={() => (activeDigestTab = 'gpa')}
 		>
-			<span>Total GPA</span>
-			<strong>Academic Progress Overview</strong>
+			<strong>Overview</strong>
 		</button>
 		<button
 			type="button"
 			class:active={activeDigestTab === 'term'}
-			aria-pressed={activeDigestTab === 'term'}
+			role="tab"
+			aria-selected={activeDigestTab === 'term'}
 			onclick={() => (activeDigestTab = 'term')}
 		>
-			<span>Current Course</span>
-			<strong>Term Grade Dashboard</strong>
+			<strong>Current term</strong>
 		</button>
 	</div>
 
 	{#if activeDigestTab === 'gpa'}
 		<section class="surface gpa-panel" aria-label="Total GPA projection">
 			<div class="gpa-hero">
-				<div>
-					<span class="gpa-kicker">GPA analytics + projection</span>
-					<h2 class="gpa-title">Total GPA</h2>
-					<p class="gpa-copy">
-						{hasSetupCourseImport
-							? 'Courses imported during setup are digested into this academic progress view.'
-							: 'Completed history and current courses stay together in one transcript view.'}
-					</p>
-				</div>
 				<div class="transcript-upload-actions">
-					<label class="gpa-scale-control">
-						<span>GPA scale</span>
-						<select bind:value={gpaScale} aria-label="GPA scale">
-							<option value="douglas-4.33">Douglas 4.33</option>
-							<option value="standard-4.0">Standard 4.0</option>
-						</select>
-					</label>
 					<label class="btn btn-primary upload-transcript">
 						<input
 							type="file"
@@ -848,124 +939,270 @@
 						/>
 						{transcriptUploading ? 'digesting transcript' : 'upload transcript'}
 					</label>
-					<button
-						type="button"
-						class="btn btn-secondary"
-						disabled={transcriptUploading || digestResetting || !hasAcademicProgressData}
-						onclick={resetAcademicDigest}
-					>
-						{digestResetting ? 'resetting' : 'reset import'}
-					</button>
-					<span class="source-note">Source: {transcriptSourceLabel}</span>
 				</div>
-				{#if transcriptUploadError}
-					<p class="upload-error">{transcriptUploadError}</p>
-				{/if}
+				<div class="gpa-scale-setting">
+					<span>Display scale</span>
+					<div class="gpa-scale-control">
+						<Select.Root
+							type="single"
+							items={[
+								{ value: 'percent-100', label: 'Scale 100' },
+								{ value: 'scale-4.0', label: 'Scale 4.0' },
+								{ value: 'scale-4.4', label: 'Scale 4.4' }
+							]}
+							bind:value={gpaScale}
+						>
+							<Select.Trigger class="gpa-scale-trigger" aria-label="GPA scale">
+								<Select.Value />
+								<span class="gpa-scale-chevron" aria-hidden="true"></span>
+							</Select.Trigger>
+							<Select.Portal>
+								<Select.Content class="gpa-scale-menu" sideOffset={3}>
+									<Select.Viewport>
+										<Select.Item value="percent-100" label="Scale 100" class="gpa-scale-option"
+											>Scale 100</Select.Item
+										>
+										<Select.Item value="scale-4.0" label="Scale 4.0" class="gpa-scale-option"
+											>Scale 4.0</Select.Item
+										>
+										<Select.Item value="scale-4.4" label="Scale 4.4" class="gpa-scale-option"
+											>Scale 4.4</Select.Item
+										>
+									</Select.Viewport>
+								</Select.Content>
+							</Select.Portal>
+						</Select.Root>
+					</div>
+				</div>
 			</div>
+			{#if transcriptUploadError}
+				<p class="upload-error">{transcriptUploadError}</p>
+			{/if}
+			{#if transcriptImportMessage}
+				<p class="transcript-import-success" role="status">{transcriptImportMessage}</p>
+			{/if}
 
 			<dl class="gpa-facts">
-				<div>
-					<dt>Total GPA ({gpaScale === 'douglas-4.33' ? '4.33' : '4.0'} scale)</dt>
-					<dd>{hasAcademicProgressData ? dashboardTotalGpa.toFixed(2) : '--'}</dd>
+				<div class="gpa-fact-primary">
+					<dt>Cumulative GPA</dt>
+					<dd>
+						{hasAcademicProgressData ? dashboardTotalGpa.toFixed(2) : '--'}
+						<span class="gpa-value-unit">GPA</span>
+					</dd>
+					<div class="hero-gpa-support">
+						<span class={dashboardProjectedGpa >= dashboardTotalGpa ? 'up' : 'down'}>
+							Projected {dashboardProjectedGpa.toFixed(2)}
+						</span>
+						<span>
+							{dashboardGoalDelta > 0
+								? `Need +${dashboardGoalDelta.toFixed(2)} to reach target`
+								: 'Target GPA reached'}
+						</span>
+					</div>
 				</div>
-				<div>
-					<dt>Trend</dt>
+				<div class="gpa-fact-trend">
+					<dt>GPA movement</dt>
 					<dd
 						class={hasAcademicProgressData
-							? performanceDelta > 0
+							? latestTermDelta > 0
 								? 'up'
-								: performanceDelta < 0
+								: latestTermDelta < 0
 									? 'down'
 									: 'same'
 							: ''}
 					>
 						{#if hasAcademicProgressData}
-							<span
-								class={`trend-icon ${performanceDelta > 0 ? 'up' : performanceDelta < 0 ? 'down' : 'same'}`}
-								aria-hidden="true"
-							></span>
-							{performanceDelta >= 0 ? '+' : ''}{performanceDelta.toFixed(2)}
+							{latestTermDelta >= 0 ? '+' : ''}{latestTermDelta.toFixed(2)}
+							<span class="movement-unit">GPA</span>
 						{:else}
 							--
 						{/if}
 					</dd>
+					<span class="metric-note">Compared with previous semester</span>
 				</div>
-				<div>
-					<dt>Credits</dt>
+				<div class="gpa-fact-credits">
+					<dt>Credits earned</dt>
 					<dd>
-						{activeBackendDigest.currentCredits + activeBackendDigest.finishedCredits} tracked
+						{activeBackendDigest.currentCredits + activeBackendDigest.finishedCredits}
+						<span class="metric-unit">tracked</span>
 						<span>· {activeBackendDigest.currentCredits} in progress</span>
 						<span>· {activeBackendDigest.finishedCredits} from history</span>
 					</dd>
 				</div>
 			</dl>
 
-			<div class="digest-source-strip">
-				<div>
-					<span class="source-label">Academic history digest</span>
-					<strong>{activeBackendDigest.summary}</strong>
-					{#if digestInsight}
-						<span class="source-note">{digestInsight}</span>
-					{/if}
-				</div>
-				<span class="import-badge">{digestSourceBadge}</span>
+			<div class="dashboard-intelligence">
+				<section class="insight-panel" aria-labelledby="ai-insights-title">
+					<div class="intelligence-heading">
+						<div>
+							<span>🤖 Synapse AI</span>
+							<h2 id="ai-insights-title">This semester</h2>
+						</div>
+						<strong>Insights</strong>
+					</div>
+					<ul>
+						{#each dashboardInsights as insight, index (insight)}
+							<li>
+								<span class="insight-symbol" aria-hidden="true">
+									{index === 2 ? '⚠' : index === 3 ? '🎯' : '✓'}
+								</span>
+								{insight}
+							</li>
+						{/each}
+					</ul>
+				</section>
+
+				<section class="goal-panel" aria-labelledby="academic-goal-title">
+					<div class="intelligence-heading">
+						<div>
+							<span>Academic goal</span>
+							<h2 id="academic-goal-title">Target GPA</h2>
+						</div>
+						<strong>{targetGpa.toFixed(1)}</strong>
+					</div>
+					<div class="goal-values">
+						<div>
+							<span>Current</span>
+							<strong>{dashboardTotalGpa.toFixed(2)}</strong>
+						</div>
+						<div>
+							<span>Need</span>
+							<strong>{Math.max(0, dashboardGoalDelta).toFixed(2)}</strong>
+						</div>
+					</div>
+					<div
+						class="goal-progress"
+						role="progressbar"
+						aria-label="Progress toward target GPA"
+						aria-valuenow={dashboardGoalProgress}
+						aria-valuemin="0"
+						aria-valuemax="100"
+					>
+						<span style={`width: ${dashboardGoalProgress}%`}></span>
+					</div>
+					<label class="goal-control">
+						<span>Adjust target</span>
+						<input
+							type="range"
+							min={gpaScaleMinimum}
+							max={gpaScaleMaximum}
+							step="0.1"
+							bind:value={targetGpa}
+						/>
+					</label>
+				</section>
+			</div>
+
+			<div class="course-filter-bar" aria-label="Filter academic courses">
+				<label class="course-search-control">
+					<span>Search courses</span>
+					<input type="search" placeholder="Code, name, or term" bind:value={courseSearch} />
+				</label>
+				<label>
+					<span>Status</span>
+					<select bind:value={courseStatusFilter}>
+						<option value="all">All courses</option>
+						<option value="current">Current only</option>
+						<option value="finished">Completed only</option>
+					</select>
+				</label>
+				<label>
+					<span>Sort</span>
+					<select bind:value={courseSort}>
+						<option value="term">Academic term</option>
+						<option value="gpa-desc">Highest grade</option>
+						<option value="gpa-asc">Lowest grade</option>
+					</select>
+				</label>
 			</div>
 
 			<div class="transcript-columns" role="group" aria-label="Courses included in GPA">
-				<div class="transcript-column current-column">
-					<div class="transcript-column-head">
-						<span>Current courses</span>
-						<strong>{dashboardCurrentTranscriptCourses.length}</strong>
+				{#if courseStatusFilter !== 'finished'}
+					<div class="transcript-column current-column">
+						<div class="transcript-column-head">
+							<span>Current courses</span>
+							<strong>{filteredCurrentCourses.length}</strong>
+						</div>
+						<div class="transcript-list current-course-grid" role="list">
+							{#if filteredCurrentCourses.length > 0}
+								{#each filteredCurrentCourses as course (course.id)}
+									<article
+										class:active={course.id === selectedCourseId}
+										class="course-visual-card current"
+										role="listitem"
+									>
+										<div class="course-card-heading">
+											<div>
+												<strong>{course.code}</strong>
+												<span>{course.name}</span>
+											</div>
+											<div class="course-score">
+												<strong>{course.currentPercent.toFixed(0)}%</strong>
+												<span>{percentToGpa(course.currentPercent).toFixed(2)} GPA</span>
+											</div>
+										</div>
+										<div class="course-progress">
+											<span style={`width: ${Math.min(100, course.currentPercent)}%`}></span>
+										</div>
+										<div class="course-card-meta">
+											<span>{course.term}</span>
+											<span>Projected {percentToLetter(course.projectedPercent)}</span>
+											<span>{course.projectedPercent.toFixed(0)}% projected</span>
+										</div>
+									</article>
+								{/each}
+							{:else}
+								<p class="empty-gradebook-note">No current courses match these filters.</p>
+							{/if}
+						</div>
 					</div>
-					<div class="transcript-list" role="list">
-						{#if dashboardCurrentTranscriptCourses.length > 0}
-							{#each dashboardCurrentTranscriptCourses as course (course.id)}
-								<div
-									class:active={course.id === selectedCourseId}
-									class="gpa-course-row current"
-									role="listitem"
-								>
-									<span>{course.code}</span>
-									<span>{course.term}</span>
-									<span>{percentToGpa(course.currentPercent).toFixed(2)} GPA</span>
-								</div>
-							{/each}
-						{:else}
-							<p class="empty-gradebook-note">No current courses have been imported.</p>
-						{/if}
-					</div>
-				</div>
+				{/if}
 
-				<div class="transcript-column finished-column">
-					<div class="transcript-column-head">
-						<span>Finished courses</span>
-						<strong>{dashboardFinishedCourses.length}</strong>
+				{#if courseStatusFilter !== 'current'}
+					<div class="transcript-column finished-column">
+						<div class="transcript-column-head">
+							<span>Finished courses</span>
+							<strong>{filteredFinishedCourses.length}</strong>
+						</div>
+						<div class="transcript-list finished-course-grid">
+							{#if filteredFinishedCourses.length > 0}
+								{#each filteredFinishedCourses as course (course.id)}
+									<button
+										type="button"
+										class="course-visual-card finished history-trigger"
+										aria-label={`Open ${course.code} grade history`}
+										onclick={() => openHistoryCourse(course.id)}
+									>
+										<div class="course-card-heading">
+											<div>
+												<strong>{course.code}</strong>
+												<span>{course.name}</span>
+											</div>
+											<div class="course-score">
+												<strong>{course.currentPercent.toFixed(0)}%</strong>
+												<span
+													>{course.letter} · {letterToGpa(course.letter)?.toFixed(2) ?? '--'} GPA</span
+												>
+											</div>
+										</div>
+										<div class="course-progress completed">
+											<span style={`width: ${Math.min(100, course.currentPercent)}%`}></span>
+										</div>
+										<div class="course-card-meta">
+											<span>{course.term}</span>
+											<span>{course.historyGrades?.length ?? 0} detailed grade items</span>
+											<span class="history-open-label">
+												{course.historyGrades?.length ? 'Open gradebook' : 'View transcript note'}
+											</span>
+										</div>
+									</button>
+								{/each}
+							{:else}
+								<p class="empty-gradebook-note">No completed courses match these filters.</p>
+							{/if}
+						</div>
 					</div>
-					<div class="transcript-list">
-						{#if dashboardFinishedCourses.length > 0}
-							{#each dashboardFinishedCourses as course (course.id)}
-								<button
-									type="button"
-									class="gpa-course-row finished history-trigger"
-									aria-label={`Open ${course.code} grade history`}
-									onclick={() => openHistoryCourse(course.id)}
-								>
-									<span>{course.code}</span>
-									<span>{course.term}</span>
-									<span>
-										{course.letter} - {course.currentPercent.toFixed(0)}% -
-										{letterToGpa(course.letter)?.toFixed(2) ?? '--'} GPA
-									</span>
-									<span class="history-open-label">
-										{course.historyGrades?.length ? 'open gradebook' : 'view transcript note'}
-									</span>
-								</button>
-							{/each}
-						{:else}
-							<p class="empty-gradebook-note">No finished course history has been imported.</p>
-						{/if}
-					</div>
-				</div>
+				{/if}
 			</div>
 		</section>
 
@@ -973,14 +1210,8 @@
 			<section class="surface performance-panel" aria-label="Performance over time">
 				<div class="performance-head">
 					<div>
-						<span class="gpa-kicker">Academic performance analytics</span>
-						<h2>GPA Trend by Academic Term</h2>
-					</div>
-					<div class="performance-delta">
-						<span class="source-label">GPA movement</span>
-						<strong class={performanceDelta >= 0 ? 'ok' : 'warn'}>
-							{performanceDelta >= 0 ? '+' : ''}{performanceDelta.toFixed(2)}
-						</strong>
+						<h2>Performance Trend</h2>
+						<p>GPA by academic term</p>
 					</div>
 				</div>
 
@@ -989,14 +1220,14 @@
 						{#each performanceTrendWithDelta as item (item.term)}
 							<div class="term-bar">
 								<div class="term-bar-track">
-									<span class={item.direction} style="height: {(item.gpa / gpaScaleMaximum) * 100}%"
+									<span
+										class={item.direction}
+										style={`height: ${(item.gpa / gpaScaleMaximum) * 100}%`}
 									></span>
 								</div>
 								<strong class={`trend-value ${item.direction}`}>
 									{item.gpa.toFixed(2)}
 								</strong>
-								<span class={`trend-icon ${item.direction}`} aria-label={`GPA ${item.direction}`}
-								></span>
 								<small>{item.label}</small>
 							</div>
 						{/each}
@@ -1010,7 +1241,6 @@
 								<strong class={`trend-value ${item.direction}`}>
 									{item.gpa.toFixed(2)}
 									<span class="trend-change" aria-label={`GPA ${item.direction}`}>
-										<span class={`trend-icon ${item.direction}`}></span>
 										{item.signedDelta}
 									</span>
 								</strong>
@@ -1023,11 +1253,11 @@
 				<div class="term-performance-panel">
 					<div class="term-performance-head">
 						<div>
-							<span class="gpa-kicker">Course performance by term</span>
-							<h3>{selectedPerformanceTerm} Course Results</h3>
+							<h3>Course Results</h3>
+							<p>{selectedPerformanceTerm} performance</p>
 						</div>
 						<label class="term-select-box">
-							<span class="field-label">Choose term</span>
+							<span class="field-label">Term</span>
 							<div class="select-shell">
 								<select value={selectedPerformanceTerm} onchange={changePerformanceTerm}>
 									{#each performanceTermOptions as term (term)}
@@ -1049,14 +1279,15 @@
 								<div>
 									<span>{course.code}</span>
 									<strong>
-										{course.status === 'finished' ? course.letter : 'In progress'} -
 										{course.status === 'finished'
-											? (letterToGpa(course.letter)?.toFixed(2) ?? '--')
-											: percentToGpa(course.currentPercent).toFixed(2)} GPA
+											? `${course.letter} · ${letterToGpa(course.letter)?.toFixed(2) ?? '--'} GPA`
+											: `Projected ${percentToLetter(course.projectedPercent)} · ${course.projectedPercent.toFixed(0)}%`}
 									</strong>
 								</div>
 								<div class="course-bar-track">
-									<span style="width: {Math.min(100, course.currentPercent)}%"></span>
+									<span
+										style={`width: ${Math.min(100, course.currentPercent)}%; background: ${gradeColor(course.currentPercent)}`}
+									></span>
 								</div>
 								<small>{course.currentPercent.toFixed(0)}%</small>
 							</div>
@@ -1068,7 +1299,7 @@
 			<section class="surface performance-panel" aria-label="Performance over time">
 				<div class="performance-head">
 					<div>
-						<span class="gpa-kicker">Academic performance analytics</span>
+						<span class="gpa-kicker">Performance</span>
 						<h2>No GPA trend yet</h2>
 						<p class="empty-gradebook-note">
 							Upload a transcript or import setup courses to generate academic progress analytics.
@@ -1077,39 +1308,30 @@
 				</div>
 			</section>
 		{/if}
+	{:else if courses.length === 0}
+		<section class="surface empty-course-state" aria-label="No courses available">
+			<h2>No course dashboard yet</h2>
+			<p>
+				Import courses during setup or upload a syllabus before course-specific grade analytics are
+				shown here.
+			</p>
+		</section>
 	{:else}
-		<div class="course-dashboard-heading">
-			<span class="gpa-kicker">Course grade dashboard</span>
-			<h2 class="gpa-title">Current Term Dashboard</h2>
-			<p>Choose a course to view its grade analytics, projection, and import tools.</p>
-		</div>
-
-		{#if courses.length === 0}
-			<section class="surface empty-course-state" aria-label="No courses available">
-				<span class="gpa-kicker">No courses imported</span>
-				<h2>No course dashboard yet</h2>
-				<p>
-					Import courses during setup or upload a syllabus before course-specific grade analytics
-					are shown here.
-				</p>
-			</section>
-		{:else}
-			<section class="surface course-link" aria-label="Course dashboard selector">
-				<div class="course-link-main">
-					<div>
-						<span class="course-link-label">Course dashboard selector</span>
-						<h2 class="course-link-title">
-							<span class="course-code">{activeCourse.code}</span>
-							{activeCourse.name}
-						</h2>
-					</div>
-					<div class="course-link-meta">
-						<span>{activeCourse.term}</span>
-						<span>{activeCourse.instructor}</span>
-						<span>Syllabus Intelligence - grading scheme</span>
-					</div>
+		<section class="surface course-link course-hero" aria-label="Current course overview">
+			<div class="course-link-main">
+				<div>
+					<h2 class="course-link-title">
+						<span class="course-code">{activeCourse.code}</span>
+						{activeCourse.name}
+					</h2>
 				</div>
+				<div class="course-link-meta">
+					<span>{activeCourse.term}</span>
+					<span>{activeCourse.instructor}</span>
+				</div>
+			</div>
 
+			<div class="course-hero-side">
 				<div class="course-select-box">
 					<label class="field-label" for="course-select">Switch course</label>
 					<div class="select-shell">
@@ -1126,251 +1348,248 @@
 						<a class="btn btn-secondary" href={activeCourse.syllabusHref}>view syllabus</a>
 					</div>
 				</div>
-			</section>
+			</div>
+		</section>
 
-			<section class="course-analytics" aria-label="Selected course grade analytics">
-				<div class="course-analytics-head">
-					<span class="gpa-kicker">Specific course analytics + projection</span>
-					<h2>{activeCourse.code} Dashboard</h2>
-					<p>The cards below only use grades and syllabus weights from the selected course.</p>
+		<section class="course-analytics" aria-label="Selected course grade analytics">
+			<section class="course-facts" aria-label="Grade analytics overview">
+				<div class="course-fact primary">
+					<span class="fact-label">Current grade</span>
+					<strong
+						class="fact-value"
+						style:color={hasGradeEntries ? gradeColor(currentAverage) : undefined}
+						>{hasGradeEntries ? `${currentAverage.toFixed(1)}%` : '--'}</strong
+					>
 				</div>
-
-				<section class="course-facts" aria-label="Grade analytics overview">
-					<div class="course-fact">
-						<span class="fact-label">Current standing</span>
-						<strong class="fact-value"
-							>{hasGradeEntries ? `${currentAverage.toFixed(1)}%` : '--'}</strong
-						>
-						<span class="fact-sub">
-							{hasGradeEntries
-								? `${completedWeight}% of ${activeCourse.code} graded`
-								: 'no grade entries yet'}
-						</span>
-					</div>
-					<div class="course-fact">
-						<span class="fact-label">Projected result</span>
-						{#if hasGradeEntries}
-							<strong class={`fact-value trend-value ${courseProjectionDirection}`}>
-								{projectedFinal.toFixed(1)}%
-								<span
-									class="trend-change"
-									aria-label={`Course projection ${courseProjectionDirection}`}
-								>
-									<span class={`trend-icon ${courseProjectionDirection}`}></span>
-									{courseProjectionDelta > 0 ? '+' : ''}{courseProjectionDelta.toFixed(1)}%
-								</span>
-							</strong>
-						{:else}
-							<strong class="fact-value">--</strong>
-						{/if}
-						<span class="fact-sub">
-							{hasGradeEntries ? 'if ungraded work hits target' : 'waiting for course grades'}
-						</span>
-					</div>
-					<div class="course-fact">
-						<span class="fact-label">Projected GPA</span>
-						{#if hasGradeEntries}
-							<strong class={`fact-value trend-value ${projectedGpaDirection}`}>
-								{projectedGpa.toFixed(2)}
-								<span class="trend-change" aria-label={`GPA projection ${projectedGpaDirection}`}>
-									<span class={`trend-icon ${projectedGpaDirection}`}></span>
-									{projectedGpaDelta > 0 ? '+' : ''}{projectedGpaDelta.toFixed(2)}
-								</span>
-							</strong>
-						{:else}
-							<strong class="fact-value">--</strong>
-						{/if}
-						<span class="fact-sub">
-							{hasGradeEntries ? 'after selected course projection' : 'waiting for course grades'}
-						</span>
-					</div>
-					<div class="course-fact">
-						<span class="fact-label">Needed on final</span>
-						<strong
-							class="fact-value {finalNeeded > 85 ? 'crit' : finalNeeded > 70 ? 'warn' : 'ok'}"
-						>
-							{hasGradeEntries ? `${finalNeeded.toFixed(0)}%` : '--'}
+				<div class="course-fact projected">
+					<span class="fact-label">Projected grade</span>
+					{#if hasGradeEntries}
+						<strong class="fact-value" style:color={gradeColor(projectedFinal)}>
+							{percentToLetter(projectedFinal)} · {projectedFinal.toFixed(1)}%
 						</strong>
-						<span class="fact-sub">{finalCategory?.weight ?? 0}% final weight</span>
-					</div>
-					<div class="course-fact">
-						<span class="fact-label">Imported weights</span>
-						<strong class="fact-value">{syllabusWeights.length}</strong>
-						<span class="fact-sub">{activeCourse.code} categories</span>
-					</div>
-				</section>
-			</section>
-
-			<section class="gpa-projection-panel term-gpa-projection" aria-label="GPA target projection">
-				<div class="target-gpa-box">
-					<div class="target-head">
-						<label class="target-label" for="target-gpa">Target GPA</label>
-						<span class="target-value">{targetGpa.toFixed(1)}</span>
-					</div>
-					<input
-						id="target-gpa"
-						type="range"
-						min="2"
-						max={gpaScaleMaximum}
-						step="0.1"
-						bind:value={targetGpa}
-					/>
+					{:else}
+						<strong class="fact-value">--</strong>
+					{/if}
 				</div>
-				<div class="gpa-projection-copy">
-					<span class="source-label">GPA target projection</span>
-					<p>
-						{targetGpaDelta <= 0
-							? 'Your projected GPA is already meeting the target.'
-							: `You are ${targetGpaDelta.toFixed(2)} GPA points away from the target.`}
-					</p>
-					<div class="projection-scale compact" role="img" aria-label="GPA projection scale">
-						<div class="scale-line">
-							<span style="left: {Math.min(100, (dashboardTotalGpa / gpaScaleMaximum) * 100)}%"
-							></span>
-							<b style="left: {Math.min(100, (dashboardProjectedGpa / gpaScaleMaximum) * 100)}%"
-							></b>
-							<i style="left: {Math.min(100, (targetGpa / gpaScaleMaximum) * 100)}%"></i>
-						</div>
-						<div class="scale-labels">
-							<span>total {dashboardTotalGpa.toFixed(2)}</span>
-							<span>projected {dashboardProjectedGpa.toFixed(2)}</span>
-							<span>target {targetGpa.toFixed(1)}</span>
-						</div>
-					</div>
+				<div class="course-fact final-target">
+					<span class="fact-label">Needed on final</span>
+					<strong class="fact-value {finalNeeded > 85 ? 'crit' : finalNeeded > 70 ? 'warn' : 'ok'}">
+						{hasGradeEntries ? `${finalNeeded.toFixed(0)}%` : '--'}
+					</strong>
+				</div>
+				<div class="course-fact categories">
+					<span class="fact-label">Categories</span>
+					<strong class="fact-value">{syllabusWeights.length}</strong>
 				</div>
 			</section>
+		</section>
 
-			<div class="digest-grid">
+		<div class="digest-grid">
+			<div class="grade-entry-column">
 				<section class="surface import-panel" aria-label="Import grades">
 					<div class="import-panel-head">
-						<div>
-							<span class="gpa-kicker">Grade import</span>
-							<h2>Update {activeCourse.code}</h2>
-						</div>
-						<span class="import-badge">{gradeItems.length} entries</span>
+						<h2>Assignment</h2>
 					</div>
-					<p class="panel-copy">
-						Add a score here and the course projection plus GPA projection update immediately.
-					</p>
 
 					<div class="grade-form">
-						<label>
-							<span class="field-label">Category</span>
-							<select bind:value={selectedCategory}>
+						<div class="assignment-row">
+							<select bind:value={selectedCategory} aria-label="Assignment category">
 								{#each syllabusWeights as item (item.category)}
 									<option value={item.category}>{item.category} - {item.weight}%</option>
 								{/each}
 							</select>
-						</label>
-						<label>
-							<span class="field-label">Grade name</span>
-							<input bind:value={gradeLabel} placeholder="e.g. Quiz 2" />
-						</label>
-						<div class="score-row">
-							<label>
-								<span class="field-label">Score</span>
-								<input bind:value={gradeScore} inputmode="decimal" placeholder="18" />
-							</label>
-							<label>
-								<span class="field-label">Out of</span>
-								<input bind:value={gradeMax} inputmode="decimal" />
-							</label>
+							<input
+								id="grade-label"
+								bind:value={gradeLabel}
+								placeholder="Quiz name"
+								aria-label="Grade name"
+							/>
+							<div class="score-entry">
+								<input
+									bind:value={gradeScore}
+									inputmode="decimal"
+									placeholder="18"
+									aria-label="Score"
+								/>
+								<span aria-hidden="true">/</span>
+								<input
+									bind:value={gradeMax}
+									inputmode="decimal"
+									placeholder="100"
+									aria-label="Out of"
+								/>
+							</div>
 						</div>
 						<div class="form-actions">
-							<button type="button" class="btn btn-primary" onclick={addGrade}>add grade</button>
+							<button type="button" class="btn btn-primary" onclick={addGrade}>+ add grade</button>
 							<button type="button" class="btn btn-secondary" onclick={importSampleGrades}>
-								import sample
+								sample
 							</button>
 						</div>
 					</div>
 				</section>
 
-				<section class="surface projection-panel">
-					<SectionHead title="Grade Projection" />
-					<div class="target-box course-target-box">
-						<div class="target-head">
-							<label class="target-label" for="target-grade">Target grade</label>
-							<span class="target-value">{targetGrade}%</span>
-						</div>
-						<input id="target-grade" type="range" min="50" max="100" bind:value={targetGrade} />
-					</div>
-					<div class="projection-note">
-						{#if hasGradeEntries}
-							<p>
-								To finish at <strong>{targetGrade}%</strong>, your current entries suggest you need
-								<strong>{finalNeeded.toFixed(1)}%</strong> on the final.
-							</p>
+				<section class="surface-polaroid gradebook">
+					<SectionHead title="Gradebook" />
+					<div class="gradebook-list">
+						{#if gradeItems.length > 0}
+							{#each gradeItems as item (item.id)}
+								<div class="grade-row">
+									<div class="grade-main">
+										<span class="grade-category">{item.category}</span>
+										<span class="grade-name">{item.label}</span>
+									</div>
+									<div class="grade-score">
+										<span class="font-numeric">{item.score}/{item.max}</span>
+										<span>{((item.score / item.max) * 100).toFixed(1)}%</span>
+										<button
+											type="button"
+											class="remove-btn"
+											aria-label="Remove grade"
+											onclick={() => removeGrade(item.id)}
+										>
+											x
+										</button>
+									</div>
+								</div>
+							{/each}
 						{:else}
-							<p>No course grades have been entered yet.</p>
-						{/if}
-					</div>
-
-					<div class="projection-scale" role="img" aria-label="Projection scale">
-						<div class="scale-line">
-							{#if hasGradeEntries}
-								<span style="left: {Math.min(100, currentAverage)}%"></span>
-							{/if}
-							<i style="left: {Math.min(100, targetGrade)}%"></i>
-						</div>
-						<div class="scale-labels">
-							<span>current {hasGradeEntries ? `${currentAverage.toFixed(0)}%` : '--'}</span>
-							<span>target {targetGrade}%</span>
-						</div>
-					</div>
-
-					<div class="weight-list">
-						{#each categoryAnalytics as item (item.category)}
-							<div class="weight-row">
-								<div>
-									<span class="weight-name">{item.category}</span>
-									<span class="weight-source">{item.source}</span>
-								</div>
-								<div class="weight-right">
-									<span class="weight-num">{item.weight}%</span>
-									<span class="status-chip {item.status}">
-										{item.average === null ? 'missing' : item.average.toFixed(0) + '%'}
-									</span>
-								</div>
+							<div class="gradebook-empty">
+								<strong>○ No grades yet</strong>
+								<a class="btn btn-secondary" href="#grade-label">+ add grade</a>
 							</div>
-						{/each}
+						{/if}
 					</div>
 				</section>
 			</div>
 
-			<section class="surface-polaroid gradebook">
-				<SectionHead title="Gradebook" />
-				<div class="gradebook-list">
-					{#if gradeItems.length > 0}
-						{#each gradeItems as item (item.id)}
-							<div class="grade-row">
-								<div class="grade-main">
-									<span class="grade-category">{item.category}</span>
-									<span class="grade-name">{item.label}</span>
-								</div>
-								<div class="grade-score">
-									<span class="font-numeric">{item.score}/{item.max}</span>
-									<span>{((item.score / item.max) * 100).toFixed(1)}%</span>
-									<button
-										type="button"
-										class="remove-btn"
-										aria-label="Remove grade"
-										onclick={() => removeGrade(item.id)}
-									>
-										x
-									</button>
-								</div>
-							</div>
-						{/each}
-					{:else}
-						<p class="empty-gradebook-note">
-							No grade entries yet. Add a score to calculate course performance.
+			<section class="surface projection-panel">
+				<div class="projection-heading">
+					<h2>Grade Projection</h2>
+				</div>
+				<div class="projection-result">
+					<span>Projected</span>
+					<strong style:color={hasGradeEntries ? gradeColor(projectedFinal) : undefined}>
+						{hasGradeEntries ? `${projectedFinal.toFixed(1)}%` : '--'}
+					</strong>
+					<small>{hasGradeEntries ? percentToLetter(projectedFinal) : 'Waiting for grades'}</small>
+					<div class="projection-bar" aria-hidden="true">
+						<span style={`width: ${hasGradeEntries ? Math.min(100, projectedFinal) : 0}%`}></span>
+					</div>
+				</div>
+				<div class="target-box course-target-box">
+					<div class="target-head">
+						<label class="target-label" for="target-grade">Target grade</label>
+						<span class="target-value">{targetGrade}%</span>
+					</div>
+					<input id="target-grade" type="range" min="50" max="100" bind:value={targetGrade} />
+				</div>
+				<div class="projection-note">
+					{#if hasGradeEntries}
+						<p>
+							To finish with <strong>{percentToLetter(targetGrade)}</strong> ({targetGrade}%), aim
+							for at least <strong>{finalNeeded.toFixed(1)}%</strong> on the final.
 						</p>
+						<p class="recommendation-detail">
+							The final is worth {finalCategory?.weight ?? 0}% and currently has the greatest impact
+							on this projection.
+						</p>
+					{:else}
+						<div class="projection-empty">
+							<strong>○ No grades yet</strong>
+							<a class="btn btn-primary" href="#grade-label">+ add grade</a>
+						</div>
 					{/if}
 				</div>
+
+				<div class="projection-scale" role="img" aria-label="Projection scale">
+					<div class="scale-line">
+						{#if hasGradeEntries}
+							<span style="left: {Math.min(100, currentAverage)}%"></span>
+						{/if}
+						<i style="left: {Math.min(100, targetGrade)}%"></i>
+					</div>
+					<div class="scale-labels">
+						<span>current {hasGradeEntries ? `${currentAverage.toFixed(0)}%` : '--'}</span>
+					</div>
+				</div>
+
+				<div class="weight-list">
+					{#each categoryAnalytics as item (item.category)}
+						<div class="weight-row">
+							<div class="weight-copy compact">
+								<span class="weight-name">{item.category}</span>
+								<div class="weight-track" aria-label={`${item.category} is ${item.weight}%`}>
+									<span style={`width: ${item.weight}%`}></span>
+								</div>
+							</div>
+							<div class="weight-right">
+								<span class="weight-num">{item.weight}%</span>
+								<span class="status-chip {item.status}">
+									{item.average === null ? 'Missing' : item.average.toFixed(0) + '%'}
+								</span>
+							</div>
+						</div>
+					{/each}
+				</div>
 			</section>
-		{/if}
+		</div>
 	{/if}
 </div>
+
+<Dialog
+	open={transcriptImportPromptOpen}
+	onOpenChange={(open) => (transcriptImportPromptOpen = open)}
+	title="Import courses from your transcript?"
+	description="Synapse found semester and course information in the transcript you uploaded."
+	class="transcript-import-dialog"
+>
+	{#if data.transcriptImportPreview}
+		<div class="transcript-import-prompt">
+			<p>
+				We can add <strong
+					>{data.transcriptImportPreview.courseCount} course{data.transcriptImportPreview
+						.courseCount === 1
+						? ''
+						: 's'}</strong
+				>
+				{#if data.transcriptImportPreview.semesterCount > 0}
+					and create <strong
+						>{data.transcriptImportPreview.semesterCount} semester{data.transcriptImportPreview
+							.semesterCount === 1
+							? ''
+							: 's'}</strong
+					>
+				{/if}
+				in your academic database.
+			</p>
+			<ul aria-label="Detected transcript semesters">
+				{#each data.transcriptImportPreview.terms as term (term)}
+					<li>{term}</li>
+				{/each}
+			</ul>
+			<p class="transcript-import-note">
+				Existing courses with the same course code and semester will not be duplicated.
+			</p>
+			<div class="transcript-import-actions">
+				<button
+					type="button"
+					class="btn btn-secondary"
+					disabled={transcriptImporting}
+					onclick={() => (transcriptImportPromptOpen = false)}>Not now</button
+				>
+				<button
+					type="button"
+					class="btn btn-primary"
+					disabled={transcriptImporting}
+					onclick={importTranscriptIntoSemesters}
+				>
+					{transcriptImporting ? 'Importing...' : 'Import semesters & courses'}
+				</button>
+			</div>
+		</div>
+	{/if}
+</Dialog>
 
 <Dialog
 	open={selectedHistoryCourse !== null}
@@ -1416,9 +1635,71 @@
 
 <style>
 	.page {
-		max-width: 1180px;
+		--dashboard-primary: var(--pen-blue);
+		--dashboard-primary-soft: var(--paper-shelf);
+		max-width: 1320px;
 		margin-inline: auto;
-		padding-block: 2rem 4rem;
+		padding-block: 2rem 3rem;
+	}
+
+	.page:has(.gpa-panel) {
+		display: block;
+	}
+
+	.page:has(.gpa-panel) .page-cover {
+		order: 0;
+	}
+
+	.page:has(.gpa-panel) .digest-tabs {
+		order: 1;
+	}
+
+	.page-cover {
+		border-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	.transcript-import-prompt {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.transcript-import-prompt p {
+		margin: 0;
+	}
+
+	.transcript-import-prompt ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.transcript-import-prompt li {
+		border: 1px solid var(--rule);
+		background: var(--paper);
+		padding: 0.35rem 0.6rem;
+		font-family: var(--font-mono);
+		font-size: var(--text-caption);
+	}
+
+	.transcript-import-note {
+		color: var(--ink-soft);
+		font-size: var(--text-small);
+	}
+
+	.transcript-import-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.75rem;
+	}
+
+	.transcript-import-success {
+		margin: 0.75rem 0 0;
+		color: var(--success, #26734d);
+		font-size: var(--text-small);
 	}
 
 	.target-box {
@@ -1450,7 +1731,6 @@
 		margin-bottom: 0;
 	}
 
-	.target-gpa-box input[type='range'],
 	.target-box input[type='range'] {
 		width: 100%;
 		accent-color: var(--ink);
@@ -1472,60 +1752,57 @@
 	}
 
 	.digest-tabs {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.6rem;
-		margin: 1.5rem 0 1rem;
-		border-bottom: 1px solid var(--ink);
+		display: flex;
+		gap: 1.75rem;
+		margin: 0.85rem 0 1rem;
 	}
 
 	.digest-tabs button {
-		display: grid;
-		gap: 0.25rem;
-		border: 1px solid var(--rule);
-		border-bottom: 0;
-		background: var(--paper-shelf);
-		color: var(--ink-soft);
+		display: block;
+		border: 0;
+		border-bottom: 1px solid var(--rule-soft);
+		background: transparent;
+		color: var(--ink);
 		cursor: pointer;
-		padding: 0.75rem 1rem;
+		padding: 0.45rem 0.15rem;
 		text-align: left;
-		transform: translateY(1px);
 	}
 
 	.digest-tabs button.active {
-		border-color: var(--ink);
-		background: var(--paper);
-		color: var(--ink);
-		box-shadow: inset 0 4px 0 var(--highlight);
+		border-bottom: 2px solid var(--highlight);
+		background: transparent;
+		padding-bottom: calc(0.45rem - 1px);
+	}
+
+	.digest-tabs button:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
 	}
 
 	.digest-tabs span {
-		color: var(--ink-faint);
+		color: var(--ink-soft);
 		font-size: var(--text-caption);
-		text-transform: none;
-		letter-spacing: normal;
 	}
 
 	.digest-tabs strong {
 		font-family: var(--font-body);
-		font-weight: 700;
-		font-size: 1.35rem;
-		line-height: 1;
+		font-size: var(--text-small);
+		font-weight: 600;
+		line-height: 1.2;
 	}
 
 	.performance-panel {
-		margin: 1.5rem 0;
-		border: 1px solid var(--ink);
-		background: var(--paper);
+		margin: 0.75rem 0 1rem;
+		border: 0;
+		background: transparent;
 	}
 
 	.performance-head {
 		display: flex;
 		justify-content: space-between;
 		gap: 1rem;
-		align-items: flex-start;
-		padding-bottom: 0.85rem;
-		border-bottom: 1px solid var(--rule);
+		align-items: center;
+		padding: 0.55rem 0 0.35rem;
 	}
 
 	.performance-head h2 {
@@ -1533,48 +1810,38 @@
 		color: var(--ink);
 		font-family: var(--font-body);
 		font-weight: 700;
-		font-size: 1.7rem;
+		font-size: 1.5rem;
 		line-height: 1;
 	}
 
-	.performance-delta {
-		border: 1px solid var(--ink);
-		background: var(--highlight-soft);
-		padding: 0.65rem 0.8rem;
-		min-width: 8rem;
-	}
-
-	.performance-delta strong {
-		display: block;
-		font-family: var(--font-body);
-		font-weight: 600;
-		font-size: 1.8rem;
-		line-height: 1;
-		margin-top: 0.35rem;
+	.performance-head p,
+	.term-performance-head p {
+		margin: 0.3rem 0 0;
+		color: var(--ink-faint);
+		font-size: var(--text-caption);
 	}
 
 	.performance-body {
 		display: grid;
-		grid-template-columns: minmax(18rem, 1fr) minmax(18rem, 1fr);
-		gap: 1rem;
-		margin-top: 1rem;
+		grid-template-columns: minmax(22rem, 1.45fr) minmax(17rem, 0.75fr);
+		gap: 1.25rem;
+		margin-top: 0.6rem;
 	}
 
 	.performance-chart {
 		display: grid;
-		grid-template-columns: repeat(9, minmax(0, 1fr));
-		gap: 0.35rem;
+		grid-template-columns: repeat(auto-fit, minmax(3.75rem, 1fr));
+		gap: 0.55rem;
 		align-items: end;
-		min-height: 17rem;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		padding: 1rem 0.65rem 0.85rem;
+		min-height: 13.5rem;
+		background: var(--surface-paper);
+		padding: 0.85rem 0.75rem 0.7rem;
 		overflow: hidden;
 	}
 
 	.term-bar {
 		display: grid;
-		grid-template-rows: 1fr auto auto auto;
+		grid-template-rows: 1fr auto auto;
 		gap: 0.25rem;
 		align-items: end;
 		height: 100%;
@@ -1584,28 +1851,27 @@
 
 	.term-bar-track {
 		position: relative;
-		height: 10.5rem;
-		border: 1px solid var(--rule);
-		background: var(--paper);
+		height: 8rem;
+		background: color-mix(in srgb, var(--paper-shelf) 70%, var(--paper));
 	}
 
 	.term-bar-track span {
 		position: absolute;
 		inset-inline: 0;
 		bottom: 0;
-		background: var(--accent);
+		background: var(--pen-blue);
 	}
 
 	.term-bar-track span.up {
-		background: var(--ok);
+		background: var(--pen-blue);
 	}
 
 	.term-bar-track span.down {
-		background: var(--accent);
+		background: var(--pen-blue);
 	}
 
 	.term-bar-track span.same {
-		background: var(--ink-faint);
+		background: var(--pen-blue);
 	}
 
 	.term-bar strong {
@@ -1626,24 +1892,29 @@
 
 	.performance-list {
 		display: grid;
-		gap: 0.3rem;
-		max-height: 17rem;
+		gap: 0;
+		max-height: 13.5rem;
 		overflow-y: auto;
-		padding-right: 0.35rem;
+		padding-right: 0.2rem;
 		scrollbar-color: var(--ink-faint) var(--paper-shelf);
 		scrollbar-width: thin;
 	}
 
 	.performance-row {
 		display: grid;
-		grid-template-columns: minmax(3.5rem, 0.45fr) minmax(8rem, 1fr) auto minmax(8rem, 1fr);
+		grid-template-columns: minmax(3rem, 0.4fr) minmax(7rem, 1fr) auto minmax(8rem, 1fr);
 		gap: 0.55rem;
 		align-items: center;
-		border: 1px solid var(--rule-soft);
-		background: var(--paper);
+		border: 0;
+		border-bottom: 1px solid var(--rule-soft);
+		background: transparent;
 		color: var(--ink-soft);
 		font-size: var(--text-caption);
-		padding: 0.42rem 0.55rem;
+		padding: 0.55rem 0.35rem;
+	}
+
+	.performance-row:last-child {
+		border-bottom: 0;
 	}
 
 	.performance-row span:nth-child(4) {
@@ -1673,52 +1944,6 @@
 		color: var(--ink-faint);
 	}
 
-	.trend-icon {
-		position: relative;
-		display: inline-block;
-		width: 0.7em;
-		height: 0.7em;
-		flex-shrink: 0;
-	}
-
-	.trend-icon::before {
-		content: '';
-		position: absolute;
-		inset: 0.16em;
-		border-right: 0.16em solid currentColor;
-		border-top: 0.16em solid currentColor;
-	}
-
-	.trend-icon.up {
-		color: var(--ok);
-	}
-
-	.trend-icon.up::before {
-		transform: rotate(-45deg);
-	}
-
-	.trend-icon.down {
-		color: var(--accent);
-	}
-
-	.trend-icon.down::before {
-		transform: rotate(135deg);
-	}
-
-	.trend-icon.same {
-		color: var(--ink-faint);
-	}
-
-	.trend-icon.same::before {
-		top: 0.34em;
-		right: 0;
-		left: 0;
-		height: 0;
-		border-top: 0.16em solid currentColor;
-		border-right: 0;
-		transform: none;
-	}
-
 	.trend-change {
 		display: inline-flex;
 		gap: 0.15rem;
@@ -1734,17 +1959,12 @@
 		font-size: var(--text-caption);
 	}
 
-	.term-bar > .trend-icon {
-		justify-self: center;
-		font-size: var(--text-small);
-	}
-
 	/* Compact facts line that replaced the course-analytics index-bar strip. */
 	.course-facts {
 		display: flex;
 		flex-wrap: wrap;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
+		border-block: 1px solid var(--rule);
+		background: transparent;
 		padding: 0.6rem 0;
 		margin-top: 0.75rem;
 	}
@@ -1796,25 +2016,21 @@
 		margin-left: 0.1rem;
 	}
 
-	.fact-sub {
-		font-size: var(--text-caption);
-		color: var(--ink-soft);
-	}
-
 	.term-performance-panel {
-		margin-top: 1rem;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		padding: 1rem;
+		margin: 0.9rem 0 0.35rem;
+		border: 0;
+		border-top: 1px solid var(--rule-soft);
+		background: transparent;
+		padding: 0.85rem 0 0;
 	}
 
 	.term-performance-head {
 		display: flex;
 		justify-content: space-between;
 		gap: 1rem;
-		align-items: flex-start;
-		padding-bottom: 0.85rem;
-		border-bottom: 1px solid var(--rule-soft);
+		align-items: end;
+		padding-bottom: 0.55rem;
+		border-bottom: 0;
 	}
 
 	.term-performance-head h3 {
@@ -1822,19 +2038,29 @@
 		color: var(--ink);
 		font-family: var(--font-body);
 		font-weight: 700;
-		font-size: 1.45rem;
+		font-size: 1.3rem;
 		line-height: 1;
 	}
 
 	.term-select-box {
-		width: min(100%, 18rem);
+		width: min(100%, 13rem);
 		flex-shrink: 0;
+	}
+
+	.term-select-box select {
+		border: 1px solid var(--rule);
+	}
+
+	.term-select-box .dropdown-arrow {
+		border-color: var(--rule);
+		background: transparent;
+		color: var(--ink-faint);
 	}
 
 	.term-course-chart {
 		display: grid;
-		gap: 0.55rem;
-		margin-top: 1rem;
+		gap: 0.35rem;
+		margin-top: 0.45rem;
 	}
 
 	.term-course-bar {
@@ -1842,8 +2068,9 @@
 		grid-template-columns: minmax(8rem, 0.7fr) minmax(12rem, 1fr) auto;
 		gap: 0.75rem;
 		align-items: center;
-		border: 1px solid var(--rule-soft);
-		background: var(--paper);
+		border: 0;
+		border-bottom: 0;
+		background: var(--paper-shelf);
 		padding: 0.55rem 0.65rem;
 	}
 
@@ -1876,71 +2103,50 @@
 	}
 
 	.course-bar-track {
-		height: 0.7rem;
-		border: 1px solid var(--rule);
+		height: 0.55rem;
+		border: 0;
 		background: var(--paper-shelf);
 	}
 
 	.course-bar-track span {
 		display: block;
 		height: 100%;
-		background: var(--highlight);
-	}
-
-	.course-dashboard-heading {
-		margin: 2.25rem 0 0.9rem;
-	}
-
-	.course-dashboard-heading p {
-		max-width: 34rem;
-		margin: 0.55rem 0 0;
-		color: var(--ink-soft);
-		font-size: var(--text-small);
-		line-height: 1.5;
+		background: var(--dashboard-primary);
 	}
 
 	.course-link {
 		display: flex;
 		justify-content: space-between;
-		gap: 1.25rem;
+		gap: 1.5rem;
 		align-items: center;
-		margin: 0 0 1.75rem;
-		border: 2px solid var(--ink);
-		background: var(--paper-shelf);
+		margin: 0 0 0.8rem;
+		border: 0;
+		border-bottom: 1px solid var(--rule-soft);
+		background: transparent;
+		padding: 0.15rem 0 0.75rem;
 	}
 
 	.course-link-main {
 		display: grid;
-		grid-template-columns: minmax(14rem, 0.8fr) minmax(16rem, 1fr);
-		gap: 1.25rem;
-		align-items: center;
+		grid-template-columns: 1fr;
+		gap: 0.65rem;
 		min-width: 0;
 	}
 
-	.course-link-label {
-		display: block;
-		color: var(--ink-faint);
-		font-size: var(--text-caption);
-		text-transform: none;
-		letter-spacing: normal;
-		margin-bottom: 0.35rem;
-	}
-
 	.course-link-title {
-		display: flex;
-		align-items: baseline;
-		gap: 0.65rem;
+		display: grid;
+		gap: 0.2rem;
 		margin: 0;
 		color: var(--ink);
 		font-family: var(--font-body);
 		font-weight: 700;
-		font-size: 1.5rem;
+		font-size: 1.7rem;
 		line-height: 1.1;
 	}
 
 	.course-code {
-		color: var(--accent);
-		font-size: var(--text-caption);
+		color: var(--dashboard-primary);
+		font-size: 1rem;
 		text-transform: none;
 		letter-spacing: normal;
 	}
@@ -1948,20 +2154,22 @@
 	.course-link-meta {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.45rem;
+		gap: 0.35rem 0.9rem;
 	}
 
 	.course-link-meta span {
-		border: 1px solid var(--rule);
-		background: var(--paper);
 		color: var(--ink-soft);
 		font-size: var(--text-caption);
-		padding: 0.25rem 0.5rem;
+		padding: 0;
 	}
 
 	.course-select-box {
 		width: min(100%, 20rem);
 		flex-shrink: 0;
+	}
+
+	.course-hero-side {
+		flex: 0 0 min(22rem, 42%);
 	}
 
 	.select-shell {
@@ -1971,7 +2179,8 @@
 	.course-select-box select,
 	.term-select-box select {
 		width: 100%;
-		border: 2px solid var(--ink);
+		min-height: 2.6rem;
+		border: 1px solid var(--rule);
 		background: var(--paper);
 		color: var(--ink);
 		font: inherit;
@@ -1985,14 +2194,14 @@
 		position: absolute;
 		right: 0.7rem;
 		top: 50%;
-		width: 1.2rem;
-		height: 1.2rem;
+		width: 1rem;
+		height: 1rem;
 		transform: translateY(-50%);
-		border: 1px solid var(--ink);
-		background: var(--highlight-soft);
-		color: var(--ink);
+		border: 0;
+		background: transparent;
+		color: var(--ink-faint);
 		font-size: var(--text-caption);
-		line-height: 1.1rem;
+		line-height: 1rem;
 		text-align: center;
 		pointer-events: none;
 	}
@@ -2007,46 +2216,57 @@
 
 	.gpa-panel {
 		display: grid;
-		grid-template-columns: minmax(16rem, 0.75fr) minmax(24rem, 1.25fr);
-		gap: 1.15rem;
+		grid-template-columns: 1fr;
+		gap: 0.8rem;
 		align-items: stretch;
-		margin-bottom: 1.25rem;
-		border: 1px solid var(--ink);
-		background: var(--paper);
+		margin-bottom: 0.85rem;
+		border: 0;
+		background: transparent;
+		padding: 0.15rem 0;
+	}
+
+	.gpa-panel > .gpa-facts {
+		order: 2;
+	}
+
+	.gpa-panel > .gpa-hero,
+	.gpa-panel > .upload-error,
+	.gpa-panel > .transcript-import-success {
+		order: 3;
+	}
+
+	.page:has(.gpa-panel) > .performance-panel {
+		order: 4;
+	}
+
+	.gpa-panel > .dashboard-intelligence {
+		order: 5;
+	}
+
+	.gpa-panel > .course-filter-bar {
+		order: 6;
+	}
+
+	.gpa-panel > .transcript-columns {
+		order: 7;
 	}
 
 	.gpa-hero {
 		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		gap: 1.1rem;
-		min-height: 11rem;
+		justify-content: flex-start;
+		align-items: center;
+		gap: 0.75rem;
+		min-height: 2.7rem;
+		border-bottom: 1px solid var(--rule-soft);
+		padding: 0.15rem 0 0.65rem;
 	}
 
-	.gpa-kicker {
-		display: block;
-		color: var(--accent);
+	.gpa-scale-setting {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		color: var(--ink-faint);
 		font-size: var(--text-caption);
-		text-transform: none;
-		letter-spacing: normal;
-		margin-bottom: 0.4rem;
-	}
-
-	.gpa-title {
-		margin: 0;
-		color: var(--ink);
-		font-family: var(--font-body);
-		font-weight: 700;
-		font-size: clamp(1.9rem, 4vw, 2.5rem);
-		line-height: 1;
-	}
-
-	.gpa-copy {
-		max-width: 28rem;
-		margin: 0.55rem 0 0;
-		color: var(--ink-soft);
-		font-size: var(--text-small);
-		line-height: 1.5;
 	}
 
 	.transcript-upload-actions {
@@ -2054,31 +2274,116 @@
 		flex-wrap: wrap;
 		gap: 0.55rem;
 		align-items: center;
+		justify-content: flex-start;
+	}
+
+	.transcript-upload-actions .btn,
+	.gpa-scale-control {
+		min-height: 2.6rem;
 	}
 
 	.gpa-scale-control {
+		display: grid;
+		width: 10.5rem;
+		min-height: 0;
+	}
+
+	:global(.gpa-scale-trigger) {
+		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
+		justify-content: space-between;
+		gap: 0.75rem;
+		width: 100%;
+		height: 2.7rem;
 		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		padding: 0.35rem 0.45rem;
-	}
-
-	.gpa-scale-control span {
-		color: var(--ink-faint);
-		font-size: var(--text-caption);
-		text-transform: none;
-		letter-spacing: normal;
-	}
-
-	.gpa-scale-control select {
-		border: 0;
-		background: transparent;
+		border-radius: 0;
+		background: var(--paper);
 		color: var(--ink);
+		cursor: pointer;
 		font: inherit;
 		font-size: var(--text-caption);
+		font-weight: 500;
+		text-align: left;
+		padding: 0.5rem 0.75rem 0.5rem 0.85rem;
+		transition:
+			border-color 120ms ease,
+			background-color 120ms ease;
+	}
+
+	:global(.gpa-scale-trigger:hover),
+	:global(.gpa-scale-trigger[data-state='open']) {
+		background: var(--surface-paper);
+	}
+
+	:global(.gpa-scale-trigger:focus-visible) {
+		border-color: var(--ink);
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	:global(.gpa-scale-chevron) {
+		width: 0.48rem;
+		height: 0.48rem;
+		flex: 0 0 auto;
+		border-right: 1px solid currentColor;
+		border-bottom: 1px solid currentColor;
+		color: var(--ink-faint);
+		pointer-events: none;
+		transform: translateY(-2px) rotate(45deg);
+		transition: transform 120ms ease;
+	}
+
+	:global(.gpa-scale-trigger[data-state='open'] .gpa-scale-chevron) {
+		transform: translateY(2px) rotate(225deg);
+	}
+
+	:global(.gpa-scale-menu) {
+		z-index: var(--z-dropdown);
+		min-width: var(--bits-select-trigger-width);
+		overflow: hidden;
+		border: 1px solid var(--rule);
+		border-radius: 0;
+		background: var(--paper);
+		box-shadow: none;
+	}
+
+	:global(.gpa-scale-option) {
+		min-height: 2.55rem;
 		cursor: pointer;
+		border-bottom: 1px dashed var(--rule);
+		background: transparent;
+		color: var(--ink);
+		font-size: var(--text-caption);
+		line-height: 1.35;
+		outline: none;
+		padding: 0.65rem 0.85rem;
+	}
+
+	:global(.gpa-scale-option:last-child) {
+		border-bottom: 0;
+	}
+
+	:global(.gpa-scale-option[data-highlighted]) {
+		background: var(--highlight-soft);
+		box-shadow: inset 2px 0 0 var(--ink);
+	}
+
+	:global(.gpa-scale-option[data-selected]) {
+		background: transparent;
+		color: var(--ink);
+		box-shadow: inset 2px 0 0 var(--ink);
+		font-weight: 600;
+	}
+
+	:global(.gpa-scale-option[data-highlighted]) {
+		background: var(--highlight);
+		font-weight: 500;
+	}
+
+	:global(.gpa-scale-option[data-selected][data-highlighted]) {
+		background: var(--highlight);
+		font-weight: 600;
 	}
 
 	.upload-transcript {
@@ -2123,79 +2428,287 @@
 		margin-bottom: 0.25rem;
 	}
 
-	.digest-source-strip {
-		grid-column: 1 / -1;
-		display: flex;
-		justify-content: space-between;
-		gap: 1rem;
-		align-items: center;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		padding: 0.75rem 0.85rem;
-	}
-
-	.digest-source-strip strong {
-		display: block;
-		margin-top: 0.25rem;
-		color: var(--ink);
-		font-size: var(--text-small);
-		font-weight: 500;
-	}
-
-	.target-gpa-box {
-		width: min(100%, 18rem);
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
-		padding: 0.8rem 0.9rem;
-	}
-
-	/* Compact label/value facts band that replaced the three-card gpa-metrics grid. */
 	.gpa-facts {
 		display: grid;
-		align-self: start;
+		grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 0.75fr));
+		gap: 0.65rem;
 		margin: 0;
-		border: 1px solid var(--rule);
-		background: var(--paper-shelf);
+		border: 0;
 	}
 
 	.gpa-facts > div {
-		display: grid;
-		grid-template-columns: minmax(6.5rem, auto) 1fr;
-		gap: 0.35rem 0.9rem;
-		align-items: baseline;
-		padding: 0.55rem 0.85rem;
-		border-bottom: 1px solid var(--rule-soft);
+		display: flex;
+		min-height: 6.6rem;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 0.45rem;
+		border: 0;
+		background: var(--paper-shelf);
+		padding: 0.95rem 1rem;
+		text-align: center;
 	}
 
-	.gpa-facts > div:last-child {
-		border-bottom: 0;
+	.gpa-facts > .gpa-fact-primary {
+		grid-column: auto;
+		min-height: 8rem;
+		background: color-mix(in srgb, var(--ok) 10%, var(--paper));
+		padding-block: 0.95rem;
+	}
+
+	.gpa-facts > .gpa-fact-trend {
+		background: var(--paper-shelf);
+	}
+
+	.gpa-facts > .gpa-fact-credits {
+		background: color-mix(in srgb, var(--pen-blue) 8%, var(--paper));
+	}
+
+	.gpa-facts > .gpa-fact-credits dd {
+		color: var(--pen-blue);
+	}
+
+	.gpa-facts > .gpa-fact-primary dd {
+		color: var(--ok);
 	}
 
 	.gpa-facts dt {
 		font-family: var(--font-body);
-		font-size: var(--text-caption);
+		font-size: var(--text-small);
+		font-weight: 600;
 		text-transform: none;
-		letter-spacing: 0.1em;
+		letter-spacing: normal;
 		color: var(--ink-faint);
 	}
 
 	.gpa-facts dd {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.15rem 0.4rem;
+		justify-content: center;
+		gap: 0.25rem 0.4rem;
 		align-items: baseline;
 		margin: 0;
 		color: var(--ink);
 		font-family: var(--font-body);
-		font-weight: 600;
-		font-size: 1.1rem;
-		line-height: 1.25;
+		font-weight: 700;
+		font-size: clamp(1.8rem, 3vw, 2.35rem);
+		line-height: 1;
 	}
 
-	.gpa-facts dd span:not(.trend-icon) {
+	.gpa-facts .gpa-fact-primary dd {
+		font-size: clamp(2.8rem, 5vw, 4.25rem);
+	}
+
+	.gpa-facts .gpa-fact-primary dt {
+		font-size: var(--text-body);
+	}
+
+	.gpa-facts dd span {
+		flex-basis: auto;
 		color: var(--ink-soft);
-		font-size: var(--text-caption);
+		font-size: 0.7rem;
 		font-weight: 500;
+	}
+
+	.gpa-facts > div:last-child dd span:not(.metric-unit) {
+		flex-basis: 100%;
+	}
+
+	.gpa-facts dd .gpa-value-unit {
+		flex-basis: auto;
+		color: var(--ink-soft);
+		font-size: var(--text-small);
+		font-weight: 600;
+	}
+
+	.gpa-facts dd .movement-unit {
+		flex-basis: auto;
+		font-size: var(--text-caption);
+		font-weight: 600;
+	}
+
+	.hero-gpa-support {
+		display: none;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.55rem 1.5rem;
+		color: var(--ink-soft);
+		font-size: var(--text-small);
+	}
+
+	.hero-gpa-support .up {
+		color: var(--ok);
+	}
+
+	.hero-gpa-support .down {
+		color: var(--accent);
+	}
+
+	.dashboard-intelligence {
+		display: none;
+		grid-template-columns: minmax(0, 2fr) minmax(17rem, 0.65fr);
+		gap: 1rem;
+		margin-top: 0.4rem;
+	}
+
+	.insight-panel,
+	.goal-panel {
+		background: var(--paper-shelf);
+		padding: 1.25rem 1.35rem;
+	}
+
+	.insight-panel {
+		border-left: 2px solid var(--highlight);
+		background: color-mix(in srgb, var(--highlight) 5%, var(--paper-edge));
+		padding: 1.5rem 1.65rem;
+	}
+
+	.intelligence-heading {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.intelligence-heading span {
+		color: var(--ink-faint);
+		font-size: var(--text-caption);
+	}
+
+	.intelligence-heading h2 {
+		margin: 0.2rem 0 0;
+		color: var(--ink);
+		font-family: var(--font-body);
+		font-size: 1.5rem;
+		line-height: 1;
+	}
+
+	.intelligence-heading > strong {
+		color: var(--ok);
+		font-family: var(--font-body);
+		font-size: 1.4rem;
+		line-height: 1;
+	}
+
+	.insight-panel ul {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.65rem 1.5rem;
+		margin: 1.1rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.insight-panel li {
+		display: flex;
+		gap: 0.55rem;
+		align-items: flex-start;
+		color: var(--ink-soft);
+		font-size: var(--text-small);
+		line-height: 1.45;
+	}
+
+	.insight-panel li::before {
+		position: absolute;
+		left: 0;
+		color: var(--ink-faint);
+		content: '•';
+	}
+
+	.goal-values {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		margin-top: 0.8rem;
+	}
+
+	.insight-panel li::before {
+		content: none;
+	}
+
+	.insight-symbol {
+		flex: 0 0 auto;
+		color: var(--highlight);
+	}
+
+	.goal-values div {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.goal-values span,
+	.goal-control > span {
+		color: var(--ink-faint);
+		font-size: var(--text-caption);
+	}
+
+	.goal-values strong {
+		color: var(--ink);
+		font-family: var(--font-body);
+		font-size: 1.1rem;
+	}
+
+	.goal-progress {
+		height: 0.55rem;
+		margin-top: 0.75rem;
+		background: color-mix(in srgb, var(--dashboard-primary) 12%, var(--paper));
+	}
+
+	.goal-progress > span {
+		display: block;
+		height: 100%;
+		background: var(--dashboard-primary);
+	}
+
+	.goal-control {
+		display: grid;
+		gap: 0.25rem;
+		margin-top: 0.65rem;
+	}
+
+	.goal-control input {
+		width: 100%;
+		accent-color: var(--dashboard-primary);
+	}
+
+	.course-filter-bar {
+		display: none;
+		grid-template-columns: minmax(15rem, 1fr) minmax(10rem, 0.35fr) minmax(10rem, 0.35fr);
+		gap: 0.65rem;
+		align-items: end;
+		margin-top: 1rem;
+	}
+
+	.course-filter-bar label {
+		display: grid;
+		gap: 0.3rem;
+	}
+
+	.course-filter-bar label > span {
+		color: var(--ink-faint);
+		font-size: var(--text-caption);
+	}
+
+	.course-filter-bar input,
+	.course-filter-bar select {
+		width: 100%;
+		min-height: 2.5rem;
+		border: 1px solid var(--rule);
+		border-radius: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font: inherit;
+		font-size: var(--text-caption);
+		padding: 0.5rem 0.65rem;
+	}
+
+	.gpa-facts .metric-note {
+		max-width: 15rem;
+		color: var(--ink-faint);
+		font-size: 0.7rem;
+		line-height: 1.35;
 	}
 
 	.gpa-facts dd.up {
@@ -2210,24 +2723,25 @@
 		color: var(--ink-faint);
 	}
 
-	.gpa-facts .trend-icon.down {
-		color: var(--warn);
-	}
-
 	.transcript-columns {
 		grid-column: 1 / -1;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		gap: 0.85rem;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.75rem;
 		padding-top: 0.35rem;
-		border-top: 1px solid var(--rule);
 	}
 
 	.transcript-column {
 		min-width: 0;
-		border: 1px solid var(--rule);
-		background: var(--paper);
-		padding: 0.55rem;
+		border: 0;
+		background: transparent;
+		padding: 0.15rem 0;
+	}
+
+	.transcript-column + .transcript-column {
+		margin-top: 0.25rem;
+		border-top: 1px solid var(--rule-soft);
+		padding-top: 0.75rem;
 	}
 
 	.transcript-column-head {
@@ -2235,12 +2749,26 @@
 		justify-content: space-between;
 		gap: 0.75rem;
 		align-items: center;
-		border-bottom: 1px solid var(--rule-soft);
 		color: var(--ink-faint);
 		font-size: var(--text-caption);
 		text-transform: none;
 		letter-spacing: 0.1em;
 		padding-bottom: 0.45rem;
+	}
+
+	.current-column .transcript-column-head span {
+		color: var(--ink-faint);
+		font-family: inherit;
+		font-size: var(--text-caption);
+		font-weight: 400;
+		letter-spacing: 0.1em;
+	}
+
+	.finished-column .transcript-column-head span {
+		color: var(--ink-faint);
+		font-size: var(--text-caption);
+		font-weight: 400;
+		letter-spacing: 0.1em;
 	}
 
 	.transcript-column-head strong {
@@ -2254,7 +2782,7 @@
 	.transcript-list {
 		display: grid;
 		gap: 0.3rem;
-		max-height: min(32vh, 13rem);
+		max-height: min(42vh, 20rem);
 		overflow-y: auto;
 		overscroll-behavior: contain;
 		margin-top: 0.45rem;
@@ -2263,66 +2791,146 @@
 		scrollbar-width: thin;
 	}
 
-	.gpa-course-row {
+	.current-course-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		overflow: visible;
+		max-height: none;
+	}
+
+	.finished-course-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.course-visual-card {
 		display: grid;
-		grid-template-columns: minmax(5.5rem, 0.8fr) minmax(6rem, 1fr) minmax(5rem, 0.75fr) minmax(
-				6rem,
-				0.95fr
-			);
-		gap: 0.45rem;
-		align-items: center;
-		border: 1px solid var(--rule-soft);
-		background: var(--paper);
-		color: var(--ink-soft);
-		font-size: var(--text-caption);
-		min-height: 2.25rem;
-		padding: 0.35rem 0.55rem;
+		gap: 0.65rem;
 		width: 100%;
+		min-width: 0;
+		border: 0;
+		border-left: 0;
+		border-radius: 0;
+		background: var(--paper-shelf);
+		color: var(--ink);
+		font: inherit;
+		padding: 0.8rem 0.9rem;
 		text-align: left;
 	}
 
-	.current-column .gpa-course-row {
-		grid-template-columns: minmax(5.5rem, 0.85fr) minmax(6rem, 1fr) minmax(5rem, 0.75fr);
+	.course-visual-card.finished {
+		background: color-mix(in srgb, var(--pen-blue) 5%, var(--paper));
+		gap: 0.65rem;
+		padding: 0.8rem 0.9rem;
 	}
 
-	.gpa-course-row.current {
-		border-color: var(--ok);
-		background: color-mix(in srgb, var(--ok) 8%, var(--paper));
+	.course-visual-card.current {
+		gap: 0.65rem;
+		background: color-mix(in srgb, #d4a72c 7%, var(--paper));
+		padding: 0.8rem 0.9rem;
+	}
+
+	.course-card-heading {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.course-card-heading > div:first-child {
+		display: grid;
+		gap: 0.2rem;
+		min-width: 0;
+	}
+
+	.course-card-heading > div:first-child strong {
 		color: var(--ink);
+		font-family: var(--font-body);
+		font-size: var(--text-small);
 	}
 
-	.gpa-course-row.finished {
-		border-color: var(--rule);
-		background: var(--paper-shelf);
-		color: var(--warn);
+	.course-card-heading > div:first-child span {
+		overflow: hidden;
+		color: var(--ink-soft);
+		font-size: var(--text-caption);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.course-score {
+		display: grid;
+		flex: 0 0 auto;
+		gap: 0.15rem;
+		text-align: right;
+	}
+
+	.course-score strong {
+		color: var(--ink);
+		font-family: var(--font-body);
+		font-size: 1.45rem;
+		line-height: 1;
+	}
+
+	.course-score span {
+		color: var(--ink-faint);
+		font-size: 0.68rem;
+	}
+
+	.course-visual-card.current .course-score strong {
+		font-size: 1.45rem;
+	}
+
+	.course-visual-card.finished .course-score strong {
+		font-size: 1.45rem;
+	}
+
+	.course-progress {
+		height: 0.4rem;
+		background: color-mix(in srgb, var(--dashboard-primary) 12%, var(--paper));
+	}
+
+	.course-progress span {
+		display: block;
+		height: 100%;
+		background: #b28718;
+	}
+
+	.course-progress.completed {
+		height: 0.4rem;
+		background: color-mix(in srgb, var(--dashboard-primary) 12%, var(--paper));
+	}
+
+	.course-progress.completed span {
+		background: var(--pen-blue);
+	}
+
+	.course-card-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem 1rem;
+		color: var(--ink-faint);
+		font-size: 0.68rem;
 	}
 
 	.history-trigger {
 		cursor: pointer;
 		transition:
 			background 0.12s var(--ease-out-quart),
-			border-color 0.12s var(--ease-out-quart),
 			transform 0.12s var(--ease-out-quart);
 	}
 
 	.history-trigger:hover {
-		background: var(--paper);
-		border-color: var(--ink);
+		background: color-mix(in srgb, var(--pen-blue) 3%, var(--paper));
 		transform: translateX(2px);
 	}
 
-	/* Standard selected pattern: ink border + highlighter-soft fill. */
-	.gpa-course-row.active {
-		border-color: var(--ink);
-		color: var(--ink);
-		background: var(--highlight-soft);
-	}
-
 	.history-open-label {
-		color: var(--warn);
+		color: var(--ink-soft);
 		font-size: var(--text-caption);
 		text-transform: none;
 		letter-spacing: normal;
+	}
+
+	.history-trigger:hover .history-open-label {
+		color: var(--ink-soft);
 	}
 
 	:global(.ui-dialog-content.history-dialog) {
@@ -2391,33 +2999,8 @@
 		padding: 0.8rem;
 	}
 
-	.gpa-projection-panel {
-		grid-column: 1 / -1;
-		display: grid;
-		grid-template-columns: minmax(14rem, 0.35fr) minmax(20rem, 1fr);
-		gap: 1rem;
-		align-items: stretch;
-		border: 1px solid var(--ink);
-		background: var(--paper-shelf);
-		padding: 1rem;
-	}
-
-	.gpa-projection-copy {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		min-width: 0;
-	}
-
-	.gpa-projection-copy p {
-		margin: 0.3rem 0 0.9rem;
-		color: var(--ink);
-		font-size: var(--text-small);
-		line-height: 1.5;
-	}
-
 	.course-analytics {
-		margin-bottom: 1.25rem;
+		margin-bottom: 1rem;
 	}
 
 	.empty-course-state {
@@ -2440,28 +3023,50 @@
 	}
 
 	.course-analytics .course-facts {
-		margin-top: 0.75rem;
+		display: grid;
+		grid-template-columns: 1.35fr repeat(3, minmax(0, 1fr));
+		gap: 0.7rem;
+		margin-top: 0;
+		border: 0;
+		padding: 0;
 	}
 
-	.course-analytics-head {
-		margin-bottom: 0.75rem;
-		padding: 0 0.25rem;
+	.course-analytics .course-fact {
+		min-height: 7.5rem;
+		align-content: center;
+		gap: 0.35rem;
+		border: 0;
+		background: var(--paper-shelf);
+		padding: 1rem;
 	}
 
-	.course-analytics-head h2 {
-		margin: 0;
-		color: var(--ink);
-		font-family: var(--font-body);
-		font-weight: 700;
-		font-size: 1.65rem;
-		line-height: 1.1;
+	.course-analytics .course-fact.primary {
+		background: color-mix(in srgb, var(--ok) 10%, var(--paper));
 	}
 
-	.course-analytics-head p {
-		margin: 0.35rem 0 0;
-		color: var(--ink-soft);
-		font-size: var(--text-small);
-		line-height: 1.45;
+	.course-analytics .course-fact.projected {
+		background: var(--paper-shelf);
+	}
+
+	.course-analytics .course-fact.final-target {
+		background: color-mix(in srgb, var(--warn) 7%, var(--paper));
+	}
+
+	.course-analytics .course-fact.categories {
+		background: color-mix(in srgb, var(--pen-blue) 8%, var(--paper));
+	}
+
+	.course-analytics .course-fact.categories .fact-value {
+		color: var(--pen-blue);
+	}
+
+	.course-analytics .fact-value {
+		font-size: 2rem;
+		line-height: 1;
+	}
+
+	.course-analytics .course-fact.primary .fact-value {
+		font-size: 2.75rem;
 	}
 
 	.panel-copy {
@@ -2472,8 +3077,33 @@
 	}
 
 	.import-panel {
-		border: 2px solid var(--ink);
-		background: var(--paper);
+		border: 0;
+		background: var(--paper-shelf);
+		padding: 1rem;
+	}
+
+	.digest-grid {
+		grid-template-columns: minmax(16rem, 0.72fr) minmax(24rem, 1.28fr);
+		gap: 1rem;
+		align-items: start;
+	}
+
+	.grade-entry-column {
+		display: grid;
+		gap: 0.75rem;
+		align-self: start;
+	}
+
+	.projection-panel,
+	.gradebook {
+		border: 0;
+		background: var(--paper-shelf);
+		box-shadow: none;
+		transform: none;
+	}
+
+	.projection-panel {
+		padding: 1rem 1.15rem;
 	}
 
 	.import-panel-head {
@@ -2481,8 +3111,8 @@
 		justify-content: space-between;
 		gap: 1rem;
 		align-items: flex-start;
-		padding-bottom: 0.85rem;
-		border-bottom: 1px solid var(--ink);
+		padding-bottom: 0.65rem;
+		border-bottom: 0;
 	}
 
 	.import-panel-head h2 {
@@ -2494,20 +3124,10 @@
 		line-height: 1;
 	}
 
-	.import-badge {
-		border: 1px solid var(--ink);
-		background: var(--highlight-soft);
-		color: var(--ink);
-		font-size: var(--text-caption);
-		text-transform: none;
-		letter-spacing: 0.1em;
-		padding: 0.35rem 0.5rem;
-		white-space: nowrap;
-	}
-
 	.grade-form {
 		display: grid;
-		gap: 0.85rem;
+		gap: 0.7rem;
+		margin-top: 0.75rem;
 	}
 
 	.grade-form input,
@@ -2521,10 +3141,22 @@
 		padding: 0.55rem 0.65rem;
 	}
 
-	.score-row {
+	.assignment-row {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.75rem;
+		grid-template-columns: minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(9rem, 0.85fr);
+		gap: 0.55rem;
+	}
+
+	.score-entry {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.score-entry span {
+		color: var(--ink-faint);
+		text-align: center;
 	}
 
 	.form-actions {
@@ -2538,22 +3170,93 @@
 	}
 
 	.projection-note {
-		margin: 1rem 0 1.25rem;
-		padding: 0.95rem 1rem;
-		border: 1px solid var(--accent);
-		background: var(--paper-shelf);
+		margin: 0.9rem 0 1.1rem;
+		padding: 0.9rem 1rem;
+		border: 0;
+		border-left: 3px solid var(--dashboard-primary);
+		background: color-mix(in srgb, var(--dashboard-primary) 7%, var(--paper));
 		color: var(--ink);
 	}
 
 	.course-target-box {
 		width: 100%;
-		margin-top: 1rem;
+		margin-top: 0.9rem;
 	}
 
 	.projection-note p {
 		margin: 0;
 		font-size: var(--text-small);
 		line-height: 1.55;
+	}
+
+	.projection-note .recommendation-detail {
+		margin-top: 0.45rem;
+		color: var(--ink-soft);
+		font-size: var(--text-caption);
+	}
+
+	.projection-heading h2 {
+		margin: 0.15rem 0 0;
+		color: var(--ink);
+		font-family: var(--font-body);
+		font-size: 1.7rem;
+		line-height: 1.1;
+	}
+
+	.projection-result {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		align-items: end;
+		gap: 0.15rem 1rem;
+		margin-top: 1rem;
+		padding: 0.9rem 0;
+	}
+
+	.projection-result > span {
+		color: var(--ink-soft);
+		font-size: var(--text-small);
+	}
+
+	.projection-result strong {
+		grid-row: 1 / span 2;
+		grid-column: 2;
+		font-family: var(--font-body);
+		font-size: 3rem;
+		line-height: 0.95;
+	}
+
+	.projection-result small {
+		color: var(--ink);
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.projection-bar {
+		grid-column: 1 / -1;
+		height: 0.45rem;
+		margin-top: 0.45rem;
+		background: color-mix(in srgb, var(--pen-blue) 10%, var(--paper));
+	}
+
+	.projection-bar span {
+		display: block;
+		height: 100%;
+		background: var(--pen-blue);
+	}
+
+	.projection-empty,
+	.gradebook-empty {
+		display: flex;
+		align-items: center;
+		gap: 0.85rem;
+	}
+
+	.projection-empty > strong,
+	.gradebook-empty > strong {
+		flex: 1;
+		color: var(--ink-soft);
+		font-size: var(--text-small);
+		font-weight: 500;
 	}
 
 	.projection-scale {
@@ -2572,17 +3275,12 @@
 	}
 
 	.scale-line span,
-	.scale-line b,
 	.scale-line i {
 		position: absolute;
 		top: -0.35rem;
 		width: 0.15rem;
 		height: 1.1rem;
 		background: var(--ink);
-	}
-
-	.scale-line b {
-		background: var(--ok);
 	}
 
 	.scale-line i {
@@ -2615,6 +3313,30 @@
 		border-bottom: 1px solid var(--rule-soft);
 	}
 
+	.weight-copy {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.weight-copy.compact {
+		display: grid;
+		grid-template-columns: minmax(7rem, 0.45fr) minmax(8rem, 1fr);
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.weight-track {
+		width: 100%;
+		height: 0.35rem;
+		background: var(--paper-shelf);
+	}
+
+	.weight-track span {
+		display: block;
+		height: 100%;
+		background: var(--pen-blue);
+	}
+
 	.weight-row:last-child,
 	.grade-row:last-child {
 		border-bottom: 0;
@@ -2628,7 +3350,6 @@
 		font-weight: 500;
 	}
 
-	.weight-source,
 	.grade-category {
 		display: block;
 		color: var(--ink-faint);
@@ -2667,7 +3388,10 @@
 	}
 
 	.gradebook {
-		padding: 1.25rem;
+		margin-top: 0;
+		border-top: 1px solid var(--rule-soft);
+		background: transparent;
+		padding: 0.9rem 0;
 	}
 
 	.grade-main {
@@ -2703,20 +3427,30 @@
 			grid-template-columns: 1fr;
 		}
 
-		.gpa-projection-panel {
-			grid-template-columns: 1fr;
-		}
-
 		.performance-body,
 		.term-course-bar,
 		.transcript-columns {
 			grid-template-columns: 1fr;
+		}
+
+		.transcript-column + .transcript-column {
+			border-left: 0;
+			padding-left: 0;
 		}
 	}
 
 	@media (max-width: 900px) {
 		.digest-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.gpa-hero {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+
+		.transcript-upload-actions {
+			justify-content: flex-start;
 		}
 
 		.course-link,
@@ -2730,8 +3464,17 @@
 			width: 100%;
 		}
 
+		.course-hero-side {
+			width: 100%;
+			flex-basis: auto;
+		}
+
 		.course-link-actions {
 			justify-content: flex-start;
+		}
+
+		.course-analytics .course-facts {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 
 		.course-facts {
@@ -2758,13 +3501,17 @@
 			display: grid;
 		}
 
-		.digest-source-strip {
-			align-items: flex-start;
-			flex-direction: column;
-		}
-
 		.term-performance-head {
 			display: grid;
+		}
+
+		.dashboard-intelligence,
+		.course-filter-bar {
+			grid-template-columns: 1fr;
+		}
+
+		.insight-panel ul {
+			grid-template-columns: 1fr;
 		}
 	}
 
@@ -2773,16 +3520,44 @@
 			grid-template-columns: 1fr;
 		}
 
+		.gpa-facts {
+			grid-template-columns: 1fr;
+		}
+
+		.gpa-facts > div {
+			border: 0;
+		}
+
+		.course-analytics .course-facts {
+			grid-template-columns: 1fr;
+		}
+
+		.projection-empty,
+		.gradebook-empty {
+			align-items: flex-start;
+			flex-wrap: wrap;
+		}
+
+		.transcript-upload-actions,
+		.transcript-upload-actions .btn,
+		.gpa-scale-control {
+			width: 100%;
+		}
+
 		.weight-row,
 		.grade-row {
 			flex-direction: column;
 			align-items: flex-start;
 		}
 
-		.score-row,
-		.gpa-course-row,
+		.assignment-row,
 		.history-grade-item,
 		.performance-row {
+			grid-template-columns: 1fr;
+		}
+
+		.current-course-grid,
+		.finished-course-grid {
 			grid-template-columns: 1fr;
 		}
 

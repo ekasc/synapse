@@ -4,14 +4,28 @@ import type {
 	DigestWarning,
 	WeeklyDigest
 } from '$lib/dashboard/weekly';
+import { deadlineDisplayTitle } from '$lib/dashboard/weekly';
 
 const DAY_MS = 86_400_000;
+
+// Some calendar events carry their weight only in the title
+// ("Project Defense (20%) and Final report (40%) due" → 60).
+function weightFromTitle(title: string): number | null {
+	const matches = title.match(/\d+(?:\.\d+)?%/g);
+	if (!matches) return null;
+	return matches.reduce((sum, match) => sum + parseFloat(match), 0);
+}
+
+function weightOf(deadline: DigestDeadline): number | null {
+	return deadline.gradeWeight ?? weightFromTitle(deadline.title);
+}
 
 export type WeeklyMetric = {
 	label: string;
 	value: string;
 	detail: string | null;
 	tone: 'neutral' | 'warning';
+	empty?: boolean;
 };
 
 export type TimelineDay = {
@@ -23,18 +37,12 @@ export type TimelineDay = {
 	crunchCount: number;
 };
 
-export type NextUp =
-	| { kind: 'deadline'; deadline: DigestDeadline; status: string }
-	| { kind: 'priority'; priority: DigestPriority; status: string };
-
 export type CompactPriority = DigestPriority & {
-	kindLabel: string;
 	meta: string;
 };
 
 export type WeeklyViewModel = {
 	metrics: WeeklyMetric[];
-	nextUp: NextUp | null;
 	days: TimelineDay[];
 	overdue: DigestDeadline[];
 	priorities: CompactPriority[];
@@ -66,17 +74,6 @@ function daysFromToday(dueDate: string, now: Date): number {
 	return Math.round((parseDateKey(dueDate).getTime() - today.getTime()) / DAY_MS);
 }
 
-function shortDeadlineStatus(deadline: DigestDeadline, now: Date): string {
-	const daysUntil = daysFromToday(deadline.dueDate, now);
-	if (daysUntil < 0) {
-		const days = Math.abs(daysUntil);
-		return `Overdue by ${days} day${days === 1 ? '' : 's'}`;
-	}
-	if (daysUntil === 0) return 'Due today';
-	if (daysUntil === 1) return 'Due tomorrow';
-	return `Due in ${daysUntil} days`;
-}
-
 function priorityMeta(priority: DigestPriority): string {
 	const useful = priority.factors.slice(0, 2);
 	if (useful.length) return useful.join(' · ');
@@ -90,14 +87,44 @@ function priorityMeta(priority: DigestPriority): string {
 	return priority.kind === 'practice' ? 'Ready to continue' : 'Needs attention';
 }
 
+function normalizeDeadline(deadline: DigestDeadline): DigestDeadline {
+	// Digests stored before displayTitle existed lack the field; heal them so the
+	// UI never renders an empty title. Fresh digests pass through unchanged.
+	if (deadline.displayTitle) return deadline;
+	return { ...deadline, displayTitle: deadlineDisplayTitle(deadline.title, deadline.typeLabel) };
+}
+
+function normalizePriority(priority: DigestPriority, deadlines: DigestDeadline[]): DigestPriority {
+	if (priority.displayTitle) return priority;
+	// Deadline priorities predating displayTitle can recover the specific type
+	// ("Midterm") from the matching stored deadline before the next regeneration.
+	if (priority.kind === 'deadline' && priority.courseCode && priority.dueDate) {
+		const match = deadlines.find(
+			(deadline) =>
+				deadline.courseCode === priority.courseCode && deadline.dueDate === priority.dueDate
+		);
+		if (match) {
+			return {
+				...priority,
+				displayTitle: deadlineDisplayTitle(priority.title, match.typeLabel)
+			};
+		}
+	}
+	return { ...priority, displayTitle: priority.title };
+}
+
 export function buildWeeklyViewModel(digest: WeeklyDigest, now = new Date()): WeeklyViewModel {
-	const overdue = digest.deadlines.filter((deadline) => daysFromToday(deadline.dueDate, now) < 0);
-	const upcoming = digest.deadlines.filter((deadline) => daysFromToday(deadline.dueDate, now) >= 0);
+	const overdue = digest.deadlines
+		.filter((deadline) => daysFromToday(deadline.dueDate, now) < 0)
+		.map(normalizeDeadline);
+	const upcoming = digest.deadlines
+		.filter((deadline) => daysFromToday(deadline.dueDate, now) >= 0)
+		.map(normalizeDeadline);
 	const knownWeight = digest.deadlines.reduce(
-		(sum, deadline) => sum + (deadline.gradeWeight ?? 0),
+		(sum, deadline) => sum + (weightOf(deadline) ?? 0),
 		0
 	);
-	const hasKnownWeight = digest.deadlines.some((deadline) => deadline.gradeWeight != null);
+	const hasKnownWeight = digest.deadlines.some((deadline) => weightOf(deadline) != null);
 	const focusCourses = new Set(
 		[
 			...digest.deadlines.map((deadline) => deadline.courseId ?? deadline.courseCode),
@@ -116,7 +143,8 @@ export function buildWeeklyViewModel(digest: WeeklyDigest, now = new Date()): We
 			label: 'Known weight',
 			value: hasKnownWeight ? `${knownWeight}%` : '—',
 			detail: hasKnownWeight ? 'Across listed work' : 'Not provided',
-			tone: 'neutral'
+			tone: 'neutral',
+			empty: !hasKnownWeight
 		},
 		{
 			label: 'Courses in focus',
@@ -131,17 +159,6 @@ export function buildWeeklyViewModel(digest: WeeklyDigest, now = new Date()): We
 			tone: digest.studyGaps.length ? 'warning' : 'neutral'
 		}
 	];
-
-	const firstDeadline = overdue[0] ?? upcoming[0];
-	const nextUp: NextUp | null = firstDeadline
-		? { kind: 'deadline', deadline: firstDeadline, status: shortDeadlineStatus(firstDeadline, now) }
-		: digest.priorities[0]
-			? {
-					kind: 'priority',
-					priority: digest.priorities[0],
-					status: priorityMeta(digest.priorities[0])
-				}
-			: null;
 
 	const start = parseDateKey(digest.weekStart);
 	const todayKey = dateKey(now);
@@ -179,17 +196,10 @@ export function buildWeeklyViewModel(digest: WeeklyDigest, now = new Date()): We
 
 	return {
 		metrics,
-		nextUp,
 		days,
 		overdue,
 		priorities: digest.priorities.map((priority) => ({
-			...priority,
-			kindLabel:
-				priority.kind === 'deadline'
-					? 'Deadline'
-					: priority.kind === 'practice'
-						? 'Practice'
-						: 'Materials',
+			...normalizePriority(priority, digest.deadlines),
 			meta: priorityMeta(priority)
 		})),
 		materialWarnings,
@@ -208,7 +218,6 @@ export function buildWeeklyViewModel(digest: WeeklyDigest, now = new Date()): We
 export const weeklyViewModelInternals = {
 	parseDateKey,
 	daysFromToday,
-	shortDeadlineStatus,
 	priorityMeta,
 	DAY_MS
 };

@@ -28,6 +28,11 @@ async function processTranscript(
 			await getCourses(userId),
 			await getSemesters(userId)
 		);
+		if (analysis.courses.length === 0) {
+			throw new Error(
+				'No courses were detected. Upload a clear transcript image, PDF, CSV, or text file and try again.'
+			);
+		}
 		await saveAcademicDigest(userId, { fileName, source: 'transcript-upload', analysis });
 		await updateAcademicDigestJob(userId, jobId, { status: 'completed' });
 	} catch (error) {

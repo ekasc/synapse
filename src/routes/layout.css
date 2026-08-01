@@ -1,9 +1,6 @@
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
-@import '@fontsource/jetbrains-mono/400.css';
-@import '@fontsource/jetbrains-mono/500.css';
-@import '@fontsource/kalam/700.css';
 
 /* Utility layer only: preserve the existing global reset and base styles. */
 @import 'tailwindcss/theme' layer(theme);
@@ -71,8 +68,8 @@
 	--subject-isys: #b04a6a;
 	--subject-humn: #6a5a8a;
 	--font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-	--font-numeric: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-	--font-hand: 'Kalam', cursive;
+	--font-numeric: var(--font-body);
+	--font-hand: var(--font-body);
 	--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 	--z-dropdown: 1000;
 	--z-fab: 100;
@@ -131,6 +128,17 @@ body {
 
 .flex-1 {
 	flex: 1;
+}
+
+/* Weekly plan: rotate the regenerate icon while a new plan is being generated. */
+.spinning {
+	animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .icon-btn {
@@ -334,9 +342,9 @@ body {
    Page Title + Tagline (catalog-styled)
    ═══════════════════════════════════════════════════════════════ */
 
-/* App page titles: Kalam 700 (handwritten), 1.5–2rem */
+/* App page titles use the same minimal sans-serif family as the interface. */
 .page-title {
-	font-family: var(--font-hand);
+	font-family: var(--font-body);
 	font-weight: 700;
 	font-size: clamp(1.7rem, 3vw, 2.05rem);
 	color: var(--ink);

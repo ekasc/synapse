@@ -5,7 +5,15 @@ function isSynapseOrigin(origin) {
 	);
 }
 
-document.documentElement.dataset.synapseFocusGuard = 'bridge-loaded';
+function markBridgeLoaded() {
+	if (document.documentElement) {
+		document.documentElement.dataset.synapseFocusGuard = 'bridge-loaded';
+		return;
+	}
+	window.requestAnimationFrame(markBridgeLoaded);
+}
+
+markBridgeLoaded();
 
 let port;
 let portDisconnected = false;

@@ -276,7 +276,9 @@ export function buildPriorityDashboard(input: PriorityInput): PriorityDashboard 
 	).length;
 	const next = dated.find((item) => item.date >= today);
 	const sentence = urgent
-		? `${urgent} item${urgent === 1 ? '' : 's'} need attention today; ${upcoming} more this week.`
+		? upcoming
+			? `${urgent} item${urgent === 1 ? '' : 's'} ${urgent === 1 ? 'needs' : 'need'} attention today, ${upcoming} more this week.`
+			: `${urgent} item${urgent === 1 ? '' : 's'} ${urgent === 1 ? 'needs' : 'need'} attention today.`
 		: upcoming
 			? `Nothing urgent today. Your next deadline is ${next!.date.toLocaleDateString(undefined, { weekday: 'long' })}.`
 			: 'Nothing needs attention yet. You’re all caught up.';

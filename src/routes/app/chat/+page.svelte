@@ -50,9 +50,46 @@
 					'What should I study tonight?'
 				]
 	);
-	const latestSources = $derived(
-		[...messages].reverse().find((message) => message.sources)?.sources ?? []
-	);
+	function demoAnswer(question: string): ChatMessage {
+		const course = selectedCourse;
+		if (course) {
+			return {
+				id: crypto.randomUUID(),
+				role: 'assistant',
+				content: `This is the frontend demonstration for ${course.code}. Once the RAG service is connected, I’ll retrieve the strongest passages from its syllabus and uploaded materials, then answer “${question}” with page-level citations.`,
+				confidence: 'limited',
+				sources: [
+					{
+						id: 'demo-syllabus',
+						label: `${course.code} syllabus`,
+						detail: 'Demo citation · page 3',
+						excerpt: 'Retrieved passages will appear here with the exact supporting text.'
+					},
+					{
+						id: 'demo-notes',
+						label: `${course.code} course notes`,
+						detail: 'Demo citation · section 2',
+						excerpt: 'Source cards will link back to the original uploaded material.'
+					}
+				]
+			};
+		}
+
+		return {
+			id: crypto.randomUUID(),
+			role: 'assistant',
+			content: `This is the frontend demonstration. The RAG service will search across your selected courses before answering “${question}”. It will separate recorded facts from study recommendations and decline when no supporting evidence is found.`,
+			confidence: 'limited',
+			sources: [
+				{
+					id: 'demo-catalog',
+					label: 'Academic catalog',
+					detail: `Demo citation · ${courses.length} courses`,
+					excerpt: 'Cross-course results will identify the course and source for every claim.'
+				}
+			]
+		};
+	}
 
 	async function scrollToLatest() {
 		await tick();
@@ -129,7 +166,6 @@
 			</select>
 		</label>
 		<div class="control-actions">
-			<span class="demo-stamp">read-only RAG</span>
 			<button class="btn btn-ghost btn-sm" onclick={clearConversation}>clear chat</button>
 		</div>
 	</div>
@@ -154,15 +190,6 @@
 							{/if}
 						</div>
 						<p>{message.content}</p>
-						{#if message.sources?.length}
-							<div class="inline-sources">
-								{#each message.sources as source, index (source.id)}
-									<a href={`#source-${source.id}`}
-										><span class="font-numeric">[{index + 1}]</span> {source.label}</a
-									>
-								{/each}
-							</div>
-						{/if}
 					</article>
 				{/each}
 				{#if sending}
@@ -202,35 +229,11 @@
 		<aside class="evidence-panel">
 			<div class="suggestion-block">
 				<p class="eyebrow">Try asking</p>
-				{#each suggestions as suggestion (suggestion)}
+				{#each suggestions as suggestion}
 					<button onclick={() => sendMessage(suggestion)}>{suggestion}<span>→</span></button>
 				{/each}
 			</div>
 
-			<div class="source-block surface-polaroid">
-				<div class="source-head">
-					<div>
-						<p class="eyebrow">Evidence desk</p>
-						<h2>Sources</h2>
-					</div>
-					<span class="font-numeric">{messages.at(-1)?.sources?.length ?? 0}</span>
-				</div>
-				{#if latestSources.length}
-					<div class="source-list">
-						{#each latestSources as source, index (source.id)}
-							<article id={`source-${source.id}`} class="source-card">
-								<div class="source-number">[{index + 1}]</div>
-								<div>
-									<strong>{source.label}</strong><span>{source.detail}</span>
-									<p>{source.excerpt}</p>
-								</div>
-							</article>
-						{/each}
-					</div>
-				{:else}
-					<p class="empty-evidence">Sources supporting the latest answer will appear here.</p>
-				{/if}
-			</div>
 		</aside>
 	</div>
 
@@ -296,14 +299,6 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-	}
-	.demo-stamp {
-		padding: 0.25rem 0.45rem;
-		border: 1px dashed var(--accent);
-		color: var(--accent);
-		font-size: var(--text-caption);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 	}
 	.assistant-layout {
 		display: grid;
@@ -389,25 +384,6 @@
 		font-size: var(--text-small);
 		line-height: 1.6;
 	}
-	.inline-sources {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.35rem;
-		margin-top: 0.65rem;
-	}
-	.inline-sources a {
-		border-bottom: 1px solid var(--rule);
-		color: var(--ink-soft);
-		font-size: var(--text-caption);
-		text-decoration: none;
-		transition:
-			color 0.12s var(--ease-out-quart),
-			border-color 0.12s var(--ease-out-quart);
-	}
-	.inline-sources a:hover {
-		color: var(--ink);
-		border-bottom-color: var(--ink);
-	}
 	.thinking {
 		display: flex;
 		align-items: center;
@@ -478,65 +454,6 @@
 	.suggestion-block button:hover {
 		color: var(--ink);
 		background: var(--highlight-soft);
-	}
-	.source-block {
-		padding: 1rem;
-	}
-	.source-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		padding-bottom: 0.75rem;
-		border-bottom: 1px solid var(--rule);
-	}
-	.source-head h2 {
-		margin: 0;
-		font-family: var(--font-body);
-		font-size: 1.35rem;
-		font-weight: 700;
-		line-height: 1.1;
-	}
-	.source-head > span {
-		border: 1px solid var(--rule);
-		padding: 0.2rem 0.4rem;
-		font-size: var(--text-caption);
-	}
-	.source-list {
-		display: flex;
-		flex-direction: column;
-	}
-	.source-card {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: 0.6rem;
-		padding: 0.85rem 0;
-		border-bottom: 1px dashed var(--rule);
-	}
-	.source-number {
-		font-size: var(--text-caption);
-		color: var(--ink-faint);
-	}
-	.source-card strong,
-	.source-card span {
-		display: block;
-	}
-	.source-card strong {
-		font-family: var(--font-body);
-		font-size: var(--text-caption);
-		font-weight: 600;
-	}
-	.source-card span {
-		margin-top: 0.18rem;
-		color: var(--ink-faint);
-		font-size: var(--text-caption);
-		text-transform: uppercase;
-	}
-	.source-card p,
-	.empty-evidence {
-		margin: 0.45rem 0 0;
-		color: var(--ink-soft);
-		font-size: var(--text-caption);
-		line-height: 1.45;
 	}
 	.disclaimer {
 		margin: 0.85rem 0 0;
