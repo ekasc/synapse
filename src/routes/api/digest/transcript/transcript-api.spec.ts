@@ -32,7 +32,7 @@ describe('POST /api/digest/transcript', () => {
 		vi.clearAllMocks();
 		getCourses.mockResolvedValue([]);
 		getSemesters.mockResolvedValue([]);
-		analyzeTranscriptFile.mockResolvedValue({ courses: [], trend: [] });
+		analyzeTranscriptFile.mockResolvedValue({ courses: [{ code: 'COMP 1234' }], trend: [] });
 		updateAcademicDigestJob.mockResolvedValue(null);
 	});
 
@@ -72,7 +72,7 @@ describe('POST /api/digest/transcript', () => {
 		expect(saveAcademicDigest).toHaveBeenCalledWith('test-user', {
 			fileName: 'transcript.pdf',
 			source: 'transcript-upload',
-			analysis: { courses: [], trend: [] }
+			analysis: { courses: [{ code: 'COMP 1234' }], trend: [] }
 		});
 		expect(updateAcademicDigestJob).toHaveBeenNthCalledWith(2, 'test-user', job.id, {
 			status: 'completed'
