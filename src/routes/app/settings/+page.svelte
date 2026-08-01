@@ -111,7 +111,6 @@
 <div class="page">
 	<header class="page-head">
 		<div>
-			<span class="kicker">Account and preferences</span>
 			<h1>Settings</h1>
 		</div>
 	</header>
@@ -188,12 +187,6 @@
 	.page-head > div {
 		display: grid;
 		gap: 0.3rem;
-	}
-
-	.kicker {
-		font-family: var(--font-body);
-		font-size: var(--text-caption);
-		color: var(--ink-faint);
 	}
 
 	h1 {

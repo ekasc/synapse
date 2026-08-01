@@ -1299,7 +1299,7 @@
 			<section class="surface performance-panel" aria-label="Performance over time">
 				<div class="performance-head">
 					<div>
-						<span class="gpa-kicker">Academic performance analytics</span>
+						<span class="gpa-kicker">Performance</span>
 						<h2>No GPA trend yet</h2>
 						<p class="empty-gradebook-note">
 							Upload a transcript or import setup courses to generate academic progress analytics.
@@ -1310,7 +1310,6 @@
 		{/if}
 	{:else if courses.length === 0}
 		<section class="surface empty-course-state" aria-label="No courses available">
-			<span class="gpa-kicker">No courses imported</span>
 			<h2>No course dashboard yet</h2>
 			<p>
 				Import courses during setup or upload a syllabus before course-specific grade analytics are
