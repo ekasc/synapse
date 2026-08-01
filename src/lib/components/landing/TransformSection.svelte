@@ -1,6 +1,5 @@
 <section class="section section--transform" aria-labelledby="transform-heading">
 	<header class="transform-head">
-		<span class="stamp" style="transform: rotate(-1deg);">field note · the mechanism</span>
 		<h2 id="transform-heading" class="transform-title font-hand">
 			<span class="highlighter-soft">add</span> a syllabus. turn course details, deadlines, and
 			weights into a <span class="highlighter">usable plan</span>.
@@ -96,14 +95,17 @@
 	</div>
 
 	<p class="transform-body">
-		The structure is the point. Course details, dates, grade weights, and prerequisites feed the
-		calendar, weekly plan, grade tools, and course map — instead of living in separate tabs.
+		Turn one syllabus into deadlines you can act on, grade weights you can model, and prerequisite paths you can plan around—all in the same workspace.
 	</p>
 </section>
 
 <style>
 	.section--transform {
-		padding-top: clamp(4rem, 7vw, 6rem);
+		padding-top: clamp(3.5rem, 5vw, 4.75rem);
+		padding-bottom: clamp(3.5rem, 5vw, 4.75rem);
+		padding-inline: clamp(1.5rem, 4vw, 4rem);
+		max-width: 84rem;
+		margin-inline: auto;
 	}
 
 	.transform-head {
@@ -269,6 +271,7 @@
 		.extracted-card {
 			justify-self: stretch;
 			max-width: none;
+			min-width: 0;
 		}
 
 		.extract-arrow {

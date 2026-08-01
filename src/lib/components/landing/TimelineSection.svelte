@@ -41,7 +41,6 @@
 
 <section class="section section--timeline" aria-labelledby="timeline-heading">
 	<header class="timeline-head">
-		<span class="stamp" style="transform: rotate(-0.8deg);">the log</span>
 		<h2 id="timeline-heading" class="timeline-title font-hand">
 			build your workspace <span class="highlighter">one step at a time</span>.
 		</h2>
@@ -52,7 +51,7 @@
 			{#each weeks as w (w.stamp)}
 				<li class="week">
 					<div class="week-meta">
-						<span class="stamp" style="transform: rotate(-1.2deg);">{w.stamp}</span>
+						<span class="week-step">{w.stamp}</span>
 					</div>
 					<p class="week-entry font-hand">{w.entry}</p>
 					<p class="week-data font-body">{w.data}</p>
@@ -60,7 +59,6 @@
 			{/each}
 		</ol>
 		<aside class="timeline-index" aria-label="Week index">
-			<span class="stamp" style="transform: rotate(-2.4deg);">the log</span>
 			<ol class="week-index">
 				<li>step 01</li>
 				<li>step 02</li>
@@ -76,7 +74,11 @@
 
 <style>
 	.section--timeline {
-		padding-top: clamp(4rem, 7vw, 6rem);
+		padding-top: clamp(3.5rem, 5vw, 4.75rem);
+		padding-bottom: clamp(3.5rem, 5vw, 4.75rem);
+		padding-inline: clamp(1.5rem, 4vw, 4rem);
+		max-width: 84rem;
+		margin-inline: auto;
 	}
 
 	.timeline-head {
@@ -171,6 +173,15 @@
 		align-items: flex-start;
 		padding-top: 0.55rem;
 		grid-column: 1;
+	}
+
+	.week-step {
+		font-family: var(--font-numeric);
+		font-size: var(--text-small);
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		color: var(--ink-soft);
+		text-transform: uppercase;
 	}
 
 	.week-entry,
