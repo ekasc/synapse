@@ -91,7 +91,7 @@
 		</section>
 	{:else if semesters.length === 0}
 		<section class="empty-onboarding" aria-labelledby="onboarding-title">
-			<h1 id="onboarding-title" class="page-title">Set up your notebook</h1>
+			<h1 id="onboarding-title" class="page-title">Set up your workspace</h1>
 			<p class="page-tagline">Add a semester, then your courses, to see what needs attention.</p>
 			<button class="btn btn-primary" onclick={() => navigate('/app/semesters?new=1')}
 				>Add your first semester</button
@@ -163,6 +163,9 @@
 							<span class="item-action">{hero.actionLabel} <span aria-hidden="true">→</span></span>
 						</button>
 					</section>
+					{#if hero && !rest.length && !futureDays.length}
+						<p class="quiet-line">Nothing else on your plate this week.</p>
+					{/if}
 				{/if}
 
 				{#if rest.length}
@@ -411,6 +414,13 @@
 	.row-card:hover .item-action,
 	.upnext:hover .item-action {
 		color: var(--ink);
+	}
+
+	.quiet-line {
+		margin: 0;
+		text-align: center;
+		font: 500 var(--text-subheading)/1.4 var(--font-body);
+		color: var(--ink-faint);
 	}
 
 	.more-toggle {
